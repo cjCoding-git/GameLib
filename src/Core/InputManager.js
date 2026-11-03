@@ -6,6 +6,7 @@ class InputManager {
     } else {
       console.log("[GameLib] No InputManager instance found. Creating new instance...");
       this._keys = [];
+      this._active = false;
       this.bindEvents();
       GameLibCore.InputManager._instance = this;
     }
@@ -22,6 +23,9 @@ class InputManager {
   };
   get keys() {
     return this._keys;
+  }
+  setActive(active) {
+    this._active = active;
   }
   clearKeys() {
     this._keys = [];
