@@ -1,1 +1,17 @@
 name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to name the build artifacts'
+        required: true
+        type: string
+      source:
+        description: 'Path to the main source file.'
+        required: true
+        default: 'src/index.js'
+        type: string
+
+jobs:
+  
