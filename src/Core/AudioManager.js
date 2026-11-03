@@ -7,6 +7,8 @@ class AudioManager {
       console.log("[GameLib] No AudioManager instance found. Creating new instance...");
       this._musicPool = [];
       this._loopingSoundPool = {};
+      this._sfxPool = {};
+      this._activeLoopingSoundPool = {};
       this._currentMusic = null;
       this._musicPaused = true;
       this.bindEvents();
