@@ -6,7 +6,6 @@ import { Sprite } from "./Sprite.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
-      delete this;
       return GameLib2D.GameLib._instance;
     } else {
       console.log("[GameLib] No GameLib instance found. Creating new instance.");
