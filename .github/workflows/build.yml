@@ -1,0 +1,48 @@
+name: Build
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (x.x.x)'
+        required: true
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Update package.json
+        run: |
+          jq '.version = "${{ inputs.version }}"' package.json > tmp.json
+          mv tmp.json package.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g esbuild
+      - name: Clean dist directory
+        run: |
+          rm -rf dist/*
+          mkdir -p dist/
+      - name: Create build files
+        run: |
+          VERSION="${{ inputs.version }}"
+          UNMINIFIED_OUT="dist/GameLib-${VERSION}.js"
+          MINIFIED_OUT="dist/GameLib-${VERSION}.min.js"
+          esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT
+          esbuild src/index.js --bundle --format=iife --platform=browser --minify --outfile=$MINIFIED_OUT
+      - name: Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@://github.com"
+          git add package.json
+          git add dist/
+          git diff-index --quiet HEAD || git commit -m "chore: build version ${{ inputs.version }}"
+          git push origin main
