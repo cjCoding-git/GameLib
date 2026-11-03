@@ -21,3 +21,6 @@ class Box {
     ];
   }
 }
+export {
+  Box
+}
