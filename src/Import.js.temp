@@ -16,10 +16,7 @@ class GameLib extends GameLibBase {
 			this._viewportCtx = viewportCtx;
 			this._viewport = new Box(new Coord(0, 0), new Size(this._viewportCanvas.width, this._viewportCanvas.height));
 			this._renderables = [];
-			this._fullscreen = 0;
-			this._pointerLocked = false;
 			this._background = {};
-			this._keys = [];
 			this._active = true;
 			this._rendering = true;
 			this.oncontextmenu = null;
