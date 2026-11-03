@@ -1,7 +1,7 @@
-import { GameLibError } from "src/Core/Error.js"
-import { InputManager } from "src/Core/InputManager.js"
-import { AudioManager } from "src/Core/AudioManager.js"
-import { Utils } from "src/Core/Utils.js"
+import { GameLibError } from "./Error.js"
+import { InputManager } from "./InputManager.js"
+import { AudioManager } from "./AudioManager.js"
+import { Utils } from "./Utils.js"
 class GameLibCore {
   constructor() {
     throw new GameLibError("Class GameLibCore may not be constructed!");
