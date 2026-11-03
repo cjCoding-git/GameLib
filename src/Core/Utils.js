@@ -1,4 +1,4 @@
-import { GameLibCore } from "src/Core/index.js"
+import { GameLibCore } from "./index.js"
 class Utils {
   constructor() {
     throw new GameLibCore.Error("Class Utils may not be constructed!");
