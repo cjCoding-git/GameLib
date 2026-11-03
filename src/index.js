@@ -1,4 +1,4 @@
-/*
+/*!
   GameLib
   Copyright (c) 2025, Charles Jager
 */
