@@ -1,3 +1,4 @@
+import { GameLibCore } from "./index.js"
 class Store {
   constructor(name, ...indexes) {
     this._name = name;
