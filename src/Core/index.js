@@ -3,6 +3,8 @@ import { InputManager } from "./InputManager.js"
 import { AudioManager } from "./AudioManager.js"
 import { Utils } from "./Utils.js"
 import { GameLibBase } from "./GameLibBase.js"
+import { Storage } from "./Storage.js"
+import { Store } from "./Store.js"
 class GameLibCore {
   constructor() {
     throw new GameLibError("Class GameLibCore may not be constructed!");
@@ -12,6 +14,8 @@ class GameLibCore {
   static InputManager = InputManager;
   static AudioManager = AudioManager;
   static GameLibBase = GameLibBase;
+  static Storage = Storage;
+  static Store = Store;
 }
 export {
   GameLibCore
