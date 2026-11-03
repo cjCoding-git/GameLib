@@ -602,7 +602,7 @@
     }
     update() {
     }
-    draw() {
+    draw(camera, program) {
     }
   };
 
@@ -1218,6 +1218,8 @@ ${nodesText}`;
         this._objects = [];
         this._options = options;
         this._clearColor = [0, 0, 0, 1];
+        this._camera = null;
+        this._program = null;
         this.registerMainloop();
         GameLib3D.GameLib._instance = this;
       }
@@ -1259,7 +1261,11 @@ ${nodesText}`;
       return program;
     }
     useProgram(program) {
+      this._program = program;
       this._gl.useProgram(program);
+    }
+    setCamera(camera) {
+      this._camera = camera;
     }
     getAttributeLocation(program, name, forceMode = null) {
       var location;
@@ -1308,7 +1314,7 @@ ${nodesText}`;
       this.clearCanvas();
       this.callHook("pre-render");
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].draw();
+        this._objects[i2].draw(this._camera, this._program);
       }
       this.callHook("post-render");
     }
