@@ -4891,7 +4891,7 @@
       if (renderable instanceof Renderable) {
         this._renderables.push(renderable);
       } else {
-        throw new TypeError("Parameter renderable must be an instance of Renderable");
+        throw new GameLibCore2.Error("Parameter renderable must be an instance of Renderable");
       }
     }
     get sprites() {
@@ -4919,8 +4919,8 @@
       this._viewport.moveTo(x, y);
     }
     moveViewportToSprite(sprite) {
-      if (!sprite instanceof Sprite) {
-        throw new TypeError("Parameter sprite must be an instance of Sprite!");
+      if (!(sprite instanceof Sprite)) {
+        throw new GameLibCore2.Error("Parameter sprite must be an instance of Sprite!");
       } else {
         var x = sprite.x - this._viewportCanvas.width / 2;
         var y = sprite.y - this._viewportCanvas.height / 2;
@@ -4956,7 +4956,7 @@
       if (sprite instanceof Sprite) {
         this._sprites.push(sprite);
       } else {
-        throw new TypeError("Parameter sprite must be an instance of Sprite");
+        throw new GameLibCore2.Error("Parameter sprite must be an instance of Sprite");
       }
     }
     clearCanvas(clearViewport = true) {
