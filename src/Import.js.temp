@@ -1,9 +1,3 @@
-            class UIElement extends Renderable {
-                constructor(scene) {
-                    super(scene);
-                    this.makeOverlay();
-                }
-            }
             class TextInput extends Renderable {
                 constructor(pos, size, scene) {
                     super(scene);
