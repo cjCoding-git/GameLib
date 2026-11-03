@@ -12,7 +12,7 @@ class Mesh extends Object {
     var webgl = this._gl.webgl;
     this.buffers.position = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.position);
-    webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.positions));
+    webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.positions), webgl.STATIC_DRAW);
   }
 }
 export {
