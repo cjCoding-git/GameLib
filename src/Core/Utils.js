@@ -1,7 +1,7 @@
-import { GameLibError } from "src/Core/Error.js"
+import { GameLibCore } from "src/Core/index.js"
 class Utils {
   constructor() {
-    throw new GameLibError("Class Utils may not be constructed!");
+    throw new GameLibCore.Error("Class Utils may not be constructed!");
   }
   static imagePromise(url) {
     return new Promise(function (resolve, reject) {
