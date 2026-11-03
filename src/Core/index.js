@@ -5,6 +5,8 @@ import { Utils } from "./Utils.js"
 import { GameLibBase } from "./GameLibBase.js"
 import { Storage } from "./Storage.js"
 import { Store } from "./Store.js"
+import { FullscreenManager } from "./FullscreenManager.js"
+import { Multiplayer } from "./Multiplayer.js"
 class GameLibCore {
   constructor() {
     throw new GameLibError("Class GameLibCore may not be constructed!");
@@ -16,6 +18,8 @@ class GameLibCore {
   static GameLibBase = GameLibBase;
   static Storage = Storage;
   static Store = Store;
+  static FullscreenManager = FullscreenManager;
+  static Multiplayer = Multiplayer;
 }
 export {
   GameLibCore
