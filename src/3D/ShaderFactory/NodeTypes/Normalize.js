@@ -1,5 +1,5 @@
 import { NodeTypes } from "./NodeTypes.js"
-import { Node } from "./Node.js"
+import { Node } from "../Node.js"
 NodeTypes.Normalize = class NormalizeNode extends Node {
   constructor(value) {
     super();
