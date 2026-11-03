@@ -41,7 +41,7 @@ class AudioManager {
       this._activeLoopingSoundPool[name] = source;
       source.start(0);
     } else {
-      console.warn("[GameLib] Attempted to play a looping sound that does not exits!");
+      console.warn("[GameLib] Attempted to play a looping sound that does not exist!");
     }
   }
   stopLoopingSound(name) {
@@ -104,7 +104,7 @@ class AudioManager {
       source.connect(gainNode);
       source.start(0);
     } else {
-      console.warn("[GameLib] Attempted to play SFX that does not exit!");
+      console.warn("[GameLib] Attempted to play SFX that does not exist!");
     }
   }
 }
