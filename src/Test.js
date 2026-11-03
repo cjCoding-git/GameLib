@@ -1,5 +1,5 @@
-function customPopup(text) {
+function createPopup(text) {
   alert(text);
   console.log("Custom Popup:", text);
 }
-export { customPopup };
+export { createPopup };
