@@ -10,6 +10,7 @@ import { Rotation } from "./Rotation.js"
 import { Scale } from "./Scale.js"
 import { Camera } from "./Camera.js"
 import { Geometry } from "./Geometry/index.js"
+import { Ammo } from "../Lib/Ammo.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
@@ -33,6 +34,7 @@ class GameLib3D {
   static Rotation = Rotation;
   static Scale = Scale;
   static Geometry = Geometry;
+  static Ammo = Ammo;
 }
 export {
   GameLib3D
