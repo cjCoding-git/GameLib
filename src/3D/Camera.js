@@ -1,6 +1,6 @@
 import { Transform } from "./Transform.js"
 import { Rotation } from "./Rotation.js"
-import { mat4 } from "./Matrix.js"
+import { mat4 } from "../Lib/GLMatrix.js"
 class Camera {
   constructor(fovDegrees=45, near=0.1, far=100.0) {
     this.transform = new Transform([0, 0, 0]);
