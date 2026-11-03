@@ -44,3 +44,6 @@ var VariableTypes = {
     "2D": "sampler2D"
   }
 };
+export {
+  VariableTypes
+}
