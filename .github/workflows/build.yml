@@ -19,6 +19,7 @@ jobs:
           jq '.version = "${{ inputs.version }}"' package.json > tmp.json
           mv tmp.json package.json
           date > buildtime.txt
+          ${{ inputs.version }} > buildversion.txt
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -47,6 +48,7 @@ jobs:
           git add package.json
           git add package-lock.json
           git add buildtime.txt
+          git add buildversion.txt
           git add dist/
           git diff-index --quiet HEAD || git commit -m "chore: build version ${{ inputs.version }}"
           git push origin main
