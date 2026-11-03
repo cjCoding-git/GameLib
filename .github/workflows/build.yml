@@ -30,6 +30,15 @@ jobs:
           npm install -g esbuild
       - name: Clean dist directory
         run: |
+          rm -rf dist/*
+          mkdir -p dist/
+      - name: Create build files
+        run: |
+          VERSION="${{ inputs.version }}"
+          UNMINIFIED_OUT="dist/bundle-${VERSION}.js"
+          MINIFIED_OUT="dist/bundle-${VERSION}.min.js"
+      - name: Push changes
+        run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@://github.com"
           git add dist/
