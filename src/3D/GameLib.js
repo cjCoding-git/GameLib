@@ -13,6 +13,8 @@ class GameLib extends GameLibCore.GameLibBase {
       this._objects = [];
       this._options = options;
       this._clearColor = [ 0.0, 0.0, 0.0, 1.0 ];
+      this._camera = null;
+      this._program = null;
       this.registerMainloop();
       GameLib3D.GameLib._instance = this;
     }
@@ -54,7 +56,11 @@ class GameLib extends GameLibCore.GameLibBase {
     return program;
   }
   useProgram(program) {
+    this._program = program;
     this._gl.useProgram(program);
+  }
+  setCamera(camera) {
+    this._camera = camera;
   }
   getAttributeLocation(program, name, forceMode=null) {
     var location;
@@ -103,7 +109,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this.clearCanvas();
     this.callHook('pre-render');
     for(var i=0;i<this._objects.length;i++) {
-      this._objects[i].draw();
+      this._objects[i].draw(this._camera, this._program);
     }
     this.callHook('post-render');
   }
