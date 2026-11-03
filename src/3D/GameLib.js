@@ -1,5 +1,6 @@
 import { GameLibCore } from "../Core/index.js"
 import { GameLib3D } from "./index.js"
+import { Object } from "./Object.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, options) {
     super();
@@ -80,11 +81,11 @@ class GameLib extends GameLibCore.GameLibBase {
     this._gl.enableVertexAttribArray(location);
   }
   addObject(object) {
-    if(object instanceof GameLib3D.Object) {
+    if(object instanceof Object) {
       object.setup();
       this._objects.push(object);
     } else {
-      throw new GameLibCore.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of GameLib3D.Object!");
+      throw new GameLibCore.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of Object!");
     }
   }
   update() {
