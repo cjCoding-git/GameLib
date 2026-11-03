@@ -1,5 +1,6 @@
+import { GameLibCore } from "../Core/index.js"
 import { GameLib2D } from "./index.js"
-class GameLib {
+class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
       delete this;
@@ -14,13 +15,7 @@ class GameLib {
       this._viewportCtx = viewportCtx;
       this._viewport = new GameLib2D.Box(new GameLib2D.Coord(0, 0), new GameLib2D.Size(this._viewportCanvas.width, this._viewportCanvas.height));
       this._renderables = [];
-      this.preUpdateHooks = [];
-      this.postUpdateHooks = [];
-      this.preRenderHooks = [];
-      this.postRenderHooks = [];
       this._background = null;
-      this._active = true;
-      this._rendering = true;
       GameLib2D.GameLib._instance = this;
     }
   }
@@ -33,26 +28,6 @@ class GameLib {
         sprite.image = image;
     }).bind(this);
     image.src = url;
-  }
-  addHook(event, hook) {
-    if (event == "pre-update") {
-      this.preUpdateHooks.push(hook);
-    }
-    if (event == "post-update") {
-      this.postUpdateHooks.push(hook);
-    }
-    if (event == "pre-render") {
-      this.preRenderHooks.push(hook);
-    }
-    if (event == "post-render") {
-      this.postRenderHooks.push(hook);
-    }
-  }
-  setActive(active) {
-    this._active = active;
-  }
-  setRendering(rendering) {
-    this._rendering = rendering;
   }
   addRenderable(renderable) {
     if (renderable instanceof GameLib2D.Renderable) {
@@ -140,15 +115,11 @@ class GameLib {
     if (!this._active) {
       return;
     }
-    this.preUpdateHooks.forEach(function (hook) {
-      hook();
-    });
+    this.callHook('pre-update');
     this._sprites.forEach(function (sprite) {
       sprite.update();
     });
-    this.postUpdateHooks.forEach(function (hook) {
-      hook();
-    });
+    this.callHook('post-update');
   }
   setBackground(image, repeat = "repeat") {
     this._background = this._renderCtx.createPattern(image, repeat);
@@ -181,9 +152,7 @@ class GameLib {
       return;
     }
     this.clearCanvas(false);
-    this.preRenderHooks.forEach(function (hook) {
-      hook();
-    });
+    this.callHook('pre-render');
     this.renderBackground();
     this._sprites.forEach((function (sprite) {
       if (sprite.checkCollision(this._viewport)) {
@@ -199,9 +168,7 @@ class GameLib {
         }
       }
     }).bind(this));
-    this.postRenderHooks.forEach(function (hook) {
-      hook();
-    });
+    this.callHook('post-render');
     this.renderViewport();
     this._renderables.forEach((function (renderable) {
       if (renderable.overlay) {
