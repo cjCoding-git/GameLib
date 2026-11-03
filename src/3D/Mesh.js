@@ -9,9 +9,10 @@ class Mesh extends Object {
     this.buffers = {};
   }
   setup() {
-    var webgl = this.gl.webgl;
+    var webgl = this._gl.webgl;
     this.buffers.position = webgl.createBuffer();
-    webgl.bindBuffer(
+    webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.position);
+    webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.positions));
   }
 }
 export {
