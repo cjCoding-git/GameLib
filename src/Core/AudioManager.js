@@ -20,14 +20,12 @@ class AudioManager {
     document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
   }
   visibilityChange() {
-    if (document.visibilityState != 'visible') {
-      if (this._currentMusic != null) {
-        this._currentMusic.pause();
-      }
-    } else {
-      this.resumeMusic();
-    }
-  }
+		if(document.visibilityState != 'visible') {
+			this._audioCtx.suspend();
+		} else {
+			this._audioCtx.resume();
+		}
+	}
   async loadLoopingSound(name, url) {
     var resp = await fetch(url);
     var ab = await resp.arrayBuffer();
