@@ -43,7 +43,7 @@
       if (!this._active) {
         return;
       }
-      this._keys = this._keys.filter((key) => key != evt.keyCode);
+      this._keys = this._keys.filter((key2) => key2 != evt.keyCode);
     }
     keyDown(evt) {
       if (!this._active) {
@@ -53,12 +53,12 @@
         this._keys.push(evt.keyCode);
       }
     }
-    isKeyDown(key) {
-      return this._keys.indexOf(key) != -1;
+    isKeyDown(key2) {
+      return this._keys.indexOf(key2) != -1;
     }
-    static isKeyDown(key) {
+    static isKeyDown(key2) {
       if (GameLibCore.InputManager._instance != null) {
-        return GameLibCore.InputManager._instance._keys.indexOf(key) != -1;
+        return GameLibCore.InputManager._instance._keys.indexOf(key2) != -1;
       } else {
         throw new GameLibCore.Error("An InputManager instance must exist to use GameLibCore.InputManager.isKeyDown(key)!");
       }
@@ -107,4 +107,17 @@
   // src/3D/index.js
   var GameLib3D = class {
   };
+
+  // src/index.js
+  var libraryExports = {
+    GameLibCore,
+    GameLib2D,
+    GameLib3D
+  };
+  for (i = 0; i < Object.keys(libraryExports).length; i++) {
+    key = Object.keys(libraryExports)[i];
+    self[key] = libraryExports[key];
+  }
+  var key;
+  var i;
 })();
