@@ -69,6 +69,73 @@
     }
   };
 
+  // src/Core/AudioManager.js
+  var AudioManager = class {
+    constructor() {
+      if (GameLibCore2.AudioManager._instance) {
+        return GameLibCore2.AudioManager._instance;
+      } else {
+        console.log("[GameLib] No AudioManager instance found. Creating new instance...");
+        this._musicPool = [];
+        this._currentMusic = null;
+        this._musicPaused = true;
+        this.bindEvents();
+        GameLibCore2.AudioManager._instance = this;
+      }
+    }
+    bindEvents() {
+      window.addEventListener("click", this.resumeMusic.bind(this), false);
+      document.addEventListener("visibilitychange", this.visibilityChange.bind(this), false);
+    }
+    visibilityChange() {
+      if (document.visibilityState != "visible") {
+        if (this._currentMusic != null) {
+          this._currentMusic.pause();
+        }
+      } else {
+        this.resumeMusic();
+      }
+    }
+    resumeMusic() {
+      if (!this._musicPaused) {
+        this._currentMusic.play();
+      }
+    }
+    addSong(url) {
+      var audio = new Audio();
+      audio.onended = this.nextSong.bind(this);
+      audio.src = url;
+      audio.pause();
+      this._musicPool.push(audio);
+    }
+    nextSong() {
+      if (this._musicPool.length <= 0) {
+        throw new GameLibCore2.Error("Music Pool is empty!");
+        return;
+      }
+      if (this._currentMusic != null) {
+        this._currentMusic.pause();
+      }
+      this._currentMusic = GameLibCore2.Utils.getRandomListItem(this._musicPool);
+      this._currentMusic.currentTime = 0;
+      this._currentMusic.play();
+    }
+    playMusic() {
+      this._musicPaused = false;
+      if (this._currentMusic == null) {
+        this.nextSong();
+      } else {
+        this._currentMusic.play();
+      }
+    }
+    pauseMusic() {
+      this._musicPaused = true;
+      if (this._currentMusic != null) {
+        this._currentMusic.pause();
+      }
+    }
+  };
+
   // src/Core/Utils.js
   var Utils = class {
     constructor() {
@@ -97,7 +164,7 @@
     static Error = GameLibError;
     static Utils = Utils;
     static InputManager = InputManager;
-    static AudioManager = void 0;
+    static AudioManager = AudioManager;
   };
 
   // src/2D/Coord.js
@@ -325,7 +392,7 @@
       this._viewport.moveTo(x, y);
     }
     moveViewportToSprite(sprite) {
-      if (!sprite instanceof GameLib2D2.Sprite) {
+      if (!(sprite instanceof GameLib2D2.Sprite)) {
         throw new GameLibCore.Error("Parameter sprite must be an instance of GameLib2D.Sprite!");
       } else {
         var x = sprite.x - this._viewportCanvas.width / 2;
