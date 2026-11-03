@@ -1,11 +1,12 @@
 import { GameLib3D } from "./index.js"
-class GameLib {
+class GameLib extends GameLibBase {
   constructor(renderCanvas, renderCtx, options) {
+    super();
     if (GameLib3D.GameLib._instance != null) {
       delete this;
       return GameLib3D.GameLib._instance;
     } else {
-        console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
+      console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
       this._canvas = renderCanvas;
       this._gl = renderCtx;
       this._active = false;
@@ -30,25 +31,6 @@ class GameLib {
   }
   setClearColor(color) {
     this._clearColor = color;
-  }
-  setActive(active) {
-    this._active = active;
-  }
-  setRendering(rendering) {
-    this._rendering = rendering;
-  }
-  addHook(event, hook) {
-    if(!this._hooks[event]) {
-      this._hooks[event] = [];
-    }
-    this._hooks[event].push(hook);
-  }
-  callHook(type) {
-    if(!this._hooks[type]) return;
-    var hooks = this._hooks[type];
-    for(var i=0;i<hooks;i++) {
-      hooks[i]();
-    }
   }
   compileShader(type, source) {
     var shader = this._gl.createShader(type);
