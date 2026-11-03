@@ -3,8 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to name the build artifacts'
+        description: 'Version (x.x.x)'
         required: true
+        type: string
+      body:
+        description: 'Release Notes'
+        required: true
+        default: 'No Release Notes'
         type: string
 jobs:
   build:
@@ -42,6 +47,13 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@://github.com"
+          git add package.json
           git add dist/
           git diff-index --quiet HEAD || git commit -m "chore: release version ${{ inputs.version }}"
           git push origin main
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ inputs.version }}"
+          name: "Release v${{ inputs.version }}"
+          body: "Release Notes: ${{ inputs.body }}"
