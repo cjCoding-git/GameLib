@@ -32,6 +32,7 @@ jobs:
         run: |
           npm install
           npm install -g esbuild
+          npm install -g terser
       - name: Clean dist directory
         run: |
           rm -rf dist/*
@@ -42,7 +43,7 @@ jobs:
           UNMINIFIED_OUT="dist/GameLib-${VERSION}.js"
           MINIFIED_OUT="dist/GameLib-${VERSION}.min.js"
           esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT
-          esbuild src/index.js --bundle --format=iife --platform=browser --minify --outfile=$MINIFIED_OUT
+          npx terser $UNMINIFIED_OUT -o $MINIFIED_OUT --compress --mangle
       - name: Push changes
         run: |
           git config --global user.name "github-actions[bot]"
