@@ -5356,6 +5356,12 @@ ${nodesText}`;
       this.y = y;
       this.z = z;
     }
+    static d2r(deg) {
+      return deg * Math.PI / 180;
+    }
+    static r2d(rad) {
+      return rad * (180 / Math.PI);
+    }
     rotate(rx, ry, rz) {
       this.x += rx;
       this.y += ry;
@@ -5466,4 +5472,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
+*/
+/*!
+  GameLib
+  Copyright (c) 2025, Charles Jager
 */
