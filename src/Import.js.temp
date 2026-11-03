@@ -20,7 +20,6 @@ class GameLib extends GameLibBase {
 			this._active = true;
 			this._rendering = true;
 			this.oncontextmenu = null;
-			window.addEventListener('click', this.fullscreen.bind(this), false);
 			window.addEventListener('click', this.checkButtons.bind(this), false);
 			window.addEventListener('mousemove', this.hoverButtons.bind(this), false);
 			window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
