@@ -192,17 +192,13 @@ class GameLib extends GameLibCore.GameLibBase {
     if (!this._active) {
       return;
     }
-    this.preUpdateHooks.forEach(function(hook) {
-      hook();
-    });
+    this.callHook('pre-update');
     this._sprites.forEach((function(sprite) {
       if (this._scene == sprite.scene) {
         sprite.update();
       }
     }).bind(this));
-    this.postUpdateHooks.forEach(function(hook) {
-      hook();
-    });
+    this.callHook('post-update');
   }
   setBackground(image, scene, repeat = "repeat") {
     this._background[scene] = this._renderCtx.createPattern(image, repeat);
@@ -238,9 +234,7 @@ class GameLib extends GameLibCore.GameLibBase {
       return;
     }
     this.clearCanvas(false);
-    this.preRenderHooks.forEach(function(hook) {
-      hook();
-    });
+    this.callHook('pre-render');
     this.renderBackground();
     this._sprites.forEach((function(sprite) {
       if (sprite.checkCollision(this._viewport)) {
@@ -260,9 +254,7 @@ class GameLib extends GameLibCore.GameLibBase {
         }
       }
     }).bind(this));
-    this.postRenderHooks.forEach(function(hook) {
-      hook();
-    });
+    this.callHook('post-render');
     this.renderViewport();
     this._renderables.forEach((function(renderable) {
       if (renderable.overlay) {
