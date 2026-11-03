@@ -1,5 +1,6 @@
 import { NodeTypes } from "./NodeTypes.js"
-NodeTypes.Header = class HeaderNode extends GameLib3D.ShaderFactory.Node {
+import { Node } from "../Node.js"
+NodeTypes.Header = class HeaderNode extends Node {
   constructor(type, ...data) {
     super();
     this.canAddHeader = true;
