@@ -39,8 +39,8 @@ jobs:
       - name: Create build files
         run: |
           VERSION="${{ inputs.version }}"
-          UNMINIFIED_OUT="dist/bundle-${VERSION}.js"
-          MINIFIED_OUT="dist/bundle-${VERSION}.min.js"
+          UNMINIFIED_OUT="dist/GameLib-${VERSION}.js"
+          MINIFIED_OUT="dist/GameLib-${VERSION}.min.js"
           esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT
           esbuild src/index.js --bundle --format=iife --platform=browser --minify --outfile=$MINIFIED_OUT
       - name: Push changes
@@ -57,3 +57,8 @@ jobs:
           tag_name: "v${{ inputs.version }}"
           name: "Release v${{ inputs.version }}"
           body: "Release Notes: ${{ inputs.body }}"
+          files: |
+            dist/GameLib-${{ inputs.version }}.js
+            dist/GameLib-${{ inputs.version }}.min.js
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
