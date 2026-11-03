@@ -1,9 +1,5 @@
 import { GameLibCore } from "../../../Core/index.js"
-class NodeTypes {
-  constructor() {
-    throw new GameLibCore.Error("Class GameLib3D.ShaderFactory.NodeTypes may not be constructed!");
-  }
-}
+import { NodeTypes } from "./NodeTypes.js"
 import "./Header.js"
 import "./Variable.js"
 import "./Function.js"
