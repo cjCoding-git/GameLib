@@ -6,6 +6,7 @@ class AudioManager {
     } else {
       console.log("[GameLib] No AudioManager instance found. Creating new instance...");
       this._musicPool = [];
+      this._loopingSoundPool = {};
       this._currentMusic = null;
       this._musicPaused = true;
       this.bindEvents();
@@ -23,6 +24,29 @@ class AudioManager {
       }
     } else {
       this.resumeMusic();
+    }
+  }
+  async loadLoopingSound(name, url) {
+    var resp = await fetch(url);
+    var ab = await resp.arrayBuffer();
+    this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(ab);
+  }
+  playLoopingSound(name) {
+    if(this._loopingSoundPool[name] != null) {
+      var source = this._audioCtx.createBufferSource();
+      source.loop = true;
+      source.buffer = this._loopingSoundPool[name];
+      source.connect(this._audioCtx.destination);
+      this._activeLoopingSoundPool[name] = source;
+      source.start(0);
+    } else {
+      console.warn("[GameLib] Attempted to play a looping sound that does not exits!");
+    }
+  }
+  stopLoopingSound(name) {
+    if(this._activeLoopingSoundPool[name] != null) {
+      this._activeLoopingSoundPool[name].stop();
+      delete this._activeLoopingSoundPool[name];
     }
   }
   resumeMusic() {
