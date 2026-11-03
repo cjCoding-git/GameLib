@@ -19,7 +19,7 @@ jobs:
           jq '.version = "${{ inputs.version }}"' package.json > tmp.json
           mv tmp.json package.json
           date > buildtime.txt
-          ${{ inputs.version }} > buildversion.txt
+          "${{ inputs.version }}" > buildversion.txt
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
