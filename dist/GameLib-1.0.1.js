@@ -156,6 +156,33 @@
     }
   };
 
+  // src/Core/GameLibBase.js
+  var GameLibBase = class {
+    constructor() {
+      this._active = false;
+      this._rendering = false;
+    }
+    setActive(active) {
+      this._active = active;
+    }
+    setRendering(rendering) {
+      this._rendering = rendering;
+    }
+    addHook(event, hook) {
+      if (!this._hooks[event]) {
+        this._hooks[event] = [];
+      }
+      this._hooks[event].push(hook);
+    }
+    callHook(type) {
+      if (!this._hooks[type]) return;
+      var hooks = this._hooks[type];
+      for (var i2 = 0; i2 < hooks; i2++) {
+        hooks[i2]();
+      }
+    }
+  };
+
   // src/Core/index.js
   var GameLibCore2 = class {
     constructor() {
@@ -165,6 +192,7 @@
     static Utils = Utils;
     static InputManager = InputManager;
     static AudioManager = AudioManager;
+    static GameLibBase = GameLibBase;
   };
 
   // src/2D/Coord.js
@@ -305,7 +333,7 @@
   };
 
   // src/2D/GameLib.js
-  var GameLib = class {
+  var GameLib = class extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
       if (GameLib2D2.GameLib._instance != null) {
         delete this;
@@ -320,13 +348,7 @@
         this._viewportCtx = viewportCtx;
         this._viewport = new GameLib2D2.Box(new GameLib2D2.Coord(0, 0), new GameLib2D2.Size(this._viewportCanvas.width, this._viewportCanvas.height));
         this._renderables = [];
-        this.preUpdateHooks = [];
-        this.postUpdateHooks = [];
-        this.preRenderHooks = [];
-        this.postRenderHooks = [];
         this._background = null;
-        this._active = true;
-        this._rendering = true;
         GameLib2D2.GameLib._instance = this;
       }
     }
@@ -339,26 +361,6 @@
         sprite.image = image;
       }).bind(this);
       image.src = url;
-    }
-    addHook(event, hook) {
-      if (event == "pre-update") {
-        this.preUpdateHooks.push(hook);
-      }
-      if (event == "post-update") {
-        this.postUpdateHooks.push(hook);
-      }
-      if (event == "pre-render") {
-        this.preRenderHooks.push(hook);
-      }
-      if (event == "post-render") {
-        this.postRenderHooks.push(hook);
-      }
-    }
-    setActive(active) {
-      this._active = active;
-    }
-    setRendering(rendering) {
-      this._rendering = rendering;
     }
     addRenderable(renderable) {
       if (renderable instanceof GameLib2D2.Renderable) {
@@ -393,7 +395,7 @@
     }
     moveViewportToSprite(sprite) {
       if (!(sprite instanceof GameLib2D2.Sprite)) {
-        throw new GameLibCore.Error("Parameter sprite must be an instance of GameLib2D.Sprite!");
+        throw new GameLibCore2.Error("Parameter sprite must be an instance of GameLib2D.Sprite!");
       } else {
         var x = sprite.x - this._viewportCanvas.width / 2;
         var y = sprite.y - this._viewportCanvas.height / 2;
@@ -426,7 +428,7 @@
       if (sprite instanceof GameLib2D2.Sprite) {
         this._sprites.push(sprite);
       } else {
-        throw new GameLibCore.Error("Parameter sprite must be an instance of GameLib2D.Sprite");
+        throw new GameLibCore2.Error("Parameter sprite must be an instance of GameLib2D.Sprite");
       }
     }
     clearCanvas(clearViewport = true) {
@@ -446,15 +448,11 @@
       if (!this._active) {
         return;
       }
-      this.preUpdateHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("pre-update");
       this._sprites.forEach(function(sprite) {
         sprite.update();
       });
-      this.postUpdateHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("post-update");
     }
     setBackground(image, repeat = "repeat") {
       this._background = this._renderCtx.createPattern(image, repeat);
@@ -487,9 +485,7 @@
         return;
       }
       this.clearCanvas(false);
-      this.preRenderHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("pre-render");
       this.renderBackground();
       this._sprites.forEach((function(sprite) {
         if (sprite.checkCollision(this._viewport)) {
@@ -505,9 +501,7 @@
           }
         }
       }).bind(this));
-      this.postRenderHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("post-render");
       this.renderViewport();
       this._renderables.forEach((function(renderable) {
         if (renderable.overlay) {
@@ -1211,8 +1205,9 @@ ${nodesText}`;
   };
 
   // src/3D/GameLib.js
-  var GameLib2 = class {
+  var GameLib2 = class extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, options) {
+      super();
       if (GameLib3D.GameLib._instance != null) {
         delete this;
         return GameLib3D.GameLib._instance;
@@ -1220,9 +1215,6 @@ ${nodesText}`;
         console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
         this._canvas = renderCanvas;
         this._gl = renderCtx;
-        this._active = false;
-        this._rendering = false;
-        this._hooks = {};
         this._objects = [];
         this._options = options;
         this._clearColor = [0, 0, 0, 1];
@@ -1242,25 +1234,6 @@ ${nodesText}`;
     }
     setClearColor(color) {
       this._clearColor = color;
-    }
-    setActive(active) {
-      this._active = active;
-    }
-    setRendering(rendering) {
-      this._rendering = rendering;
-    }
-    addHook(event, hook) {
-      if (!this._hooks[event]) {
-        this._hooks[event] = [];
-      }
-      this._hooks[event].push(hook);
-    }
-    callHook(type) {
-      if (!this._hooks[type]) return;
-      var hooks = this._hooks[type];
-      for (var i2 = 0; i2 < hooks; i2++) {
-        hooks[i2]();
-      }
     }
     compileShader(type, source) {
       var shader = this._gl.createShader(type);
@@ -1310,7 +1283,7 @@ ${nodesText}`;
         object.setup();
         this._objects.push(object);
       } else {
-        throw new GameLibCore.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of GameLib3D.Object!");
+        throw new GameLibCore2.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of GameLib3D.Object!");
       }
     }
     update() {
