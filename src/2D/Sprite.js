@@ -1,10 +1,11 @@
-import { GameLib2D } from "./index.js"
-class Sprite extends GameLib2D.Box {
+import { Box } from "./Box.js"
+import { GameLib } from "./GameLib.js"
+class Sprite extends Box {
   constructor(pos, size) {
     super(pos, size);
     this.image = null;
     this.fillColor = "#000000";
-    this.gameLib = new GameLib2D.GameLib();
+    this.gameLib = new GameLib();
     this.gameLib.addSprite(this);
     this.ctx = this.gameLib.ctx;
     this.triggers = [];
