@@ -82,6 +82,7 @@
         this._activeLoopingSoundPool = {};
         this._currentMusic = null;
         this._musicPaused = true;
+        this._audioCtx = new AudioContext();
         this.bindEvents();
         GameLibCore2.AudioManager._instance = this;
       }
@@ -111,7 +112,7 @@
         this._activeLoopingSoundPool[name] = source;
         source.start(0);
       } else {
-        console.warn("[GameLib] Attempted to play a looping sound that does not exits!");
+        console.warn("[GameLib] Attempted to play a looping sound that does not exist!");
       }
     }
     stopLoopingSound(name) {
@@ -174,7 +175,7 @@
         source.connect(gainNode);
         source.start(0);
       } else {
-        console.warn("[GameLib] Attempted to play SFX that does not exit!");
+        console.warn("[GameLib] Attempted to play SFX that does not exist!");
       }
     }
   };
@@ -217,6 +218,7 @@
     constructor() {
       this._active = false;
       this._rendering = false;
+      this._hooks = {};
     }
     setActive(active) {
       this._active = active;
@@ -233,7 +235,7 @@
     callHook(type) {
       if (!this._hooks[type]) return;
       var hooks = this._hooks[type];
-      for (var i2 = 0; i2 < hooks; i2++) {
+      for (var i2 = 0; i2 < hooks.length; i2++) {
         hooks[i2]();
       }
     }
@@ -316,6 +318,7 @@
       return new Promise((function(resolve, reject) {
         this._get(this._name).get(key2).onsuccess = function(evt) {
           if (evt.target.result) {
+            if (!evt.target.result.value) throw new GameLibCore2.Error('IndexedDB get() result is missing "value" property!');
             resolve(evt.target.result.value);
           } else {
             resolve(null);
@@ -4793,7 +4796,6 @@
   var GameLib = class _GameLib extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
       if (GameLib2D2.GameLib._instance != null) {
-        delete this;
         return GameLib2D2.GameLib._instance;
       } else {
         console.log("[GameLib] No GameLib instance found. Creating new instance.");
@@ -4979,17 +4981,13 @@
       if (!this._active) {
         return;
       }
-      this.preUpdateHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("pre-update");
       this._sprites.forEach((function(sprite) {
         if (this._scene == sprite.scene) {
           sprite.update();
         }
       }).bind(this));
-      this.postUpdateHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("post-update");
     }
     setBackground(image, scene, repeat = "repeat") {
       this._background[scene] = this._renderCtx.createPattern(image, repeat);
@@ -5004,20 +5002,20 @@
       }
     }
     drawGrid(size, color) {
-      ctx.strokeStyle = color;
+      this._renderCtxstrokeStyle = color;
       for (var i2 = 0; i2 < this._renderCanvas.height; i2 += size) {
-        ctx.beginPath();
-        ctx.moveTo(0, i2);
-        ctx.lineTo(this._renderCanvas.width, i2);
-        ctx.closePath();
-        ctx.stroke();
+        this._renderCtxbeginPath();
+        this._renderCtxmoveTo(0, i2);
+        this._renderCtxlineTo(this._renderCanvas.width, i2);
+        this._renderCtxclosePath();
+        this._renderCtxstroke();
       }
       for (var i2 = 0; i2 < this._renderCanvas.width; i2 += size) {
-        ctx.beginPath();
-        ctx.moveTo(i2, 0);
-        ctx.lineTo(i2, this._renderCanvas.height);
-        ctx.closePath();
-        ctx.stroke();
+        this._renderCtxbeginPath();
+        this._renderCtxmoveTo(i2, 0);
+        this._renderCtxlineTo(i2, this._renderCanvas.height);
+        this._renderCtxclosePath();
+        this._renderCtxstroke();
       }
     }
     draw() {
@@ -5025,9 +5023,7 @@
         return;
       }
       this.clearCanvas(false);
-      this.preRenderHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("pre-render");
       this.renderBackground();
       this._sprites.forEach((function(sprite) {
         if (sprite.checkCollision(this._viewport)) {
@@ -5047,9 +5043,7 @@
           }
         }
       }).bind(this));
-      this.postRenderHooks.forEach(function(hook) {
-        hook();
-      });
+      this.callHook("post-render");
       this.renderViewport();
       this._renderables.forEach((function(renderable) {
         if (renderable.overlay) {
@@ -5073,7 +5067,7 @@
         this._viewportCtx.fillRect(0, 0, this._viewportCanvas.width, this._viewportCanvas.height);
         this._viewportCtx.fillStyle = "#ffffff";
         this._viewportCtx.font = "bold 50px sans-serif";
-        this._viewportCtx.textAlgin = "center";
+        this._viewportCtx.textAlign = "center";
         this._viewportCtx.textBaseline = "alphabetic";
         var textMetrics = this._viewportCtx.measureText("LOADING");
         this._viewportCtx.fillText("LOADING", this._viewportCanvas.width / 2 - textMetrics.width / 2, this._viewportCanvas.height / 2);
@@ -5896,7 +5890,6 @@ ${nodesText}`;
     constructor(renderCanvas, renderCtx, options) {
       super();
       if (GameLib3D.GameLib._instance != null) {
-        delete this;
         return GameLib3D.GameLib._instance;
       } else {
         console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
@@ -5972,11 +5965,11 @@ ${nodesText}`;
       this._gl.enableVertexAttribArray(location2);
     }
     addObject(object) {
-      if (object instanceof GameLib3D.Object) {
+      if (object instanceof Object2) {
         object.setup();
         this._objects.push(object);
       } else {
-        throw new GameLibCore2.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of GameLib3D.Object!");
+        throw new GameLibCore2.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of Object!");
       }
     }
     update() {
