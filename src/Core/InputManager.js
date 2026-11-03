@@ -1,4 +1,4 @@
-import { GameLibCore } from "src/Core/index.js"
+import { GameLibCore } from "./index.js"
 class InputManager {
   constructor() {
     if(GameLibCore.InputManager._instance) {
