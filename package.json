@@ -1,6 +1,6 @@
 {
   "name": "GameLib",
-  "version": "1.0.3",
+  "version": "1.0.31",
   "description": "A minimal game engine.",
   "main": "src/index.js",
   "type": "module",
