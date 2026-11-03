@@ -61,4 +61,4 @@ jobs:
             dist/GameLib-${{ inputs.version }}.js
             dist/GameLib-${{ inputs.version }}.min.js
           env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_TOKEN: secrets.GITHUB_TOKEN
