@@ -6,11 +6,6 @@ on:
         description: 'Version to name the build artifacts'
         required: true
         type: string
-      source:
-        description: 'Path to the main source file.'
-        required: true
-        default: 'src/index.js'
-        type: string
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,6 +32,8 @@ jobs:
           VERSION="${{ inputs.version }}"
           UNMINIFIED_OUT="dist/bundle-${VERSION}.js"
           MINIFIED_OUT="dist/bundle-${VERSION}.min.js"
+          esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT
+          esbuild src/index.js --bundle --format=iife --platform=browser --minify --outfile=$MINIFIED_OUT
       - name: Push changes
         run: |
           git config --global user.name "github-actions[bot]"
