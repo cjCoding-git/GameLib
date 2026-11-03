@@ -1,4 +1,4 @@
-import { GameLibCore } from "src/Core/index.js"
+import { GameLibCore } from "./index.js"
 class AudioManager {
   constructor() {
     if(GameLibCore.AudioManager._instance) {
