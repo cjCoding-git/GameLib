@@ -1,5 +1,6 @@
+import { GameLibCore } from "../Core/index.js"
 import { GameLib3D } from "./index.js"
-class GameLib extends GameLibBase {
+class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, options) {
     super();
     if (GameLib3D.GameLib._instance != null) {
@@ -9,15 +10,12 @@ class GameLib extends GameLibBase {
       console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
       this._canvas = renderCanvas;
       this._gl = renderCtx;
-      this._active = false;
-      this._rendering = false;
-      this._hooks = {};
       this._objects = [];
       this._options = options;
       this._clearColor = [ 0.0, 0.0, 0.0, 1.0 ];
       this.registerMainloop();
       GameLib3D.GameLib._instance = this;
-  }
+    }
   }
   static getContext(canvas, webgl2=true) {
     if(webgl2) {
