@@ -8,6 +8,7 @@ import { Transform } from "./Transform.js"
 import { Position } from "./Position.js"
 import { Rotation } from "./Rotation.js"
 import { Scale } from "./Scale.js"
+import { Camera } from "./Camera.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
