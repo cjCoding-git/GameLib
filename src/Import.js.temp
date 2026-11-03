@@ -22,13 +22,6 @@
                         this._keys = [];
                         this._active = true;
                         this._rendering = true;
-                        this._musicPool = [];
-                        this._loopingSoundPool = {};
-                        this._currentMusic = null;
-                        this._musicPaused = true;
-                        this._sfxPool = {};
-                        this._audioCtx = new AudioContext();
-                        this._activeLoopingSoundPool = {};
                         this.oncontextmenu = null;
                         window.addEventListener('click', this.fullscreen.bind(this), false);
                         window.addEventListener('click', this.checkButtons.bind(this), false);
