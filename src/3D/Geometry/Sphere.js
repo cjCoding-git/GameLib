@@ -1,1 +1,4 @@
-
+class Sphere {}
+export {
+  Sphere
+}
