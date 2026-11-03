@@ -5,7 +5,6 @@ class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, options) {
     super();
     if (GameLib3D.GameLib._instance != null) {
-      delete this;
       return GameLib3D.GameLib._instance;
     } else {
       console.log("[GameLib] No GameLib3D instance found. Creating new instance.");
