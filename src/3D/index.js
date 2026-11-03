@@ -34,6 +34,7 @@ class GameLib3D {
   static Rotation = Rotation;
   static Scale = Scale;
   static Geometry = Geometry;
+  static Camera = Camera;
   static Ammo = Ammo;
 }
 export {
