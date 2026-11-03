@@ -23,6 +23,7 @@ jobs:
         run: |
           jq '.version = "${{ inputs.version }}"' package.json > tmp.json
           mv tmp.json package.json
+          date > buildtime.txt
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -49,6 +50,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@://github.com"
           git add package.json
+          git add buildtime.txt
           git add dist/
           git diff-index --quiet HEAD || git commit -m "chore: release version ${{ inputs.version }}"
           git push origin main
