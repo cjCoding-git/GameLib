@@ -19,7 +19,7 @@ class GameLibBase {
   callHook(type) {
     if(!this._hooks[type]) return;
     var hooks = this._hooks[type];
-    for(var i=0;i<hooks;i++) {
+    for(var i=0;i<hooks.length;i++) {
       hooks[i]();
     }
   }
