@@ -1,7 +1,7 @@
 import { GameLibCore } from "./index.js"
 class AudioManager {
   constructor() {
-    if(GameLibCore.AudioManager._instance) {
+    if (GameLibCore.AudioManager._instance) {
       return GameLibCore.AudioManager._instance;
     } else {
       console.log("[GameLib] No AudioManager instance found. Creating new instance...");
@@ -11,6 +11,7 @@ class AudioManager {
       this._activeLoopingSoundPool = {};
       this._currentMusic = null;
       this._musicPaused = true;
+      this._audioCtx = new AudioContext();
       this.bindEvents();
       GameLibCore.AudioManager._instance = this;
     }
@@ -20,19 +21,19 @@ class AudioManager {
     document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
   }
   visibilityChange() {
-		if(document.visibilityState != 'visible') {
-			this._audioCtx.suspend();
-		} else {
-			this._audioCtx.resume();
-		}
-	}
+    if (document.visibilityState != 'visible') {
+      this._audioCtx.suspend();
+    } else {
+      this._audioCtx.resume();
+    }
+  }
   async loadLoopingSound(name, url) {
     var resp = await fetch(url);
     var ab = await resp.arrayBuffer();
     this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(ab);
   }
   playLoopingSound(name) {
-    if(this._loopingSoundPool[name] != null) {
+    if (this._loopingSoundPool[name] != null) {
       var source = this._audioCtx.createBufferSource();
       source.loop = true;
       source.buffer = this._loopingSoundPool[name];
@@ -44,7 +45,7 @@ class AudioManager {
     }
   }
   stopLoopingSound(name) {
-    if(this._activeLoopingSoundPool[name] != null) {
+    if (this._activeLoopingSoundPool[name] != null) {
       this._activeLoopingSoundPool[name].stop();
       delete this._activeLoopingSoundPool[name];
     }
@@ -87,25 +88,25 @@ class AudioManager {
       this._currentMusic.pause();
     }
   }
-	async loadSfx(name, url) {
-		var resp = await fetch(url);
-		var ab = await resp.arrayBuffer();
-		this._sfxPool[name] = await this._audioCtx.decodeAudioData(ab);
-	}
-	playSfx(name, speed=1, gain=1.5) {
-		if(this._sfxPool[name]) {
-			var source = this._audioCtx.createBufferSource();
-			source.buffer = this._sfxPool[name];
-			source.playbackRate.value = speed;
-			var gainNode = this._audioCtx.createGain();
-			gainNode.gain.setValueAtTime(gain, 0);
-			gainNode.connect(this._audioCtx.destination);
-			source.connect(gainNode);
-			source.start(0);
-		} else {
-			console.warn("[GameLib] Attempted to play SFX that does not exit!");
-		}
-	}
+  async loadSfx(name, url) {
+    var resp = await fetch(url);
+    var ab = await resp.arrayBuffer();
+    this._sfxPool[name] = await this._audioCtx.decodeAudioData(ab);
+  }
+  playSfx(name, speed = 1, gain = 1.5) {
+    if (this._sfxPool[name]) {
+      var source = this._audioCtx.createBufferSource();
+      source.buffer = this._sfxPool[name];
+      source.playbackRate.value = speed;
+      var gainNode = this._audioCtx.createGain();
+      gainNode.gain.setValueAtTime(gain, 0);
+      gainNode.connect(this._audioCtx.destination);
+      source.connect(gainNode);
+      source.start(0);
+    } else {
+      console.warn("[GameLib] Attempted to play SFX that does not exit!");
+    }
+  }
 }
 export {
   AudioManager
