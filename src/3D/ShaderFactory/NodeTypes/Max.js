@@ -1,4 +1,4 @@
-import { NodeType } from "./NodeType.js"
+import { NodeTypes } from "./NodeTypes.js"
 import { Node } from "../Node.js"
 NodeTypes.Max = class MaxNode extends Node {
   constructor(...values) {
