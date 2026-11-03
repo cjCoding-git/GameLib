@@ -87,6 +87,25 @@ class AudioManager {
       this._currentMusic.pause();
     }
   }
+	async loadSfx(name, url) {
+		var resp = await fetch(url);
+		var ab = await resp.arrayBuffer();
+		this._sfxPool[name] = await this._audioCtx.decodeAudioData(ab);
+	}
+	playSfx(name, speed=1, gain=1.5) {
+		if(this._sfxPool[name]) {
+			var source = this._audioCtx.createBufferSource();
+			source.buffer = this._sfxPool[name];
+			source.playbackRate.value = speed;
+			var gainNode = this._audioCtx.createGain();
+			gainNode.gain.setValueAtTime(gain, 0);
+			gainNode.connect(this._audioCtx.destination);
+			source.connect(gainNode);
+			source.start(0);
+		} else {
+			console.warn("[GameLib] Attempted to play SFX that does not exit!");
+		}
+	}
 }
 export {
   AudioManager
