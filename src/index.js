@@ -1,6 +1,6 @@
 /*
   GameLib
-  Copyright 2025 Charles Jager
+  Copyright (c) 2025, Charles Jager
 */
 import { GameLibCore } from "./Core/index.js"
 import { GameLib2D } from "./2D/index.js"
