@@ -1,8 +1,9 @@
 import { Box } from "./Box.js"
 import { GameLib } from "./GameLib.js"
 class Sprite extends Box {
-  constructor(pos, size) {
+  constructor(pos, size, scene) {
     super(pos, size);
+    this.scene = scene;
     this.image = null;
     this.fillColor = "#000000";
     this.gameLib = new GameLib();
@@ -12,7 +13,7 @@ class Sprite extends Box {
   }
   update() {}
   draw() {
-    if (this.image != null) {
+    if(this.image != null) {
       this.ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     } else {
       this.ctx.fillStyle = this.fillColor;
@@ -23,24 +24,24 @@ class Sprite extends Box {
     this.triggers[triggerID] = callback;
   }
   trigger(triggerID) {
-    if (this.triggers[triggerID]) {
+    if(this.triggers[triggerID]) {
       this.triggers[triggerID]();
     }
   }
   checkBounds() {
-    if (this.x < 0) {
+    if(this.x < 0) {
       this.moveTo(0, this.y);
       this.trigger('bounds');
     }
-    if (this.x > this.gameLib.canvas.width - this.width) {
+    if(this.x > this.gameLib.canvas.width - this.width) {
       this.moveTo(this.gameLib.canvas.width - this.width, this.y);
       this.trigger('bounds');
     }
-    if (this.y < 0) {
+    if(this.y < 0) {
       this.moveTo(this.x, 0);
       this.trigger('bounds');
     }
-    if (this.y > this.gameLib.canvas.height - this.height) {
+    if(this.y > this.gameLib.canvas.height - this.height) {
       this.moveTo(this.x, this.gameLib.canvas.height - this.height);
       this.trigger('bounds');
     }
