@@ -1,5 +1,4 @@
 name: Build
-
 on:
   workflow_dispatch:
     inputs:
@@ -12,6 +11,26 @@ on:
         required: true
         default: 'src/index.js'
         type: string
-
 jobs:
-  
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-code: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g esbuild
+      - name: Clean dist directory
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@://github.com"
+          git add dist/
+          git diff-index --quiet HEAD || git commit -m "chore: release version ${{ inputs.version }}"
