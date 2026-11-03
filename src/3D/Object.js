@@ -5,7 +5,7 @@ class Object {
   }
   setup() {}
   update() {}
-  draw() {}
+  draw(camera, program) {}
 }
 export {
   Object
