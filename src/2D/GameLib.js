@@ -213,20 +213,20 @@ class GameLib extends GameLibCore.GameLibBase {
     }
   }
   drawGrid(size, color) {
-    ctx.strokeStyle = color;
+    this._renderCtxstrokeStyle = color;
     for (var i = 0; i < this._renderCanvas.height; i += size) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(this._renderCanvas.width, i);
-      ctx.closePath();
-      ctx.stroke();
+      this._renderCtxbeginPath();
+      this._renderCtxmoveTo(0, i);
+      this._renderCtxlineTo(this._renderCanvas.width, i);
+      this._renderCtxclosePath();
+      this._renderCtxstroke();
     }
     for (var i = 0; i < this._renderCanvas.width; i += size) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, this._renderCanvas.height);
-      ctx.closePath();
-      ctx.stroke();
+      this._renderCtxbeginPath();
+      this._renderCtxmoveTo(i, 0);
+      this._renderCtxlineTo(i, this._renderCanvas.height);
+      this._renderCtxclosePath();
+      this._renderCtxstroke();
     }
   }
   draw() {
