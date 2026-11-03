@@ -9,7 +9,8 @@
     "game engine"
   ],
   "author": "Charles Jager <admin@cjcoding.com>",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "esbuild": "0.28.2",
     "terser": "5.51.2"
   }
