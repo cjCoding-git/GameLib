@@ -11,7 +11,7 @@
   "author": "Charles Jager <admin@cjcoding.com>",
   "dependencies": {},
   "devDependencies": {
-    "esbuild": "0.28.2",
-    "terser": "5.51.2"
+    "esbuild": "0.21.2",
+    "terser": "4.08.2"
   }
 }
