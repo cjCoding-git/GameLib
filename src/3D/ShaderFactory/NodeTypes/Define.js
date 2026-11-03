@@ -1,5 +1,5 @@
 import { NodeTypes } from "./NodeTypes.js"
-import { Node } from "./Node.js"
+import { Node } from "../Node.js"
 NodeTypes.Define = class DefineNode extends Node {
   constructor(name, value) {
     super();
