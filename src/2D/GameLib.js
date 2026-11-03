@@ -86,7 +86,7 @@ class GameLib {
     this._viewport.moveTo(x, y);
   }
   moveViewportToSprite(sprite) {
-    if (!sprite instanceof GameLib2D.Sprite) {
+    if (!(sprite instanceof GameLib2D.Sprite)) {
       throw new GameLibCore.Error("Parameter sprite must be an instance of GameLib2D.Sprite!");
     } else {
       var x = sprite.x - this._viewportCanvas.width / 2;
