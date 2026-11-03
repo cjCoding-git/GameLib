@@ -1,11 +1,13 @@
 {
   "name": "GameLib",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A minimal game engine.",
   "main": "src/index.js",
   "type": "module",
   "scripts": {},
-  "keywords": ["game engine"],
+  "keywords": [
+    "game engine"
+  ],
   "author": "Charles Jager <admin@cjcoding.com>",
   "dependencies": {
     "esbuild": "0.28.2"
