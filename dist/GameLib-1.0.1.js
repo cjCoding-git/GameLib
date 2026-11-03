@@ -5408,6 +5408,266 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/Geometry/Box.js
+  var Box2 = class {
+    constructor(width = 1, height = 1, depth = 1) {
+      var w = width / 2;
+      var h = height / 2;
+      var d = depth / 2;
+      var positions = [
+        -w,
+        -h,
+        d,
+        w,
+        -h,
+        d,
+        w,
+        h,
+        d,
+        -w,
+        h,
+        d,
+        -w,
+        -h,
+        -d,
+        -w,
+        h,
+        -d,
+        w,
+        h,
+        -d,
+        w,
+        -h,
+        -d,
+        -w,
+        h,
+        -d,
+        -w,
+        h,
+        d,
+        w,
+        h,
+        d,
+        w,
+        h,
+        -d,
+        -w,
+        -h,
+        -d,
+        w,
+        -h,
+        -d,
+        w,
+        -h,
+        d,
+        -w,
+        -h,
+        d,
+        w,
+        -h,
+        -d,
+        w,
+        h,
+        -d,
+        w,
+        h,
+        d,
+        w,
+        -h,
+        d,
+        -w,
+        -h,
+        -d,
+        -w,
+        -h,
+        d,
+        -w,
+        h,
+        d,
+        -w,
+        h,
+        -d
+      ];
+      var normals = [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1,
+        0,
+        0
+      ];
+      var uv = [];
+      for (var i2 = 0; i2 < 6; i2++) {
+        uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+      }
+      var indices = [];
+      for (var i2 = 0; i2 < 6; i2++) {
+        var offset = i2 * 4;
+        indices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3);
+      }
+      this.positions = positions;
+      this.normals = normals;
+      this.uv = uv;
+      this.indices = indices;
+    }
+  };
+
+  // src/3D/Geometry/Sphere.js
+  var Sphere = class {
+    constructor(radius = 1, latBands = 24, longBands = 24) {
+      var positions = [];
+      var normals = [];
+      var uv = [];
+      var indices = [];
+      for (var lat = 0; lat < latBands; lat++) {
+        var theta = lat * 2 * Math.PI / latBands;
+        var sinTheta = Math.sin(theta);
+        var cosTheta = Math.cos(theta);
+        for (var lon = 0; lon < lonBands; lon++) {
+          var phi = lon * 2 * Math.PI / longBands;
+          var x = Math.cos(phi) * sinTheta;
+          var y = cosTheta;
+          var z = Math.sin(phi) * sinTheta;
+          normals.push(x, y, z);
+          uv.push(1 - lon / longBands, 1 - lat / latBands);
+          positions.push(radius * x, radius * y, radius * z);
+        }
+      }
+      for (var lat = 0; lat < latBands; lat++) {
+        for (var lon = 0; lon < longBands; lon++) {
+          var first = lat * (longBands + 1) + lon;
+          var second = first + longBands + 1;
+          indices.push(first, second, first + 1);
+          indices.push(second, second + 1, first + 1);
+        }
+      }
+      this.positions = positions;
+      this.normals = normals;
+      this.uv = uv;
+      this.indices = indices;
+    }
+  };
+
+  // src/3D/Geometry/Cone.js
+  var Cone = class {
+    constructor(radius = 1, height = 2, segments = 24) {
+      var positions = [];
+      var normals = [];
+      var uv = [];
+      var indices = [];
+      var halfH = height / 2;
+      positions.push(0, halfH, 0);
+      normals.push(0, 1, 0);
+      uv.push(0.5, 1);
+      for (var i2 = 0; i2 <= segments; i2++) {
+        var angle2 = i2 * 2 * Math.PI / segments;
+        var x = Math.sin(angle2);
+        var z = Math.cos(angle2);
+        positions.push(radius * x, -halfH, radius * z);
+        var slantLen = Math.sqrt(radius * radius + height * height);
+        normals.push(height / slantLen * x, radius / slantLen, height / slantLen * z);
+        uv.push(i2 / segments, 0);
+      }
+      for (var i2 = 0; i2 <= segments; i2++) {
+        indices.push(0, i2, i2 + 1);
+      }
+      var baseCenterIdx = positions.length / 3;
+      positions.push(0, -halfH, 0);
+      normals.push(0, -1, 0);
+      uv.push(0.5, 0.5);
+      var baseStartIdx = positions.length / 3;
+      for (var i2 = 0; i2 <= segments; i2++) {
+        var angle2 = i2 * 2 * Math.PI / segments;
+        positions.push(radius * Math.cos(angle2), -halfH, radius * Math.sin(angle2));
+        normals.push(0, -1, 0);
+        uv.push(0.5 + 0.5 * Math.cos(angle2), 0.5 + 0.5 * Math.sin(angle2));
+      }
+      for (var i2 = 0; i2 < segments; i2++) {
+        indices.push(baseCenterIdx, baseStartIdx + i2 + 1, baseStartIdx + i2);
+      }
+      this.positions = positions;
+      this.normals = normals;
+      this.uv = uv;
+      this.indices = indices;
+    }
+  };
+
+  // src/3D/Geometry/index.js
+  var Geometry = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Geometry may not be constructed!");
+    }
+    static Box = Box2;
+    static Sphere = Sphere;
+    static Cone = Cone;
+  };
+
   // src/3D/index.js
   var GameLib3D = class {
     constructor() {
@@ -5431,6 +5691,7 @@ ${nodesText}`;
     static Position = Position;
     static Rotation = Rotation2;
     static Scale = Scale;
+    static Geometry = Geometry;
   };
 
   // src/index.js
@@ -5449,4 +5710,5 @@ ${nodesText}`;
 /*!
   GameLib
   Copyright (c) 2025, Charles Jager
+  glMatrix 3.4.4 Copyright (c) 2015-2025, Brandon Jones, Colin MacKenzie IV.
 */
