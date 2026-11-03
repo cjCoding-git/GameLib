@@ -30,6 +30,7 @@ class Store {
     return new Promise((function(resolve, reject) {
       this._get(this._name).get(key).onsuccess = function(evt) {
         if(evt.target.result) {
+          if(!evt.target.result.value) throw new GameLibCore.Error("IndexedDB get() result is missing \"value\" property!");
           resolve(evt.target.result.value);
         } else {
           resolve(null);
