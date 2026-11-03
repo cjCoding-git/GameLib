@@ -1,5 +1,5 @@
 import { NodeTypes } from "./NodeTypes.js"
-import { Node } from "./Node.js"
+import { Node } from "../Node.js"
 NodeTypes.Dot = class DotNode extends Node {
   constructor(...values) {
     super();
