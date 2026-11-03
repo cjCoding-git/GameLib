@@ -8,7 +8,7 @@ class Sphere {
       var theta = (lat * 2 * Math.PI) / latBands;
       var sinTheta = Math.sin(theta);
       var cosTheta = Math.cos(theta);
-      for(var lon=0;lon<lonBands;lon++) {
+      for(var lon=0;lon<longBands;lon++) {
         var phi = (lon * 2 * Math.PI) / longBands;
         var x = Math.cos(phi) * sinTheta;
         var y = cosTheta;
