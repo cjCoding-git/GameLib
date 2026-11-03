@@ -1,8 +1,8 @@
-            class GameLib {
+            class GameLib extends GameLibBase {
                 constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
-                    if(GameLib._instance != null) {
+                    if(GameLib2D.GameLib._instance != null) {
                         delete this;
-                        return GameLib._instance;
+                        return GameLib2D.GameLib._instance;
                     } else {
                         console.log("[GameLib] No GameLib instance found. Creating new instance.");
                         this._scene = "loading";
@@ -18,10 +18,6 @@
                         this._renderables = [];
                         this._fullscreen = 0;
                         this._pointerLocked = false;
-                        this.preUpdateHooks = [];
-                        this.postUpdateHooks = [];
-                        this.preRenderHooks = [];
-                        this.postRenderHooks = [];
                         this._background = {};
                         this._keys = [];
                         this._active = true;
@@ -34,12 +30,9 @@
                         this._audioCtx = new AudioContext();
                         this._activeLoopingSoundPool = {};
                         this.oncontextmenu = null;
-                        window.addEventListener('click', this.resumeMusic.bind(this), false);
                         window.addEventListener('click', this.fullscreen.bind(this), false);
                         window.addEventListener('click', this.checkButtons.bind(this), false);
                         window.addEventListener('mousemove', this.hoverButtons.bind(this), false);
-                        window.addEventListener('keyup', this.keyUp.bind(this), false);
-                        window.addEventListener('keydown', this.keyDown.bind(this), false);
                         window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
                         document.addEventListener('visibilitychange', this.visibilityChange.bind(this), false);
                         GameLib._instance = this;
@@ -203,29 +196,6 @@
                 getScene() {
                     return this._scene;
                 }
-                async loadLoopingSound(name, url) {
-                    var resp = await fetch(url);
-                    var ab = await resp.arrayBuffer();
-                    this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(ab);
-                }
-                playLoopingSound(name) {
-                    if(this._loopingSoundPool[name] != null) {
-                        var source = this._audioCtx.createBufferSource();
-                        source.loop = true;
-                        source.buffer = this._loopingSoundPool[name];
-                        source.connect(this._audioCtx.destination);
-                        this._activeLoopingSoundPool[name] = source;
-                        source.start(0);
-                    } else {
-                        console.warn("[GameLib] Attempted to play a looping sound that does not exits!");
-                    }
-                }
-                stopLoopingSound(name) {
-                    if(this._activeLoopingSoundPool[name] != null) {
-                        this._activeLoopingSoundPool[name].stop();
-                        delete this._activeLoopingSoundPool[name];
-                    }
-                }
                 async fullscreen() {
                     if(this._pointerLocked && document.pointerLockElement == null) {
                         document.documentElement.requestPointerLock().catch(function(err) {});
@@ -288,36 +258,6 @@
                         this._audioCtx.resume();
                     }
                 }
-                resumeMusic() {
-                    this._audioCtx.resume();
-                }
-                async addSong(url) {
-                    var resp = await fetch(url);
-                    var ab = await resp.arrayBuffer();
-                    this._musicPool.push(await this._audioCtx.decodeAudioData(ab));
-                }
-                nextSong() {
-                    if(this._musicPool.length <= 0) {
-                        throw new TypeError("Music Pool is empty!");
-                        return;
-                    }
-                    if(this._musicPaused) {
-                        return;
-                    }
-                    if(this._currentMusic != null) {
-                        this._currentMusic.stop();
-                    }
-                    var source = this._audioCtx.createBufferSource();
-                    source.buffer = GameLib.getRandomListItem(this._musicPool);
-                    source.onended = this.nextSong.bind(this);
-                    source.connect(this._audioCtx.destination);
-                    this._currentMusic = source;
-                    this._currentMusic.start(0);
-                }
-                static getRandomListItem(list) {
-                    var index = Math.floor(Math.random() * list.length);
-                    return list[index];
-                }
                 static getContext(canvas) {
                     return canvas.getContext('2d', { 'willReadFrequently': true });
                 }
@@ -328,74 +268,11 @@
                     }).bind(this);
                     image.src = url;
                 }
-                static imagePromise(url) {
-                    return new Promise(function(resolve, reject) {
-                        var image = new Image();
-                        image.onload = (function() {
-                            resolve(image);
-                        });
-                        image.src = url;
-                    });
-                }
-                addHook(event, hook) {
-                    if(event == "pre-update") {
-                        this.preUpdateHooks.push(hook);
-                    }
-                    if(event == "post-update") {
-                        this.postUpdateHooks.push(hook);
-                    }
-                    if(event == "pre-render") {
-                        this.preRenderHooks.push(hook);
-                    }
-                    if(event == "post-render") {
-                        this.postRenderHooks.push(hook);
-                    }
-                }
-                playMusic() {
-                    this._musicPaused = false;
-                    this.nextSong();
-                }
-                pauseMusic() {
-                    this._musicPaused = true;
-                    if(this._currentMusic != null) {
-                        this._currentMusic.stop();
-                    }
-                }
                 setActive(active) {
                     this._active = active;
                 }
                 setRendering(rendering) {
                     this._rendering = rendering;
-                }
-                get keys() {
-                    return this._keys;
-                }
-                clearKeys() {
-                    this._keys = [];
-                }
-                keyUp(evt) {
-                    if(!this._active) {
-                        return;
-                    }
-                    this._keys = this._keys.filter(key => key != evt.keyCode);
-                }
-                keyDown(evt) {
-                    if(!this._active) {
-                        return;
-                    }
-                    if(this._keys.indexOf(evt.keyCode) == -1) {
-                        this._keys.push(evt.keyCode);
-                    }
-                }
-                isKeyDown(key) {
-                    return (this._keys.indexOf(key) != -1);
-                }
-                static isKeyDown(key) {
-                    if(GameLib._instance != null) {
-                        return (GameLib._instance._keys.indexOf(key) != -1);
-                    } else {
-                        throw new RuntimeError("A GameLib instance must exist to use GameLib.isKeyDown(key)!");
-                    }
                 }
                 addRenderable(renderable) {
                     if(renderable instanceof Renderable) {
