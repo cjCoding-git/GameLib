@@ -20,7 +20,7 @@ class Transform {
     mat4.rotateX(matrix, matrix, this.rotation.x);
     mat4.rotateY(matrix, matrix, this.rotation.y);
     mat4.rotateZ(matrix, matrix, this.rotation.z);
-    mat4.scale(matrix, matrix, this.scale);
+    mat4.scale(matrix, matrix, [this.scale.x, this.scale.y, this.scale.x]);
     return matrix;
   }
   getNormalMatrix(modelViewMatrix) {
