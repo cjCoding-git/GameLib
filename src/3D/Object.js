@@ -1,7 +1,8 @@
 class Object {
-  constructor(gameLib) {
+  constructor(gameLib, scene) {
     this._gameLib = gameLib;
     this._gl = this._gameLib.webgl;
+    this.scene = scene;
   }
   setup() {}
   update(camera) {}
