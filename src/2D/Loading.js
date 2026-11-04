@@ -40,7 +40,6 @@ class Loading {
     var barX = centerX - groupWidth / 2;
     var progressY = centerY + 36;
     var radius = progressHeight / 2;
-
     ctx.save();
     ctx.fillStyle = options.background || Loading.DEFAULT_CONFIG.background;
     ctx.fillRect(0, 0, width, height);
@@ -64,12 +63,10 @@ class Loading {
       ctx.textBaseline = "middle";
       ctx.fillText(options.title, centerX, titleY);
     }
-
     ctx.fillStyle = options.progressTrackColor;
     ctx.beginPath();
     ctx.roundRect(barX, progressY, progressWidth, progressHeight, radius);
     ctx.fill();
-
     if (Number.isFinite(options.progress)) {
       var progress = Math.min(1, Math.max(0, options.progress));
       var fillWidth = progressWidth * progress;
@@ -99,7 +96,6 @@ class Loading {
       ctx.fill();
       ctx.restore();
     }
-
     if (options.status) {
       ctx.fillStyle = options.mutedTextColor;
       ctx.font = options.font;
