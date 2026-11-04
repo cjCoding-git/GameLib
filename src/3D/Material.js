@@ -1,5 +1,9 @@
 class Material {
-  constructor(shader = null) {
+  constructor(gameLib, shader = null) {
+    if (!gameLib) {
+      throw new Error("Material(gameLib, shader) requires a GameLib instance.");
+    }
+    this.gameLib = gameLib;
     this.program = shader;
     this.hasColor = false;
     this.color = null;
@@ -9,7 +13,7 @@ class Material {
     this.uniforms = {};
   }
 
-  static standardVertexShader = `
+  static standardVertexShaderWebGL1 = `
     attribute vec3 aVertexPosition;
     attribute vec4 aVertexColor;
     attribute vec2 aTextureCoord;
@@ -27,7 +31,7 @@ class Material {
     }
   `;
 
-  static standardFragmentShader = `
+  static standardFragmentShaderWebGL1 = `
     precision mediump float;
 
     varying vec4 vColor;
@@ -44,6 +48,53 @@ class Material {
       gl_FragColor = color;
     }
   `;
+
+  static standardVertexShaderWebGL2 = `#version 300 es
+    in vec3 aVertexPosition;
+    in vec4 aVertexColor;
+    in vec2 aTextureCoord;
+
+    uniform mat4 uProjectionMatrix;
+    uniform mat4 uModelViewMatrix;
+
+    out vec4 vColor;
+    out vec2 vUV;
+
+    void main() {
+      vColor = aVertexColor;
+      vUV = aTextureCoord;
+      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+    }
+  `;
+
+  static standardFragmentShaderWebGL2 = `#version 300 es
+    precision mediump float;
+
+    in vec4 vColor;
+    in vec2 vUV;
+
+    uniform sampler2D uTexture;
+    uniform bool uUseTexture;
+
+    out vec4 outColor;
+
+    void main() {
+      vec4 color = vColor;
+      if (uUseTexture) {
+        color *= texture(uTexture, vUV);
+      }
+      outColor = color;
+    }
+  `;
+
+  // Keep the original shader property names as WebGL 1 aliases.
+  static get standardVertexShader() {
+    return Material.standardVertexShaderWebGL1;
+  }
+
+  static get standardFragmentShader() {
+    return Material.standardFragmentShaderWebGL1;
+  }
 
   static normalizeColor(color) {
     if (!Array.isArray(color)) {
@@ -67,8 +118,11 @@ class Material {
       throw new Error("Material.createStandardProgram(gameLib) requires a GameLib instance with a WebGL context.");
     }
     var webgl = gameLib.webgl;
-    var vertexShader = gameLib.compileShader(webgl.VERTEX_SHADER, Material.standardVertexShader);
-    var fragmentShader = gameLib.compileShader(webgl.FRAGMENT_SHADER, Material.standardFragmentShader);
+    var isWebGL2 = !gameLib.options || gameLib.options.webGL2 !== false;
+    var vertexSource = isWebGL2 ? Material.standardVertexShaderWebGL2 : Material.standardVertexShaderWebGL1;
+    var fragmentSource = isWebGL2 ? Material.standardFragmentShaderWebGL2 : Material.standardFragmentShaderWebGL1;
+    var vertexShader = gameLib.compileShader(webgl.VERTEX_SHADER, vertexSource);
+    var fragmentShader = gameLib.compileShader(webgl.FRAGMENT_SHADER, fragmentSource);
     if (!vertexShader || !fragmentShader) {
       console.warn("[GameLib] Standard material shader compilation failed.");
       return null;
@@ -85,7 +139,7 @@ class Material {
     return Material.createStandardProgram(gameLib);
   }
 
-  ensureProgram(gameLib) {
+  ensureProgram(gameLib = this.gameLib) {
     if (!this.program && gameLib) {
       this.program = Material.createStandardProgram(gameLib);
     }
