@@ -6,7 +6,7 @@ import { Box } from "./Box.js"
 import { Renderable } from "./Renderable.js"
 import { Sprite } from "./Sprite.js"
 import { Loading } from "./Loading.js"
-import { UI } from "./UI/index.js"
+import { Button } from "./UI/Button.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
@@ -48,7 +48,7 @@ class GameLib extends GameLibCore.GameLibBase {
   }
   hoverButtons(evt) {
     var canvasRect = this._viewportCanvas.getBoundingClientRect();
-    var buttons = this.getRenderablesOfType(UI.Button);
+    var buttons = this.getRenderablesOfType(Button);
     var calcXY = new Coord(evt.pageX - canvasRect.x, evt.pageY - canvasRect.y);
     if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
       var buttonHover = false;
@@ -66,7 +66,7 @@ class GameLib extends GameLibCore.GameLibBase {
   }
   checkButtons(evt) {
     var canvasRect = this._viewportCanvas.getBoundingClientRect();
-    var buttons = this.getRenderablesOfType(UI.Button);
+    var buttons = this.getRenderablesOfType(Button);
     var calcXY = new Coord(evt.clientX - canvasRect.x, evt.clientY - canvasRect.y);
     if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
       var buttonClicked = false;
