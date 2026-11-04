@@ -4648,7 +4648,7 @@
   };
 
   // src/2D/Size.js
-  var Size2 = class {
+  var Size = class {
     constructor(width, height) {
       this.width = width;
       this.height = height;
@@ -5367,7 +5367,7 @@
       throw new GameLibCore.Error("Wrapper class GameLib2D may not be constructed!");
     }
     static Coord = Coord;
-    static Size = Size2;
+    static Size = Size;
     static Box = Box2;
     static Rotation = Rotation;
     static Renderable = Renderable;
