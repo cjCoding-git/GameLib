@@ -1,4 +1,4 @@
-import { GameLibCore } from "../../Core.js"
+import { GameLibCore } from "../../Core/index.js"
 class UIRenderer {
   constructor(gameLib) {
     this._gameLib = gameLib;
