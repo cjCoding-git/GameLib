@@ -75,6 +75,9 @@ class GameLib extends GameLibCore.GameLibBase {
   setProgramAttribute(program, name, buffer, num, type, normalize=false, stride=0, offset=0, forceMode=null) {
     if(!type) type = this._gl.FLOAT;
     var location = this.getAttributeLocation(program, name, forceMode);
+    if (location === null || location === -1) {
+      return;
+    }
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, buffer);
     this._gl.vertexAttribPointer(location, num, type, normalize, stride, offset);
     this._gl.enableVertexAttribArray(location);
