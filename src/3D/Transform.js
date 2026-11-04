@@ -16,7 +16,7 @@ class Transform {
   }
   getModelMatrix() {
     var matrix = mat4.create();
-    mat4.translate(matrix, matrix, this.position);
+    mat4.translate(matrix, matrix, [this.position.x, this.position.y, this.position.z]);
     mat4.rotateX(matrix, matrix, this.rotation.x);
     mat4.rotateY(matrix, matrix, this.rotation.y);
     mat4.rotateZ(matrix, matrix, this.rotation.z);
