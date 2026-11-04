@@ -71,6 +71,14 @@ class UIRenderer {
     var fragmentSource = this._getFragmentShaderSource(isWebGL2);
     var vertexShader = this._gameLib.compileShader(vertexSource);
     var fragmentShader = this._gameLib.compileShader(fragmentSource);
+    if(!vertexShader || !fragmentShader) return false;
+    this._program = this._gameLib.createProgram(vertexShader, fragmentShader);
+    if(!this._program) return false;
+    this._buffer = gl.createBuffer();
+    this._positionLocation = gl.getAttribLocation(this._program, "aPosition");
+    this._colorLocation = gl.getAttribLocation(this._program, "aColor");
+    this._resolutionLocation = gl.getUniformLocation(this._program", "uResolution");
+    return Boolean(this._buffer);
   }
   render(scene) {
     for(var i=0;i<this._uiObjects.length;i++) {
@@ -80,7 +88,13 @@ class UIRenderer {
       }
     }
   }
-  renderObject(object) {}
+  renderObject(object) {
+    var x = object.x;
+    var y = object.y;
+    var width = object.width;
+    var height = object.height;
+    var color = object.color || [1.0, 1.0, 1.0, 1.0];
+  }
 }
 export {
   UIRenderer
