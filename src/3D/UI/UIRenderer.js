@@ -81,7 +81,7 @@ class UIRenderer {
   _renderTexturedObject(object) {
     var gl = this._gameLib.webgl;
     var source = object.source;
-    if(!source || !this._initializeTextureRenderer) return;
+    if(!source || !this._initializeTextureRenderer()) return;
     if(!object._glTexture) {
       object._glTexture = gl.createTexture();
       object.textureDirty = false;
