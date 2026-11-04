@@ -91,12 +91,15 @@ class UIRenderer {
     if(this._vertices.length === 0 || !this._initialize()) return;
     var gl = this._gameLib.webgl;
     var vertices = new Float32Array(this._vertices);
-    var vertexStride = 6 * Float32Array.BYTES_PER_ELEMENT;
+    var bytesPerFloat = Float32Array.BYTES_PER_ELEMENT;
+    var vertexStride = 6 * bytesPerFloat;
     gl.useProgram(this._program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(this._positionLocation);
     gl.vertexAttribPointer(this._positionLocation, 2, gl.FLOAT, false, vertexStride, 0);
+    gl.enableVertexAttribArray(this._colorLocation);
+    gl.vertexAttribPointer(this._colorLocation, 4, gl.FLOAT, false, vertexStride, 2 * bytesPerFloat);
     gl.uniform2f(this._resolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
