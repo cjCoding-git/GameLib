@@ -129,6 +129,9 @@ class GameLib extends GameLibCore.GameLibBase {
   getUIObjects() {
     return this._uiRenderer.getObjects();
   }
+  removeUIObject(id) {
+    this._uiRenderer.removeObject(id);
+  }
   mainloop() {
     this.update();
     this.draw();
