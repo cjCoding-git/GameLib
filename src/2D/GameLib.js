@@ -3,6 +3,7 @@ import { GameLib2D } from "./index.js"
 import { Box } from "./Box.js"
 import { Renderable } from "./Renderable.js"
 import { Sprite } from "./Sprite.js"
+import { Loading } from "./Loading.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
@@ -273,14 +274,7 @@ class GameLib extends GameLibCore.GameLibBase {
       }
     }).bind(this));
     if (this._scene == "loading") {
-      this._viewportCtx.fillStyle = "#000000";
-      this._viewportCtx.fillRect(0, 0, this._viewportCanvas.width, this._viewportCanvas.height);
-      this._viewportCtx.fillStyle = "#ffffff";
-      this._viewportCtx.font = "bold 50px sans-serif";
-      this._viewportCtx.textAlign = "center";
-      this._viewportCtx.textBaseline = "alphabetic";
-      var textMetrics = this._viewportCtx.measureText("LOADING");
-      this._viewportCtx.fillText("LOADING", (this._viewportCanvas.width / 2) - (textMetrics.width / 2), this._viewportCanvas.height / 2);
+      Loading.render(this._viewportCanvas, this._viewportCtx);
     }
   }
   registerMainloop() {
