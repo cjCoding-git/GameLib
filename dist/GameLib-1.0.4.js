@@ -10032,7 +10032,7 @@ ${nodesText}`;
   });
 
   // src/3D/Position.js
-  var Position = class {
+  var Position2 = class {
     constructor(x = 0, y = 0, z = 0) {
       this.x = x;
       this.y = y;
@@ -10076,7 +10076,7 @@ ${nodesText}`;
 
   // src/3D/Transform.js
   var Transform = class {
-    constructor(position = new Position(), rotation = new Rotation2(), scale2 = new Scale()) {
+    constructor(position = new Position2(), rotation = new Rotation2(), scale2 = new Scale()) {
       this.position = position;
       this.rotation = rotation;
       this.scale = scale2;
@@ -10089,7 +10089,7 @@ ${nodesText}`;
     }
     getModelMatrix() {
       var matrix = mat4.create();
-      mat4.translate(matrix, matrix, this.position);
+      mat4.translate(matrix, matrix, [this.position.x, this.position.y, this.position.z]);
       mat4.rotateX(matrix, matrix, this.rotation.x);
       mat4.rotateY(matrix, matrix, this.rotation.y);
       mat4.rotateZ(matrix, matrix, this.rotation.z);
@@ -10107,7 +10107,7 @@ ${nodesText}`;
   // src/3D/Camera.js
   var Camera = class {
     constructor(fovDegrees = 45, near = 0.1, far = 100) {
-      this.transform = new Transform([0, 0, 0]);
+      this.transform = new Transform(new Position(0, 0, 0));
       this.fov = Rotation2.d2r(fovDegrees);
       this.near = near;
       this.far = far;
@@ -77618,7 +77618,7 @@ ${nodesText}`;
     static vec3 = vec3;
     static vec4 = vec4;
     static Transform = Transform;
-    static Position = Position;
+    static Position = Position2;
     static Rotation = Rotation2;
     static Scale = Scale;
     static Geometry = Geometry;
