@@ -24,8 +24,10 @@ class Transform {
     return matrix;
   }
   getNormalMatrix(modelViewMatrix) {
-    var modelViewMatrix = Matrix4.multiply(viewMatrix, this.getModelMatrix());
-    return Matrix3.transpose(Matrix3.fromMat4(Matrix4.invert(modelViewMatrix)));
+    var normalMatrix = mat4.create();
+    mat4.invert(normalMatrix, modelViewMatrix);
+    mat4.transpose(normalMatrix, normalMatrix);
+    return normalMatrix;
   }
 }
 export {
