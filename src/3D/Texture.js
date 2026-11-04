@@ -4,14 +4,12 @@ class Texture {
     this.options = options;
     this.target = options.target || gl.TEXTURE_2D;
     this.texture = gl.createTexture();
-
     gl.bindTexture(this.target, this.texture);
     this.setParameters(options);
     if (source !== null) {
       this.update(source);
     }
   }
-
   setParameters(options = {}) {
     const gl = this.gl;
     const target = this.target;
@@ -21,14 +19,12 @@ class Texture {
     gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, options.magFilter || gl.LINEAR);
     return this;
   }
-
   update(source) {
     const gl = this.gl;
     gl.bindTexture(this.target, this.texture);
     if (this.options.flipY !== undefined) {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, this.options.flipY);
     }
-
     gl.texImage2D(
       this.target,
       0,
@@ -42,18 +38,15 @@ class Texture {
     }
     return this;
   }
-
   bind(unit = 0) {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(this.target, this.texture);
     return this;
   }
-
   static fromImage(gl, image, options = {}) {
     return new Texture(gl, image, options);
   }
-
   static load(gl, url, options = {}) {
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -63,7 +56,6 @@ class Texture {
     });
   }
 }
-
 export {
   Texture
 }
