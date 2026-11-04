@@ -1,5 +1,6 @@
 import { GameLibCore } from "../Core/index.js"
 import { GameLib2D } from "./index.js"
+import { Coord } from "./Coord.js"
 import { Box } from "./Box.js"
 import { Renderable } from "./Renderable.js"
 import { Sprite } from "./Sprite.js"
