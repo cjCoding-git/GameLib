@@ -24,6 +24,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this._background = {};
       this._active = true;
       this._rendering = true;
+      this._loadingScreen = Loading.DEFAULT_CONFIG;
       this.oncontextmenu = null;
       window.addEventListener('click', this.checkButtons.bind(this), false);
       window.addEventListener('mousemove', this.hoverButtons.bind(this), false);
@@ -274,11 +275,14 @@ class GameLib extends GameLibCore.GameLibBase {
       }
     }).bind(this));
     if (this._scene == "loading") {
-      Loading.render(this._viewportCanvas, this._viewportCtx);
+      Loading.render(this._viewportCanvas, this._viewportCtx, this._loadingScreen);
     }
   }
   registerMainloop() {
     window.requestAnimationFrame(this.mainloop.bind(this));
+  }
+  setLoadingScreen(config) {
+    this._loadingScreen = config;
   }
 }
 export {
