@@ -94,7 +94,7 @@ class GameLib extends GameLibCore.GameLibBase {
     if(!this._active) return;
     this.callHook('pre-update');
     for(var i=0;i<this._objects.length;i++) {
-      this._objects[i].update();
+      this._objects[i].update(this._camera);
     }
     this.callHook('post-update');
   }
