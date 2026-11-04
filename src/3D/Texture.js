@@ -1,24 +1,69 @@
-import { GameLibCore } from "../Core/index.js"
-import { Texture } from "./Texture.js"
+class Texture {
+  constructor(gl, source = null, options = {}) {
+    this.gl = gl;
+    this.options = options;
+    this.target = options.target || gl.TEXTURE_2D;
+    this.texture = gl.createTexture();
 
-class TextureFactory {
-  static create(gl, source, options = {}) {
-    if (source instanceof Texture) {
-      return source;
+    gl.bindTexture(this.target, this.texture);
+    this.setParameters(options);
+    if (source !== null) {
+      this.update(source);
     }
-    return new Texture(gl, source, options);
+  }
+
+  setParameters(options = {}) {
+    const gl = this.gl;
+    const target = this.target;
+    gl.texParameteri(target, gl.TEXTURE_WRAP_S, options.wrapS || gl.CLAMP_TO_EDGE);
+    gl.texParameteri(target, gl.TEXTURE_WRAP_T, options.wrapT || gl.CLAMP_TO_EDGE);
+    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, options.minFilter || gl.LINEAR);
+    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, options.magFilter || gl.LINEAR);
+    return this;
+  }
+
+  update(source) {
+    const gl = this.gl;
+    gl.bindTexture(this.target, this.texture);
+    if (this.options.flipY !== undefined) {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, this.options.flipY);
+    }
+
+    gl.texImage2D(
+      this.target,
+      0,
+      this.options.internalFormat || gl.RGBA,
+      this.options.format || gl.RGBA,
+      this.options.type || gl.UNSIGNED_BYTE,
+      source
+    );
+    if (this.options.generateMipmaps) {
+      gl.generateMipmap(this.target);
+    }
+    return this;
+  }
+
+  bind(unit = 0) {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(this.target, this.texture);
+    return this;
   }
 
   static fromImage(gl, image, options = {}) {
-    return Texture.fromImage(gl, image, options);
+    return new Texture(gl, image, options);
   }
 
   static load(gl, url, options = {}) {
-    return Texture.load(gl, url, options);
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(Texture.fromImage(gl, image, options));
+      image.onerror = () => reject(new Error(`Failed to load texture image: ${url}`));
+      image.src = url;
+    });
   }
 }
 
 export {
-  Texture,
-  TextureFactory
+  Texture
 }
