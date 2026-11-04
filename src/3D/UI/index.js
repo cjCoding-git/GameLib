@@ -10,9 +10,9 @@ class UI {
   }
   static UIRenderer = UIRenderer;
   static UIObject = UIObject;
-  static UIPath = UIPath;
-  static UIImage = UIImage;
-  static UIText = UIText;
+  static Path = UIPath;
+  static Image = UIImage;
+  static Text = UIText;
 }
 export {
   UI
