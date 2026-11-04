@@ -4832,9 +4832,15 @@
       var height = canvas.height;
       var centerX = width / 2;
       var centerY = height / 2;
-      var progressWidth = Math.min(Math.max(0, options.progressWidth), Math.max(0, width - options.padding * 2));
       var progressHeight = Math.max(1, options.progressHeight);
+      var percentageWidth = Number.isFinite(options.progress) ? 42 : 0;
+      var percentageGap = percentageWidth > 0 ? 12 : 0;
+      var maxBarWidth = Math.max(0, width - options.padding * 2 - percentageWidth - percentageGap);
+      var progressWidth = Math.min(Math.max(0, options.progressWidth), maxBarWidth);
+      var groupWidth = progressWidth + percentageGap + percentageWidth;
+      var barX = centerX - groupWidth / 2;
       var progressY = centerY + 36;
+      var radius = progressHeight / 2;
       ctx.save();
       ctx.fillStyle = options.background || _Loading.DEFAULT_CONFIG.background;
       ctx.fillRect(0, 0, width, height);
@@ -4858,15 +4864,6 @@
         ctx.textBaseline = "middle";
         ctx.fillText(options.title, centerX, titleY);
       }
-      if (options.status) {
-        ctx.fillStyle = options.mutedTextColor;
-        ctx.font = options.font;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(options.status, centerX, centerY + 12);
-      }
-      var barX = centerX - progressWidth / 2;
-      var radius = progressHeight / 2;
       ctx.fillStyle = options.progressTrackColor;
       ctx.beginPath();
       ctx.roundRect(barX, progressY, progressWidth, progressHeight, radius);
@@ -4882,13 +4879,13 @@
         }
         ctx.fillStyle = options.mutedTextColor;
         ctx.font = "12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillText(`${Math.round(progress * 100)}%`, centerX, progressY + progressHeight + 8);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`${Math.round(progress * 100)}%`, barX + progressWidth + percentageGap, progressY + progressHeight / 2);
       } else {
         var segmentWidth = Math.max(24, progressWidth * 0.28);
         var travel = progressWidth + segmentWidth;
-        const offset = Date.now() / 8 % travel;
+        var offset = Date.now() / 8 % travel;
         var segmentX = barX + offset - segmentWidth;
         ctx.save();
         ctx.beginPath();
@@ -4899,6 +4896,13 @@
         ctx.roundRect(segmentX, progressY, segmentWidth, progressHeight, radius);
         ctx.fill();
         ctx.restore();
+      }
+      if (options.status) {
+        ctx.fillStyle = options.mutedTextColor;
+        ctx.font = options.font;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(options.status, centerX, progressY + progressHeight + 14);
       }
       ctx.restore();
     }
