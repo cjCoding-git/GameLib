@@ -5395,9 +5395,9 @@
     }
     setup() {
     }
-    update() {
+    update(camera) {
     }
-    draw(camera, program) {
+    draw(camera) {
     }
   };
 
@@ -6028,6 +6028,9 @@ ${nodesText}`;
     get webgl() {
       return this._gl;
     }
+    get options() {
+      return this._options;
+    }
     setClearColor(color) {
       this._clearColor = color;
     }
@@ -6093,7 +6096,7 @@ ${nodesText}`;
       if (!this._active) return;
       this.callHook("pre-update");
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].update();
+        this._objects[i2].update(this._camera);
       }
       this.callHook("post-update");
     }
@@ -6111,7 +6114,7 @@ ${nodesText}`;
       this.clearCanvas();
       this.callHook("pre-render");
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].draw(this._camera, this._program);
+        this._objects[i2].draw(this._camera);
       }
       this.callHook("post-render");
     }
@@ -77707,15 +77710,19 @@ ${nodesText}`;
 
   // src/3D/Mesh.js
   var Mesh = class extends Object2 {
-    constructor(gameLib, geometryData, color = [1, 1, 1, 1]) {
+    constructor(gameLib, geometryData, material) {
       super(gameLib);
       this.transform = new Transform();
-      this.color = color;
+      this.material = material;
       this.geometry = geometryData;
       this.buffers = {};
     }
     setup() {
       var webgl = this._gl;
+      var program = this.material.ensureProgram(this._gameLib);
+      if (program) {
+        this._gameLib.useProgram(program);
+      }
       this.buffers.position = webgl.createBuffer();
       webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.position);
       webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.positions), webgl.STATIC_DRAW);
@@ -77724,15 +77731,11 @@ ${nodesText}`;
       webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.normals), webgl.STATIC_DRAW);
       this.buffers.uv = webgl.createBuffer();
       webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.uv);
-      webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.uv), webgl.STATIC_DRAW);
-      var vertexCount = this.geometry.positions.length / 3;
-      var colors = [];
-      for (var i2 = 0; i2 < vertexCount; i2++) {
-        colors.push(...this.color);
-      }
+      webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.uv || []), webgl.STATIC_DRAW);
+      var colors = this.material.getVertexColors ? this.material.getVertexColors(this.geometry) : new Float32Array([]);
       this.buffers.color = webgl.createBuffer();
       webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.color);
-      webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(colors), webgl.STATIC_DRAW);
+      webgl.bufferData(webgl.ARRAY_BUFFER, colors, webgl.STATIC_DRAW);
       this.buffers.indices = webgl.createBuffer();
       webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
       webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
@@ -77740,6 +77743,11 @@ ${nodesText}`;
     }
     draw(camera, program) {
       var webgl = this._gl;
+      var materialProgram = this.material && this.material.ensureProgram && this.material.ensureProgram(this._gameLib);
+      if (!materialProgram) {
+        return;
+      }
+      this._gameLib.useProgram(materialProgram);
       var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
       var projectionMatrix = camera.getProjectionMatrix(aspect);
       var viewMatrix = camera.getViewMatrix();
@@ -77747,15 +77755,335 @@ ${nodesText}`;
       var modelViewMatrix = mat4.create();
       mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
       var normalMatrix = this.transform.getNormalMatrix(modelViewMatrix);
-      this._gameLib.setProgramAttribute(program, "aVertexPosition", this.buffers.position, 3);
-      this._gameLib.setProgramAttribute(program, "aVertexNormal", this.buffers.normal, 3);
-      this._gameLib.setProgramAttribute(program, "aVertexColor", this.buffers.color, 4);
-      this._gameLib.setProgramAttribute(program, "aTextureCoord", this.buffers.uv, 2);
+      this._gameLib.setProgramAttribute(materialProgram, "aVertexPosition", this.buffers.position, 3);
+      this._gameLib.setProgramAttribute(materialProgram, "aVertexNormal", this.buffers.normal, 3);
+      this._gameLib.setProgramAttribute(materialProgram, "aVertexColor", this.buffers.color, 4);
+      this._gameLib.setProgramAttribute(materialProgram, "aTextureCoord", this.buffers.uv, 2);
+      if (this.material.texture) {
+        this.material.texture.bind(this.material.textureUnit || 0);
+        var textureLocation = this._gameLib.getAttributeLocation(materialProgram, "uTexture", "uniform");
+        if (textureLocation) {
+          webgl.uniform1i(textureLocation, this.material.textureUnit || 0);
+        }
+        var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
+        if (useTextureLocation) {
+          webgl.uniform1i(useTextureLocation, 1);
+        }
+      } else {
+        var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
+        if (useTextureLocation) {
+          webgl.uniform1i(useTextureLocation, 0);
+        }
+      }
       webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, "uProjectionMatrix"), false, projectionMatrix);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, "uModelViewMatrix"), false, modelViewMatrix);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, "uNormalMatrix"), false, normalMatrix);
+      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uProjectionMatrix"), false, projectionMatrix);
+      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uModelViewMatrix"), false, modelViewMatrix);
+      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uNormalMatrix"), false, normalMatrix);
       webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
+    }
+  };
+
+  // src/3D/Material.js
+  var Material = class _Material {
+    constructor(gameLib, shader = null) {
+      if (!gameLib) {
+        throw new GameLibCore2.Error("Constructing a Material requires a GameLib instance.");
+      }
+      this.gameLib = gameLib;
+      this.program = shader;
+      this.hasColor = false;
+      this.color = null;
+      this.gradient = null;
+      this.texture = null;
+      this.textureUnit = 0;
+      this.uniforms = {};
+    }
+    static webGL1VertexShader = `
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+    attribute vec2 aTextureCoord;
+    uniform mat4 uProjectionMatrix;
+    uniform mat4 uModelViewMatrix;
+    varying vec4 vColor;
+    varying vec2 vUV;
+    void main() {
+      vColor = aVertexColor;
+      vUV = aTextureCoord;
+      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+    }
+  `;
+    static webGL1FragmentShader = `
+    precision mediump float;
+    varying vec4 vColor;
+    varying vec2 vUV;
+    uniform sampler2D uTexture;
+    uniform bool uUseTexture;
+    void main() {
+      vec4 color = vColor;
+      if (uUseTexture) {
+        color *= texture2D(uTexture, vUV);
+      }
+      gl_FragColor = color;
+    }
+  `;
+    static webGL2VertexShader = `#version 300 es
+    in vec3 aVertexPosition;
+    in vec4 aVertexColor;
+    in vec2 aTextureCoord;
+    uniform mat4 uProjectionMatrix;
+    uniform mat4 uModelViewMatrix;
+    out vec4 vColor;
+    out vec2 vUV;
+    void main() {
+      vColor = aVertexColor;
+      vUV = aTextureCoord;
+      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+    }
+  `;
+    static webGL2FragmentShader = `#version 300 es
+    precision mediump float;
+    in vec4 vColor;
+    in vec2 vUV;
+    uniform sampler2D uTexture;
+    uniform bool uUseTexture;
+    out vec4 outColor;
+    void main() {
+      vec4 color = vColor;
+      if (uUseTexture) {
+        color *= texture(uTexture, vUV);
+      }
+      outColor = color;
+    }
+  `;
+    static get standardVertexShader() {
+      return _Material.webGL1VertexShader;
+    }
+    static get standardFragmentShader() {
+      return _Material.webGL1FragmentShader;
+    }
+    static normalizeColor(color) {
+      if (!Array.isArray(color)) {
+        return [1, 1, 1, 1];
+      }
+      if (color.length === 3) {
+        return [color[0], color[1], color[2], 1];
+      }
+      if (color.length >= 4) {
+        return [color[0], color[1], color[2], color[3]];
+      }
+      return [1, 1, 1, 1];
+    }
+    static interpolate(a, b, t) {
+      return a + (b - a) * t;
+    }
+    static createStandardProgram(gameLib) {
+      if (!gameLib || !gameLib.webgl) {
+        throw new GameLibCore2.Error("Material.createStandardProgram(gameLib) requires a GameLib instance with a WebGL context.");
+      }
+      var webgl = gameLib.webgl;
+      var isWebGL2 = !gameLib.options || gameLib.options.webGL2 !== false;
+      var vertexSource = isWebGL2 ? _Material.webGL2VertexShader : _Material.webGL1VertexShader;
+      var fragmentSource = isWebGL2 ? _Material.webGL2FragmentShader : _Material.webGL1FragmentShader;
+      var vertexShader = gameLib.compileShader(webgl.VERTEX_SHADER, vertexSource);
+      var fragmentShader = gameLib.compileShader(webgl.FRAGMENT_SHADER, fragmentSource);
+      if (!vertexShader || !fragmentShader) {
+        console.warn("[GameLib] Standard material shader compilation failed.");
+        return null;
+      }
+      var program = gameLib.createProgram(vertexShader, fragmentShader);
+      if (!program) {
+        console.warn("[GameLib] Standard material shader linking failed.");
+        return null;
+      }
+      return program;
+    }
+    static getDefaultProgram(gameLib) {
+      return _Material.createStandardProgram(gameLib);
+    }
+    ensureProgram(gameLib = this.gameLib) {
+      if (!this.program && gameLib) {
+        this.program = _Material.createStandardProgram(gameLib);
+      }
+      return this.program;
+    }
+    setColor(color) {
+      this.color = _Material.normalizeColor(color);
+      this.hasColor = true;
+      this.gradient = null;
+      return this;
+    }
+    setTexture(texture) {
+      this.texture = texture;
+      return this;
+    }
+    setGradient(stops, options = {}) {
+      if (!Array.isArray(stops) || stops.length === 0) {
+        this.gradient = null;
+        return this;
+      }
+      this.gradient = {
+        source: options.source || "uv",
+        axis: options.axis || "y",
+        stops: stops.map((stop) => {
+          if (!Array.isArray(stop) || stop.length < 2) {
+            return null;
+          }
+          return [Number(stop[0]), _Material.normalizeColor(stop[1])];
+        }).filter(Boolean).sort((a, b) => a[0] - b[0])
+      };
+      if (this.gradient.stops.length === 0) {
+        this.gradient = null;
+        return this;
+      }
+      this.hasColor = true;
+      this.color = null;
+      return this;
+    }
+    interpolateGradient(value) {
+      if (!this.gradient || this.gradient.stops.length === 0) {
+        return [1, 1, 1, 1];
+      }
+      var stops = this.gradient.stops;
+      if (value <= stops[0][0]) {
+        return stops[0][1];
+      }
+      for (var i2 = 0; i2 < stops.length - 1; i2++) {
+        var current = stops[i2];
+        var next = stops[i2 + 1];
+        if (value >= current[0] && value <= next[0]) {
+          var t = (value - current[0]) / (next[0] - current[0] || 1);
+          return [
+            _Material.interpolate(current[1][0], next[1][0], t),
+            _Material.interpolate(current[1][1], next[1][1], t),
+            _Material.interpolate(current[1][2], next[1][2], t),
+            _Material.interpolate(current[1][3], next[1][3], t)
+          ];
+        }
+      }
+      return stops[stops.length - 1][1];
+    }
+    getVertexColors(geometry) {
+      var vertexCount = Math.max(1, Math.floor((geometry.positions?.length || 0) / 3));
+      var colors = [];
+      if (!this.hasColor && !this.gradient) {
+        for (var i2 = 0; i2 < vertexCount; i2++) {
+          colors.push(1, 1, 1, 1);
+        }
+        return new Float32Array(colors);
+      }
+      if (this.gradient) {
+        var axis = (this.gradient.axis || "y").toLowerCase();
+        var source = (this.gradient.source || "uv").toLowerCase();
+        var axisIndex = axis === "x" ? 0 : axis === "z" ? 2 : 1;
+        var coordinates = [];
+        if (source === "position" && Array.isArray(geometry.positions)) {
+          for (var i2 = 0; i2 < vertexCount; i2++) {
+            coordinates.push(geometry.positions[i2 * 3 + axisIndex]);
+          }
+        } else if (Array.isArray(geometry.uv)) {
+          var uvIndex = axis === "x" ? 0 : 1;
+          for (var i2 = 0; i2 < vertexCount; i2++) {
+            coordinates.push(geometry.uv[i2 * 2 + uvIndex] ?? 0.5);
+          }
+        } else if (Array.isArray(geometry.positions)) {
+          for (var i2 = 0; i2 < vertexCount; i2++) {
+            coordinates.push(geometry.positions[i2 * 3 + axisIndex]);
+          }
+        } else {
+          for (var i2 = 0; i2 < vertexCount; i2++) {
+            coordinates.push(0.5);
+          }
+        }
+        for (var i2 = 0; i2 < vertexCount; i2++) {
+          var color = this.interpolateGradient(coordinates[i2]);
+          colors.push(color[0], color[1], color[2], color[3]);
+        }
+        return new Float32Array(colors);
+      }
+      var baseColor = _Material.normalizeColor(this.color || [1, 1, 1, 1]);
+      for (var i2 = 0; i2 < vertexCount; i2++) {
+        colors.push(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+      }
+      return new Float32Array(colors);
+    }
+  };
+
+  // src/3D/Texture.js
+  var Texture = class _Texture {
+    constructor(gl, source = null, options = {}) {
+      this.gl = gl;
+      this.options = options;
+      this.target = options.target || gl.TEXTURE_2D;
+      this.texture = gl.createTexture();
+      gl.bindTexture(this.target, this.texture);
+      this.setParameters(options);
+      if (source !== null) {
+        this.update(source);
+      }
+    }
+    setParameters(options = {}) {
+      const gl = this.gl;
+      const target = this.target;
+      gl.texParameteri(target, gl.TEXTURE_WRAP_S, options.wrapS || gl.CLAMP_TO_EDGE);
+      gl.texParameteri(target, gl.TEXTURE_WRAP_T, options.wrapT || gl.CLAMP_TO_EDGE);
+      gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, options.minFilter || gl.LINEAR);
+      gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, options.magFilter || gl.LINEAR);
+      return this;
+    }
+    update(source) {
+      const gl = this.gl;
+      gl.bindTexture(this.target, this.texture);
+      if (this.options.flipY !== void 0) {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, this.options.flipY);
+      }
+      gl.texImage2D(
+        this.target,
+        0,
+        this.options.internalFormat || gl.RGBA,
+        this.options.format || gl.RGBA,
+        this.options.type || gl.UNSIGNED_BYTE,
+        source
+      );
+      if (this.options.generateMipmaps) {
+        gl.generateMipmap(this.target);
+      }
+      return this;
+    }
+    bind(unit = 0) {
+      const gl = this.gl;
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(this.target, this.texture);
+      return this;
+    }
+    static fromImage(gl, image, options = {}) {
+      return new _Texture(gl, image, options);
+    }
+    static load(gl, url, options = {}) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(_Texture.fromImage(gl, image, options));
+        image.onerror = () => reject(new Error(`Failed to load texture image: ${url}`));
+        image.src = url;
+      });
+    }
+  };
+
+  // src/3D/TextureFactory.js
+  var TextureFactory = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class TextureFactory may not be constructed!");
+    }
+    static create(gl, source, options = {}) {
+      if (source instanceof Texture) {
+        return source;
+      }
+      return new Texture(gl, source, options);
+    }
+    static fromImage(gl, image, options = {}) {
+      return Texture.fromImage(gl, image, options);
+    }
+    static load(gl, url, options = {}) {
+      return Texture.load(gl, url, options);
     }
   };
 
@@ -77786,6 +78114,9 @@ ${nodesText}`;
     static Camera = Camera;
     static Ammo = Ammo;
     static Mesh = Mesh;
+    static Material = Material;
+    static Texture = Texture;
+    static TextureFactory = TextureFactory;
   };
 
   // src/index.js
