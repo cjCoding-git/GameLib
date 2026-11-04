@@ -6066,8 +6066,8 @@ ${nodesText}`;
       var isWebGL2 = !this._gameLib.options || this._gameLib.options.webGL2 !== false;
       var vertexSource = this._getVertexShaderSource(isWebGL2);
       var fragmentSource = this._getFragmentShaderSource(isWebGL2);
-      var vertexShader = this._gameLib.compileShader(vertexSource);
-      var fragmentShader = this._gameLib.compileShader(fragmentSource);
+      var vertexShader = this._gameLib.compileShader(gl.VERTEX_SHADER, vertexSource);
+      var fragmentShader = this._gameLib.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
       if (!vertexShader || !fragmentShader) return false;
       this._program = this._gameLib.createProgram(vertexShader, fragmentShader);
       if (!this._program) return false;
@@ -6163,6 +6163,14 @@ ${nodesText}`;
       this._clearColor = color;
     }
     compileShader(type, source) {
+      if (typeof type == "string") {
+        if (type == "vertex") {
+          type = this._gl.VERTEX_SHADER;
+        }
+        if (type == "fragment") {
+          type = this._gl.FRAGMENT_SHADER;
+        }
+      }
       var shader = this._gl.createShader(type);
       this._gl.shaderSource(shader, source);
       this._gl.compileShader(shader);
