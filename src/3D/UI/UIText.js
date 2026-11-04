@@ -12,6 +12,22 @@ class UIText extends UIObject {
     this.textAlign = options.textAlign || "left";
     this.textBaseline = options.textBaseline || "top";
     this.textureDirty = true;
+    this._drawText();
+  }
+  setText(text) {
+    this.text = text;
+    this._drawText();
+    return this;
+  }
+  _drawText() {
+    var ctx = this.source.getContext('2d');
+    ctx.clearRect(0, 0, this.source.width, this.source.height);
+    ctx.font = this.font;
+    ctx.fillStyle = this.fillStyle;
+    ctx.textAlign = this.textAlign;
+    ctx.textBaseline = this.textBaseline;
+    this.fillText(this.text, 0, 0, this.source.width);
+    this.textureDirty = true;
   }
 }
 export {
