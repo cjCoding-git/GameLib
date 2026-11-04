@@ -112,7 +112,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this.clearCanvas();
     this.callHook('pre-render');
     for(var i=0;i<this._objects.length;i++) {
-      this._objects[i].draw(this._camera, this._program);
+      this._objects[i].draw(this._camera);
     }
     this.callHook('post-render');
   }
