@@ -78238,7 +78238,7 @@ ${nodesText}`;
   var UIObject = class {
     constructor(gameLib, scene, x, y, width, height, color) {
       this._gameLib = gameLib;
-      this.scene = scecne;
+      this.scene = scene;
       this.x = x;
       this.y = y;
       this.width = width;
