@@ -4908,55 +4908,6 @@
     }
   };
 
-  // src/2D/UI/Button.js
-  var Button = class extends Renderable {
-    constructor(pos, size, scene) {
-      super(scene);
-      this.overlay = true;
-      this._canvas = this.gameLib.viewportCanvas;
-      this._ctx = this.gameLib.viewportCtx;
-      this._box = new Box(pos, size);
-      this.hover = false;
-      this.cursor = "default";
-    }
-    moveTo(x, y) {
-      this._box.moveTo(x, y);
-    }
-    get x() {
-      return this._box.x;
-    }
-    get y() {
-      return this._box.y;
-    }
-    get width() {
-      return this._box.width;
-    }
-    get height() {
-      return this._box.height;
-    }
-    handleClick(evt, coord) {
-      if (coord.x >= this._box.x && coord.y >= this._box.y && coord.x <= this._box.x + this._box.width && coord.y <= this._box.y + this._box.height) {
-        this.clicked();
-        return true;
-      }
-      return false;
-    }
-    handleHover(evt, coord) {
-      if (coord.x >= this._box.x && coord.y >= this._box.y && coord.x <= this._box.x + this._box.width && coord.y <= this._box.y + this._box.height) {
-        this.hover = true;
-        GameLib.cursor(this.cursor);
-        return true;
-      } else {
-        this.hover = false;
-        return false;
-      }
-    }
-    clicked() {
-      this.hover = false;
-      GameLib.cursor("default");
-    }
-  };
-
   // src/2D/GameLib.js
   var GameLib = class _GameLib extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
@@ -4999,7 +4950,7 @@
     }
     hoverButtons(evt) {
       var canvasRect = this._viewportCanvas.getBoundingClientRect();
-      var buttons = this.getRenderablesOfType(Button);
+      var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
       var calcXY = new Coord(evt.pageX - canvasRect.x, evt.pageY - canvasRect.y);
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonHover = false;
@@ -5017,7 +4968,7 @@
     }
     checkButtons(evt) {
       var canvasRect = this._viewportCanvas.getBoundingClientRect();
-      var buttons = this.getRenderablesOfType(Button);
+      var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
       var calcXY = new Coord(evt.clientX - canvasRect.x, evt.clientY - canvasRect.y);
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonClicked = false;
@@ -5277,6 +5228,55 @@
     constructor(scene) {
       super(scene);
       this.makeOverlay();
+    }
+  };
+
+  // src/2D/UI/Button.js
+  var Button = class extends Renderable {
+    constructor(pos, size, scene) {
+      super(scene);
+      this.overlay = true;
+      this._canvas = this.gameLib.viewportCanvas;
+      this._ctx = this.gameLib.viewportCtx;
+      this._box = new Box(pos, size);
+      this.hover = false;
+      this.cursor = "default";
+    }
+    moveTo(x, y) {
+      this._box.moveTo(x, y);
+    }
+    get x() {
+      return this._box.x;
+    }
+    get y() {
+      return this._box.y;
+    }
+    get width() {
+      return this._box.width;
+    }
+    get height() {
+      return this._box.height;
+    }
+    handleClick(evt, coord) {
+      if (coord.x >= this._box.x && coord.y >= this._box.y && coord.x <= this._box.x + this._box.width && coord.y <= this._box.y + this._box.height) {
+        this.clicked();
+        return true;
+      }
+      return false;
+    }
+    handleHover(evt, coord) {
+      if (coord.x >= this._box.x && coord.y >= this._box.y && coord.x <= this._box.x + this._box.width && coord.y <= this._box.y + this._box.height) {
+        this.hover = true;
+        GameLib.cursor(this.cursor);
+        return true;
+      } else {
+        this.hover = false;
+        return false;
+      }
+    }
+    clicked() {
+      this.hover = false;
+      GameLib.cursor("default");
     }
   };
 
