@@ -2,15 +2,16 @@ import { Object } from "./Object.js"
 import { Transform } from "./Transform.js"
 import { mat4 } from "../Lib/GLMatrix.js"
 class Mesh extends Object {
-  constructor(gameLib, geometryData, color=[1.0, 1.0, 1.0, 1.0]) {
+  constructor(gameLib, geometryData, material) {
     super(gameLib);
     this.transform = new Transform();
-    this.color = color;
+    this.material = material;
     this.geometry = geometryData;
     this.buffers = {};
   }
   setup() {
     var webgl = this._gl;
+    this._gameLib.useProgram(this.material.program);
     this.buffers.position = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.position);
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.positions), webgl.STATIC_DRAW);
@@ -22,8 +23,10 @@ class Mesh extends Object {
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.uv), webgl.STATIC_DRAW);
     var vertexCount = this.geometry.positions.length / 3;
     var colors = [];
-    for(var i=0;i<vertexCount;i++) {
-      colors.push(...this.color);
+    if(this.material.isColor) {
+      for(var i=0;i<vertexCount;i++) {
+        colors.push(...this.material.color);
+      }
     }
     this.buffers.color = webgl.createBuffer();
     webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.color);
@@ -35,6 +38,7 @@ class Mesh extends Object {
   }
   draw(camera, program) {
     var webgl = this._gl;
+    this._gameLib.useProgram(this.material.program);
     var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
     var projectionMatrix = camera.getProjectionMatrix(aspect);
     var viewMatrix = camera.getViewMatrix();
