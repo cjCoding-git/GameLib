@@ -6006,6 +6006,142 @@ ${nodesText}`;
       this._positionLocation = null;
       this._colorLocation = null;
       this._resolutionLocation = null;
+      this._textureProgram = null;
+      this._textureBuffer = null;
+      this._texturePositionLocation = null;
+      this._textureUVLocation = null;
+      this._textureResolutionLocation = null;
+      this._textureSamplerLocation = null;
+    }
+    _getTextureVertexShaderSource(webgl2) {
+      if (webgl2) {
+        return `#version 300 es
+      in vec2 aPosition;
+      in vec2 aUV;
+      uniform vec2 uResolution;
+      out vec2 vUV;
+      void main() {
+        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
+        clipPosition.y *= -1.0;
+        gl_Position = vec4(clipPosition, 0.0, 1.0);
+        vUV = aUV;
+      }`;
+      } else {
+        return `attribute vec2 aPosition;
+      attribute vec2 aUV;
+      uniform vec2 uResolution;
+      varying vec2 vUV;
+      void main() {
+        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
+        clipPosition.y *= -1.0;
+        vUV = aUV;
+      }`;
+      }
+    }
+    _getTextureFragmentShaderSource(webgl2) {
+      if (webgl2) {
+        return `#version 300 es
+      precision mediump float;
+      in vec2 vUV;
+      uniform sampler2D uTexture;
+      out vec4 outColor;
+      void main() {
+        outColor = texture(uTexture, vUV);
+      }`;
+      } else {
+        return `precision mediump float;
+      varying vec2 vUV;
+      uniform sampler2D uTexture;
+      void main() {
+        gl_FragColor = texture2D(uTexture, vUV);
+      }`;
+      }
+    }
+    _initializeTextureRenderer() {
+      if (this._textureProgram) return true;
+      var gl = this._gameLib.webgl;
+      var webgl2 = !this._gameLib.options || this._gameLib.options.webGL2 !== false;
+      var vertexSource = this._getTextureVertexShaderSource(webgl2);
+      var fragmentSource = this._getTextureFragmentShaderSource(webgl2);
+      var vertexShader = this._gameLib.compileShader(gl.VERTEX_SHADER, vertexSource);
+      var fragmentShader = this._gameLib.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+      if (!vertexShader || !fragmentShader) return false;
+      this._textureProgram = this._gameLib.createProgram(vertexShader, fragmentShader);
+      if (!this._textureProgram) return false;
+      this._textureBuffer = gl.createBuffer();
+      this._texturePositionLocation = gl.getAttribLocation(this._textureProgram, "aPosition");
+      this._textureUVLocation = gl.getAttribLocation(this._textureProgram, "aUV");
+      this._textureResolutionLocation = gl.getUniformLocation(this._textureProgram, "uResolution");
+      this._textureSamplerLocation = gl.getUniformLocation(this._textureProgram, "uTexture");
+      return Boolean(this._textureBuffer);
+    }
+    _renderTexturedObject(object) {
+      var gl = this._gameLib.webgl;
+      var source = object.source;
+      if (!source || !this._initializeTextureRenderer) return;
+      if (!object._glTexture) {
+        object._glTexture = gl.createTexture();
+        object.textureDirty = false;
+        gl.bindTexture(gl.TEXTURE_2D, object._glTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      }
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, object._glTexture);
+      if (object.textureDirty) {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        object.textureDirty = false;
+      }
+      var x = object.x;
+      var y = object.y;
+      var right = x + object.width;
+      var bottom = y + object.height;
+      var vertices = new Float32Array([
+        x,
+        y,
+        0,
+        0,
+        right,
+        y,
+        1,
+        0,
+        x,
+        bottom,
+        0,
+        1,
+        x,
+        bottom,
+        0,
+        1,
+        right,
+        y,
+        1,
+        0,
+        right,
+        bottom,
+        1,
+        1
+      ]);
+      gl.useProgram(this._textureProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._textureBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+      var stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+      gl.enableVertexAttribArray(this._texturePositionLocation);
+      gl.vertexAttribPointer(this._texturePositionLocation, 2, gl.FLOAT, false, stride, 0);
+      gl.enableVertexAttribArray(this._textureUVLocation);
+      gl.vertexAttribPointer(this._textureUVLocation, 2, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PRE_ELEMENT);
+      gl.uniform2f(this._textureResolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
+      gl.uniform1i(this._textureSamplerLocation, 0);
+      gl.disable(gl.DEPTH_TEST);
+      gl.depthMask(false);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.depthMask(true);
+      gl.enable(gl.DEPTH_TEST);
     }
     addObject(object) {
       object.id = GameLibCore2.Utils.UUID();
@@ -6107,6 +6243,7 @@ ${nodesText}`;
       gl.enable(gl.DEPTH_TEST);
     }
     renderObject(object) {
+      if (object.isTexturedUI) return this._renderTexturedObject(object);
       var x = object.x;
       var y = object.y;
       var width = object.width;
@@ -78259,6 +78396,84 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/UI/UIPath.js
+  var UIPath = class extends UIObject {
+    constructor(gameLib, scene, x, y, width, height, pathData, options = {}) {
+      super(gameLib, scene, x, y, width, height, options.color);
+      this.isTexturedUI = true;
+      this.source = document.createElement("canvas");
+      this.source.width = Math.max(1, Math.ceil(width));
+      this.source.height = Math.max(1, Math.ceil(height));
+      this.textureDirty = true;
+      var ctx = this.source.getContext("2d");
+      var path2 = new Path2D(pathData);
+      if (options.fillStyle) {
+        ctx.fillStyle = options.fillStyle;
+        ctx.fill(path2);
+      }
+      if (options.strokeStyle) {
+        ctx.strokeStyle = options.strokeStyle;
+        ctx.lineWidth = options.lineWidth || 1;
+        ctx.stroke(path2);
+      }
+    }
+  };
+
+  // src/3D/UI/UIImage.js
+  var UIImage = class extends UIObject {
+    constructor(gameLib, scene, x, y, width, height, url, options = {}) {
+      super(gameLib, scene, x, y, width, height, options.color);
+      this.isTexturedUI = true;
+      this.source = null;
+      this.textureDirty = true;
+      var image = new Image();
+      if (options.crossOrigin) {
+        image.crossOrigin = options.crossOrigin;
+      }
+      image.onload = () => {
+        this.source = image;
+        this.textureDirty = true;
+      };
+      image.onerror = () => {
+        console.warn(`[GameLib] Failed to load image: ${url}`);
+      };
+      image.src = url;
+    }
+  };
+
+  // src/3D/UI/UIText.js
+  var UIText = class extends UIObject {
+    constructor(gameLib, scene, x, y, width, height, text, options = {}) {
+      super(gameLib, scene, x, y, width, height, options.color);
+      this.isTexturedUI = true;
+      this.source = document.createElement("canvas");
+      this.source.width = Math.max(1, Math.ceil(width));
+      this.source.height = Math.max(1, Math.ceil(height));
+      this.text = text;
+      this.font = options.font || "24px sans-serif";
+      this.fillStyle = options.fillStyle || "#ffffff";
+      this.textAlign = options.textAlign || "left";
+      this.textBaseline = options.textBaseline || "top";
+      this.textureDirty = true;
+      this._drawText();
+    }
+    setText(text) {
+      this.text = text;
+      this._drawText();
+      return this;
+    }
+    _drawText() {
+      var ctx = this.source.getContext("2d");
+      ctx.clearRect(0, 0, this.source.width, this.source.height);
+      ctx.font = this.font;
+      ctx.fillStyle = this.fillStyle;
+      ctx.textAlign = this.textAlign;
+      ctx.textBaseline = this.textBaseline;
+      this.fillText(this.text, 0, 0, this.source.width);
+      this.textureDirty = true;
+    }
+  };
+
   // src/3D/UI/index.js
   var UI2 = class {
     constructor() {
@@ -78266,6 +78481,9 @@ ${nodesText}`;
     }
     static UIRenderer = UIRenderer;
     static UIObject = UIObject;
+    static Path = UIPath;
+    static Image = UIImage;
+    static Text = UIText;
   };
 
   // src/3D/index.js
