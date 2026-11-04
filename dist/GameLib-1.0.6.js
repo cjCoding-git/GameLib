@@ -6091,7 +6091,7 @@ ${nodesText}`;
       var vertexStride = 6 * Float32Array.BYTES_PER_ELEMENT;
       gl.useProgram(this._program);
       gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_ROW);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
       gl.enableVertexAttribArray(this._positionLocation);
       gl.vertexAttribPointer(this._positionLocation, 2, gl.FLOAT, false, vertexStride, 0);
       gl.uniform2f(this._resolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
