@@ -17,6 +17,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this._camera = null;
       this._program = null;
       this._uiRenderer = new UIRenderer(this);
+      this._scene = "";
       this.registerMainloop();
       GameLib3D.GameLib._instance = this;
     }
@@ -119,8 +120,14 @@ class GameLib extends GameLibCore.GameLibBase {
     for(var i=0;i<this._objects.length;i++) {
       this._objects[i].draw(this._camera);
     }
-    this._uiRenderer.render();
+    this._uiRenderer.render(this._scene);
     this.callHook('post-render');
+  }
+  addUIObject(object) {
+    this._uiRenderer.addObject(object);
+  }
+  getUIObjects() {
+    return this._uiRenderer.getObjects();
   }
   mainloop() {
     this.update();
