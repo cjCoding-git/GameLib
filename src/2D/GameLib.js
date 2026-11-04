@@ -5,7 +5,7 @@ import { Size } from "./Size.js"
 import { Box } from "./Box.js"
 import { Renderable } from "./Renderable.js"
 import { Sprite } from "./Sprite.js"
-import { Loading } from "./Loading.js"
+import { Loading } from "../Core/Loading.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
