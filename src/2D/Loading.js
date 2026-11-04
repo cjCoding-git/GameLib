@@ -3,7 +3,8 @@ class Loading {
   constructor() {
     throw new GameLibCore.Error("Class Loading may not be constructed!");
   }
-  render(canvas, ctx) {
+  static DEFAULT_CONFIG = {};
+  static render(canvas, ctx, config) {
     this._viewportCtx.fillStyle = "#000000";
     this._viewportCtx.fillRect(0, 0, this._viewportCanvas.width, this._viewportCanvas.height);
     this._viewportCtx.fillStyle = "#ffffff";
