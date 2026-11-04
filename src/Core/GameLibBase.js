@@ -1,7 +1,7 @@
 class GameLibBase {
   constructor() {
-    this._active = false;
-    this._rendering = false;
+    this._active = true;
+    this._rendering = true;
     this._hooks = {};
   }
   setActive(active) {
