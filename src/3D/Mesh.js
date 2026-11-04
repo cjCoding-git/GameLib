@@ -23,7 +23,7 @@ class Mesh extends Object {
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.uv), webgl.STATIC_DRAW);
     var vertexCount = this.geometry.positions.length / 3;
     var colors = [];
-    if(this.material.isColor) {
+    if(this.material.hasColor) {
       for(var i=0;i<vertexCount;i++) {
         colors.push(...this.material.color);
       }
@@ -36,7 +36,7 @@ class Mesh extends Object {
     webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
     this.indexCount = this.geometry.indices.length;
   }
-  draw(camera, program) {
+  draw(camera) {
     var webgl = this._gl;
     this._gameLib.useProgram(this.material.program);
     var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
@@ -46,14 +46,14 @@ class Mesh extends Object {
     var modelViewMatrix = mat4.create();
     mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
     var normalMatrix = this.transform.getNormalMatrix(modelViewMatrix);
-    this._gameLib.setProgramAttribute(program, "aVertexPosition", this.buffers.position, 3);
-    this._gameLib.setProgramAttribute(program, "aVertexNormal", this.buffers.normal, 3);
-    this._gameLib.setProgramAttribute(program, "aVertexColor", this.buffers.color, 4);
-    this._gameLib.setProgramAttribute(program, "aTextureCoord", this.buffers.uv, 2);
+    this._gameLib.setProgramAttribute(this.material.program, "aVertexPosition", this.buffers.position, 3);
+    this._gameLib.setProgramAttribute(this.material.program, "aVertexNormal", this.buffers.normal, 3);
+    this._gameLib.setProgramAttribute(this.material.program, "aVertexColor", this.buffers.color, 4);
+    this._gameLib.setProgramAttribute(this.material.program, "aTextureCoord", this.buffers.uv, 2);
     webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, 'uProjectionMatrix'), false, projectionMatrix);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, 'uModelViewMatrix'), false, modelViewMatrix);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(program, 'uNormalMatrix'), false, normalMatrix);
+    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(this.material.program, 'uProjectionMatrix'), false, projectionMatrix);
+    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(this.material.program, 'uModelViewMatrix'), false, modelViewMatrix);
+    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(this.material.program, 'uNormalMatrix'), false, normalMatrix);
     webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
   }
 }
