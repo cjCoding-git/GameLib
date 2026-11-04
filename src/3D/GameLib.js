@@ -39,6 +39,14 @@ class GameLib extends GameLibCore.GameLibBase {
     this._clearColor = color;
   }
   compileShader(type, source) {
+    if(typeof type == "string") {
+      if(type == "vertex") {
+        type = this._gl.VERTEX_SHADER;
+      }
+      if(type == "fragment") {
+        type = this._gl.FRAGMENT_SHADER;
+      }
+    }
     var shader = this._gl.createShader(type);
     this._gl.shaderSource(shader, source);
     this._gl.compileShader(shader);
