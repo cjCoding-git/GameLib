@@ -1,7 +1,10 @@
 /*!
   GameLib
   Copyright (c) 2025, Charles Jager
-  glMatrix 3.4.4 Copyright (c) 2015-2025, Brandon Jones, Colin MacKenzie IV.
+  Libraries Used in GameLib:
+    glMatrix 3.4.4 Copyright (c) 2015-2025, Brandon Jones, Colin MacKenzie IV.
+    Ammo.js Copyright (c) 2011 ammo.js contributors
+    PeerJS Copyright (c) 2015 Michelle Bu and Eric Zhang
 */
 import { GameLibCore } from "./Core/index.js"
 import { GameLib2D } from "./2D/index.js"
