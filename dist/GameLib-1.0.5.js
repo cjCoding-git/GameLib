@@ -4632,7 +4632,7 @@
   };
 
   // src/2D/Coord.js
-  var Coord2 = class {
+  var Coord = class {
     constructor(x, y) {
       this.x = x;
       this.y = y;
@@ -5366,7 +5366,7 @@
     constructor() {
       throw new GameLibCore.Error("Wrapper class GameLib2D may not be constructed!");
     }
-    static Coord = Coord2;
+    static Coord = Coord;
     static Size = Size2;
     static Box = Box2;
     static Rotation = Rotation;
