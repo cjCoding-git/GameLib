@@ -29,6 +29,9 @@ class GameLib extends GameLibCore.GameLibBase {
   get webgl() {
     return this._gl;
   }
+  get options() {
+    return this._options;
+  }
   setClearColor(color) {
     this._clearColor = color;
   }
