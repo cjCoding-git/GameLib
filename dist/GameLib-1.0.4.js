@@ -77560,7 +77560,7 @@ ${nodesText}`;
       webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.normals), webgl.STATIC_DRAW);
       this.buffers.uv = webgl.createBuffer();
       webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.uv);
-      webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geoemtry.uv), webgl.STATIC_DRAW);
+      webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(this.geometry.uv), webgl.STATIC_DRAW);
       var vertexCount = this.geometry.positions.length / 3;
       var colors = [];
       for (var i2 = 0; i2 < vertexCount; i2++) {
