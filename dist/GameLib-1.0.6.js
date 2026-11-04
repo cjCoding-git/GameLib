@@ -218,6 +218,9 @@
       }
       return resultString;
     }
+    static UUID() {
+      return crypto.randomUUID();
+    }
   };
 
   // src/Core/GameLibBase.js
@@ -5389,9 +5392,10 @@
 
   // src/3D/Object.js
   var Object2 = class {
-    constructor(gameLib) {
+    constructor(gameLib, scene) {
       this._gameLib = gameLib;
       this._gl = this._gameLib.webgl;
+      this.scene = scene;
     }
     setup() {
     }
@@ -5999,6 +6003,34 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/UI/UIRenderer.js
+  var UIRenderer = class {
+    constructor(gameLib) {
+      this._gameLib = gameLib;
+      this._uiObjects = [];
+    }
+    addObject(object) {
+      object.id = GameLibCore2.Utils.UUID();
+      this._uiObjects.push(object);
+    }
+    getObjects() {
+      return this._uiObjects;
+    }
+    removeObject(id) {
+      this._uiObjects = this._uiObjects.filter((object) => object.id !== id);
+    }
+    render(scene) {
+      for (var i2 = 0; i2 < this._uiObjects.length; i2++) {
+        var object = this._uiObjects[i2];
+        if (object.scene === scene) {
+          this.renderObject(object);
+        }
+      }
+    }
+    renderObject(object) {
+    }
+  };
+
   // src/3D/GameLib.js
   var GameLib2 = class extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, options) {
@@ -6014,6 +6046,8 @@ ${nodesText}`;
         this._clearColor = [0, 0, 0, 1];
         this._camera = null;
         this._program = null;
+        this._uiRenderer = new UIRenderer(this);
+        this._scene = "loading";
         this.registerMainloop();
         GameLib3D.GameLib._instance = this;
       }
@@ -6114,9 +6148,21 @@ ${nodesText}`;
       this.clearCanvas();
       this.callHook("pre-render");
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].draw(this._camera);
+        if (this._objects[i2].scene === this._scene) {
+          this._objects[i2].draw(this._camera);
+        }
       }
+      this._uiRenderer.render(this._scene);
       this.callHook("post-render");
+    }
+    addUIObject(object) {
+      this._uiRenderer.addObject(object);
+    }
+    getUIObjects() {
+      return this._uiRenderer.getObjects();
+    }
+    removeUIObject(id) {
+      this._uiRenderer.removeObject(id);
     }
     mainloop() {
       this.update();
@@ -6125,6 +6171,12 @@ ${nodesText}`;
     }
     registerMainloop() {
       window.requestAnimationFrame(this.mainloop.bind(this));
+    }
+    stopLoading() {
+      this._scene = "init";
+    }
+    setScene(scene) {
+      this._scene = scene;
     }
   };
 
@@ -77711,8 +77763,8 @@ ${nodesText}`;
 
   // src/3D/Mesh.js
   var Mesh = class extends Object2 {
-    constructor(gameLib, geometryData, material) {
-      super(gameLib);
+    constructor(gameLib, scene, geometryData, material) {
+      super(gameLib, scene);
       this.transform = new Transform();
       this.material = material;
       this.geometry = geometryData;
@@ -78088,6 +78140,23 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/UI/UIObject.js
+  var UIObject = class {
+    constructor(gameLib, scene) {
+      this._gameLib = gameLib;
+      this.scene = scecne;
+    }
+  };
+
+  // src/3D/UI/index.js
+  var UI2 = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class UI may not be constructed!");
+    }
+    static UIRenderer = UIRenderer;
+    static UIObject = UIObject;
+  };
+
   // src/3D/index.js
   var GameLib3D = class {
     constructor() {
@@ -78118,6 +78187,7 @@ ${nodesText}`;
     static Material = Material;
     static Texture = Texture;
     static TextureFactory = TextureFactory;
+    static UI = UI2;
   };
 
   // src/index.js
