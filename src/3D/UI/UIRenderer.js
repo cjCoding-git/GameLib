@@ -14,7 +14,15 @@ class UIRenderer {
   removeObject(id) {
     this._uiObjects = this._uiObjects.filter(object => object.id !== id);
   }
-  renderUI(scene) {}
+  render(scene) {
+    for(var i=0;i<this._uiObjects.length;i++) {
+      var object = this._uiObjects[i];
+      if(object.scene === scene) {
+        this.renderObject(object);
+      }
+    }
+  }
+  renderObject(object) {}
 }
 export {
   UIRenderer
