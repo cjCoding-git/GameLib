@@ -13,6 +13,7 @@ import { Geometry } from "./Geometry/index.js"
 import { Ammo } from "../Lib/Ammo.js"
 import { Mesh } from "./Mesh.js"
 import { Material } from "./Material.js"
+import { Texture } from "./Texture.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
@@ -40,6 +41,7 @@ class GameLib3D {
   static Ammo = Ammo;
   static Mesh = Mesh;
   static Material = Material;
+  static Texture = Texture;
 }
 export {
   GameLib3D
