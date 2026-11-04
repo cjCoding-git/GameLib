@@ -29,8 +29,8 @@ class Mesh extends Object {
     webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.color);
     webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(colors), webgl.STATIC_DRAW);
     this.buffers.indices = webgl.createBuffer();
-    webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.indices);
-    webgl.bufferData(webgl.ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
+    webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
+    webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
     this.indexCount = this.geometry.indices.length;
   }
   draw(camera, program) {
