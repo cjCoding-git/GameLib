@@ -5967,6 +5967,9 @@ ${nodesText}`;
     setProgramAttribute(program, name, buffer, num, type, normalize2 = false, stride = 0, offset = 0, forceMode = null) {
       if (!type) type = this._gl.FLOAT;
       var location2 = this.getAttributeLocation(program, name, forceMode);
+      if (location2 === null || location2 === -1) {
+        return;
+      }
       this._gl.bindBuffer(this._gl.ARRAY_BUFFER, buffer);
       this._gl.vertexAttribPointer(location2, num, type, normalize2, stride, offset);
       this._gl.enableVertexAttribArray(location2);
@@ -77570,8 +77573,8 @@ ${nodesText}`;
       webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.color);
       webgl.bufferData(webgl.ARRAY_BUFFER, new Float32Array(colors), webgl.STATIC_DRAW);
       this.buffers.indices = webgl.createBuffer();
-      webgl.bindBuffer(webgl.ARRAY_BUFFER, this.buffers.indices);
-      webgl.bufferData(webgl.ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
+      webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
+      webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
       this.indexCount = this.geometry.indices.length;
     }
     draw(camera, program) {
