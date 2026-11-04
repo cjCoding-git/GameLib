@@ -81,12 +81,30 @@ class UIRenderer {
     return Boolean(this._buffer);
   }
   render(scene) {
+    this._vertices = [];
     for(var i=0;i<this._uiObjects.length;i++) {
       var object = this._uiObjects[i];
-      if(object.scene === scene) {
+      if(object.scene === scene && object.visible !== false) {
         this.renderObject(object);
       }
     }
+    if(this._vertices.length === 0 || !this._initialize()) return;
+    var gl = this._gameLib.webgl;
+    var vertices = new Float32Array(this._vertices);
+    var vertexStride = 6 * Float32Array.BYTES_PER_ELEMENT;
+    gl.useProgram(this._program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_ROW);
+    gl.enableVertexAttribArray(this._positionLocation);
+    gl.vertexAttribPointer(this._positionLocation, 2, gl.FLOAT, false, vertexStride, 0);
+    gl.uniform2f(this._resolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 6);
+    gl.depthMask(true);
+    gl.enable(gl.DEPTH_TEST);
   }
   renderObject(object) {
     var x = object.x;
@@ -94,6 +112,19 @@ class UIRenderer {
     var width = object.width;
     var height = object.height;
     var color = object.color || [1.0, 1.0, 1.0, 1.0];
+    var r = color[0];
+    var g = color[1];
+    var b = color[2];
+    var a = color[3];
+    var addVertex = (px, py) => {
+      this._vertices.push(px, py, r, g, b, a);
+    };
+    addVertex(x, y);
+    addVertex(x + width, y);
+    addVertex(x, y + height);
+    addVertex(x, y + height);
+    addVertex(x + width, y);
+    addVertex(x + width, y + height);
   }
 }
 export {
