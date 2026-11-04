@@ -77,7 +77,7 @@ class UIRenderer {
     this._buffer = gl.createBuffer();
     this._positionLocation = gl.getAttribLocation(this._program, "aPosition");
     this._colorLocation = gl.getAttribLocation(this._program, "aColor");
-    this._resolutionLocation = gl.getUniformLocation(this._program", "uResolution");
+    this._resolutionLocation = gl.getUniformLocation(this._program, "uResolution");
     return Boolean(this._buffer);
   }
   render(scene) {
