@@ -1,5 +1,5 @@
 class UIObject {
-  constructor(gameLib, scene) {
+  constructor(gameLib, scene, x, y, width, height, color) {
     this._gameLib = gameLib;
     this.scene = scecne;
   }
