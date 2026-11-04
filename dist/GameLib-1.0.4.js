@@ -10032,7 +10032,7 @@ ${nodesText}`;
   });
 
   // src/3D/Position.js
-  var Position2 = class {
+  var Position = class {
     constructor(x = 0, y = 0, z = 0) {
       this.x = x;
       this.y = y;
@@ -10076,7 +10076,7 @@ ${nodesText}`;
 
   // src/3D/Transform.js
   var Transform = class {
-    constructor(position = new Position2(), rotation = new Rotation2(), scale2 = new Scale()) {
+    constructor(position = new Position(), rotation = new Rotation2(), scale2 = new Scale()) {
       this.position = position;
       this.rotation = rotation;
       this.scale = scale2;
@@ -77618,7 +77618,7 @@ ${nodesText}`;
     static vec3 = vec3;
     static vec4 = vec4;
     static Transform = Transform;
-    static Position = Position2;
+    static Position = Position;
     static Rotation = Rotation2;
     static Scale = Scale;
     static Geometry = Geometry;
