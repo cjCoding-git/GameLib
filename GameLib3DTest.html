@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GameLib3D Feature Test</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #10141b;
+        --panel: #171d28;
+        --border: #2d3748;
+        --text: #e5edf7;
+        --muted: #aab7c6;
+        --ok: #5ee38b;
+        --warn: #f2c66d;
+        --bad: #f36a6a;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.6rem, 3vw, 2.4rem);
+      }
+
+      .status {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        color: var(--muted);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
+        gap: 20px;
+      }
+
+      canvas {
+        width: 100%;
+        height: 520px;
+        display: block;
+        background: radial-gradient(circle at top, #1f2c3e 0%, #0d1117 52%, #090c11 100%);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 1.05rem;
+      }
+
+      .log {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 8px;
+        font-size: 0.92rem;
+      }
+
+      .log li {
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255,255,255,0.04);
+      }
+
+      .pass { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .fail { color: var(--bad); }
+
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <h1>GameLib3D Feature Test</h1>
+        <div id="status" class="status">Initializing...</div>
+      </div>
+
+      <div class="layout">
+        <canvas id="gameCanvas" width="960" height="520"></canvas>
+
+        <div class="panel">
+          <h2>Feature checks</h2>
+          <ul id="log" class="log"></ul>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { GameLib3D } from "./src/3D/index.js";
+
+      const canvas = document.getElementById("gameCanvas");
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+
+      function addLog(message, kind = "") {
+        const li = document.createElement("li");
+        li.textContent = message;
+        li.className = kind ? kind : "";
+        logEl.appendChild(li);
+      }
+
+      function ensure(condition, passText, failText = "Failed") {
+        if (condition) {
+          addLog(passText, "pass");
+          return true;
+        }
+        addLog(`${failText}`, "fail");
+        return false;
+      }
+
+      function loadTextureFromCanvas(gl) {
+        const texCanvas = document.createElement("canvas");
+        texCanvas.width = 2;
+        texCanvas.height = 2;
+        const ctx = texCanvas.getContext("2d");
+        ctx.fillStyle = "#00ff99";
+        ctx.fillRect(0, 0, 2, 2);
+        ctx.fillStyle = "#ff8800";
+        ctx.fillRect(0, 0, 1, 1);
+        const texture = GameLib3D.TextureFactory.fromImage(gl, texCanvas, {
+          generateMipmaps: true,
+          flipY: true
+        });
+        return texture;
+      }
+
+      try {
+        ensure(typeof GameLib3D !== "undefined", "GameLib3D imported successfully.");
+        ensure(typeof GameLib3D.GameLib === "function", "GameLib3D.GameLib class exists.");
+        ensure(typeof GameLib3D.Camera === "function", "GameLib3D.Camera exists.");
+        ensure(typeof GameLib3D.Material === "function", "GameLib3D.Material exists.");
+        ensure(typeof GameLib3D.Mesh === "function", "GameLib3D.Mesh exists.");
+        ensure(typeof GameLib3D.Geometry === "function", "GameLib3D.Geometry exists.");
+        ensure(typeof GameLib3D.Texture === "function", "GameLib3D.Texture exists.");
+        ensure(typeof GameLib3D.TextureFactory === "object", "GameLib3D.TextureFactory exists.");
+        ensure(typeof GameLib3D.Transform === "function", "GameLib3D.Transform exists.");
+        ensure(typeof GameLib3D.Position === "function", "GameLib3D.Position exists.");
+        ensure(typeof GameLib3D.Rotation === "function", "GameLib3D.Rotation exists.");
+        ensure(typeof GameLib3D.Scale === "function", "GameLib3D.Scale exists.");
+        ensure(typeof GameLib3D.Utils === "function", "GameLib3D.Utils exists.");
+
+        const gl = GameLib3D.GameLib.getContext(canvas, true);
+        ensure(gl !== null, "WebGL2 context created successfully.", "WebGL2 context is unavailable.");
+
+        if (!gl) {
+          statusEl.textContent = "WebGL unavailable";
+          statusEl.style.color = "#f36a6a";
+          return;
+        }
+
+        const gameLib = new GameLib3D.GameLib(canvas, gl, { webGL2: true });
+        ensure(gameLib instanceof GameLib3D.GameLib, "GameLib instance created.");
+
+        const camera = new GameLib3D.Camera(45, 0.1, 50);
+        camera.transform.position.z = 6;
+        gameLib.setCamera(camera);
+        ensure(camera instanceof GameLib3D.Camera, "Camera created and attached.");
+
+        const position = new GameLib3D.Position(0, 0, -2);
+        const rotation = new GameLib3D.Rotation(0, 0, 0);
+        const scale = new GameLib3D.Scale(1, 1, 1);
+        const transform = new GameLib3D.Transform(position, rotation, scale);
+        ensure(transform instanceof GameLib3D.Transform, "Transform, Position, Rotation, and Scale created.");
+
+        const targetTexture = loadTextureFromCanvas(gl);
+        ensure(targetTexture instanceof GameLib3D.Texture, "Texture created from canvas image via TextureFactory.fromImage.");
+
+        const material = new GameLib3D.Material(gameLib);
+        material.setColor([1.0, 0.7, 0.2, 1.0]);
+        material.setTexture(targetTexture);
+        ensure(material.texture instanceof GameLib3D.Texture, "Material.setTexture applied a texture.");
+
+        const geometry = new GameLib3D.Geometry.Box(1.6, 1.6, 1.6);
+        ensure(Array.isArray(geometry.positions) && geometry.positions.length > 0, "Box geometry generated positions.");
+
+        const mesh = new GameLib3D.Mesh(gameLib, geometry, material);
+        mesh.transform = transform;
+        ensure(mesh instanceof GameLib3D.Mesh, "Mesh created with geometry and material.");
+
+        gameLib.addObject(mesh);
+        ensure(gameLib._objects.includes(mesh), "Mesh added to GameLib.");
+
+        const animation = () => {
+          rotation.rotate(0.01, 0.015, 0.02);
+          mesh.transform.position.x = Math.sin(performance.now() * 0.001) * 0.8;
+          mesh.transform.position.y = Math.cos(performance.now() * 0.0013) * 0.5;
+          gameLib.update();
+          gameLib.draw();
+          requestAnimationFrame(animation);
+        };
+
+        statusEl.textContent = "Running GameLib3D tests";
+        statusEl.style.color = "#5ee38b";
+        addLog("Starting animation loop...", "warn");
+        requestAnimationFrame(animation);
+      } catch (error) {
+        console.error(error);
+        addLog(`Unhandled test error: ${error.message}`, "fail");
+        statusEl.textContent = "Test failed";
+        statusEl.style.color = "#f36a6a";
+      }
+    </script>
+  </body>
+</html>
