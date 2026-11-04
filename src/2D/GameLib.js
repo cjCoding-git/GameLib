@@ -25,8 +25,6 @@ class GameLib extends GameLibCore.GameLibBase {
       this._viewport = new Box(new Coord(0, 0), new Size(this._viewportCanvas.width, this._viewportCanvas.height));
       this._renderables = [];
       this._background = {};
-      this._active = true;
-      this._rendering = true;
       this._loadingScreen = Loading.DEFAULT_CONFIG;
       this.oncontextmenu = null;
       window.addEventListener('click', this.checkButtons.bind(this), false);
@@ -97,12 +95,6 @@ class GameLib extends GameLibCore.GameLibBase {
       sprite.image = image;
     }).bind(this);
     image.src = url;
-  }
-  setActive(active) {
-    this._active = active;
-  }
-  setRendering(rendering) {
-    this._rendering = rendering;
   }
   addRenderable(renderable) {
     if (renderable instanceof Renderable) {
