@@ -9,6 +9,7 @@ class GameLib extends GameLibCore.GameLibBase {
     if (GameLib2D.GameLib._instance != null) {
       return GameLib2D.GameLib._instance;
     } else {
+      super();
       console.log("[GameLib] No GameLib instance found. Creating new instance.");
       this._scene = "loading";
       this._sprites = [];
