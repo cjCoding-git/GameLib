@@ -1,5 +1,6 @@
 class Pyramid {
-  constructor(width = 1, height = 1, depth = 1, sides = 4) {
+  constructor(width=1, height=1, depth=1, sides=4) {
+    height = height / 2;
     sides = Math.max(3, Math.floor(sides));
     var positions = [];
     var normals = [];
