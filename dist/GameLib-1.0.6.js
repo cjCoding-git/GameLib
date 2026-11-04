@@ -6034,6 +6034,7 @@ ${nodesText}`;
       void main() {
         vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
         clipPosition.y *= -1.0;
+        gl_Position = vec4(clipPosition, 0.0, 1.0);
         vUV = aUV;
       }`;
       }
@@ -6078,10 +6079,11 @@ ${nodesText}`;
     _renderTexturedObject(object) {
       var gl = this._gameLib.webgl;
       var source = object.source;
-      if (!source || !this._initializeTextureRenderer) return;
+      if (!source || !this._initializeTextureRenderer()) return;
+      if (!this._textureProgram || !this._textureBuffer) return;
       if (!object._glTexture) {
         object._glTexture = gl.createTexture();
-        object.textureDirty = false;
+        object.textureDirty = true;
         gl.bindTexture(gl.TEXTURE_2D, object._glTexture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -6090,7 +6092,7 @@ ${nodesText}`;
       }
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, object._glTexture);
-      if (object.textureDirty) {
+      if (object.textureDirty && source.complete !== false) {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
         object.textureDirty = false;
@@ -6132,7 +6134,7 @@ ${nodesText}`;
       gl.enableVertexAttribArray(this._texturePositionLocation);
       gl.vertexAttribPointer(this._texturePositionLocation, 2, gl.FLOAT, false, stride, 0);
       gl.enableVertexAttribArray(this._textureUVLocation);
-      gl.vertexAttribPointer(this._textureUVLocation, 2, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PRE_ELEMENT);
+      gl.vertexAttribPointer(this._textureUVLocation, 2, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PER_ELEMENT);
       gl.uniform2f(this._textureResolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.uniform1i(this._textureSamplerLocation, 0);
       gl.disable(gl.DEPTH_TEST);
