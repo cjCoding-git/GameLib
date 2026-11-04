@@ -4827,14 +4827,14 @@
       if (!canvas || !ctx) {
         return;
       }
-      const options = { ..._Loading.DEFAULT_CONFIG, ...config || {} };
-      const width = canvas.width;
-      const height = canvas.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const progressWidth = Math.min(Math.max(0, options.progressWidth), Math.max(0, width - options.padding * 2));
-      const progressHeight = Math.max(1, options.progressHeight);
-      const progressY = centerY + 36;
+      var options = { ..._Loading.DEFAULT_CONFIG, ...config || {} };
+      var width = canvas.width;
+      var height = canvas.height;
+      var centerX = width / 2;
+      var centerY = height / 2;
+      var progressWidth = Math.min(Math.max(0, options.progressWidth), Math.max(0, width - options.padding * 2));
+      var progressHeight = Math.max(1, options.progressHeight);
+      var progressY = centerY + 36;
       ctx.save();
       ctx.fillStyle = options.background || _Loading.DEFAULT_CONFIG.background;
       ctx.fillRect(0, 0, width, height);
@@ -4844,10 +4844,10 @@
         ctx.drawImage(options.backgroundImage, 0, 0, width, height);
         ctx.restore();
       }
-      let titleY = centerY - 30;
+      var titleY = centerY - 30;
       if (options.logo && options.logo.complete !== false) {
-        const logoWidth = Math.min(options.logoWidth, Math.max(0, width - options.padding * 2));
-        const logoHeight = Math.min(options.logoHeight, Math.max(0, height - options.padding * 2));
+        var logoWidth = Math.min(options.logoWidth, Math.max(0, width - options.padding * 2));
+        var logoHeight = Math.min(options.logoHeight, Math.max(0, height - options.padding * 2));
         ctx.drawImage(options.logo, centerX - logoWidth / 2, centerY - 112, logoWidth, logoHeight);
         titleY = centerY + 10;
       }
@@ -4865,15 +4865,15 @@
         ctx.textBaseline = "middle";
         ctx.fillText(options.status, centerX, centerY + 12);
       }
-      const barX = centerX - progressWidth / 2;
-      const radius = progressHeight / 2;
+      var barX = centerX - progressWidth / 2;
+      var radius = progressHeight / 2;
       ctx.fillStyle = options.progressTrackColor;
       ctx.beginPath();
       ctx.roundRect(barX, progressY, progressWidth, progressHeight, radius);
       ctx.fill();
       if (Number.isFinite(options.progress)) {
-        const progress = Math.min(1, Math.max(0, options.progress));
-        const fillWidth = progressWidth * progress;
+        var progress = Math.min(1, Math.max(0, options.progress));
+        var fillWidth = progressWidth * progress;
         if (fillWidth > 0) {
           ctx.fillStyle = options.progressColor;
           ctx.beginPath();
@@ -4886,10 +4886,10 @@
         ctx.textBaseline = "top";
         ctx.fillText(`${Math.round(progress * 100)}%`, centerX, progressY + progressHeight + 8);
       } else {
-        const segmentWidth = Math.max(24, progressWidth * 0.28);
-        const travel = progressWidth + segmentWidth;
+        var segmentWidth = Math.max(24, progressWidth * 0.28);
+        var travel = progressWidth + segmentWidth;
         const offset = Date.now() / 8 % travel;
-        const segmentX = barX + offset - segmentWidth;
+        var segmentX = barX + offset - segmentWidth;
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(barX, progressY, progressWidth, progressHeight, radius);
@@ -4910,6 +4910,7 @@
       if (GameLib2D2.GameLib._instance != null) {
         return GameLib2D2.GameLib._instance;
       } else {
+        super();
         console.log("[GameLib] No GameLib instance found. Creating new instance.");
         this._scene = "loading";
         this._sprites = [];
