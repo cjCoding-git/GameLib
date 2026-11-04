@@ -4,7 +4,7 @@ class Object {
     this._gl = this._gameLib.webgl;
   }
   setup() {}
-  update() {}
+  update(camera) {}
   draw(camera) {}
 }
 export {
