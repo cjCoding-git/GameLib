@@ -4838,7 +4838,7 @@
       var maxBarWidth = Math.max(0, width - options.padding * 2 - percentageWidth - percentageGap);
       var progressWidth = Math.min(Math.max(0, options.progressWidth), maxBarWidth);
       var groupWidth = progressWidth + percentageGap + percentageWidth;
-      var barX = centerX - groupWidth / 2;
+      var barX = centerX - progressWidth / 2;
       var progressY = centerY + 36;
       var radius = progressHeight / 2;
       ctx.save();
