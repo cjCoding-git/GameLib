@@ -78469,7 +78469,7 @@ ${nodesText}`;
       ctx.fillStyle = this.fillStyle;
       ctx.textAlign = this.textAlign;
       ctx.textBaseline = this.textBaseline;
-      this.fillText(this.text, 0, 0, this.source.width);
+      ctx.fillText(this.text, 0, 0, this.source.width);
       this.textureDirty = true;
     }
   };
