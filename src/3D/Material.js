@@ -1,7 +1,8 @@
+import { GameLibCore } from "../Core/index.js"
 class Material {
   constructor(gameLib, shader = null) {
     if (!gameLib) {
-      throw new Error("Material(gameLib, shader) requires a GameLib instance.");
+      throw new GameLibCore.Error("Constructing a Material requires a GameLib instance.");
     }
     this.gameLib = gameLib;
     this.program = shader;
@@ -12,34 +13,26 @@ class Material {
     this.textureUnit = 0;
     this.uniforms = {};
   }
-
-  static standardVertexShaderWebGL1 = `
+  static webGL1VertexShader = `
     attribute vec3 aVertexPosition;
     attribute vec4 aVertexColor;
     attribute vec2 aTextureCoord;
-
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
-
     varying vec4 vColor;
     varying vec2 vUV;
-
     void main() {
       vColor = aVertexColor;
       vUV = aTextureCoord;
       gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
-
-  static standardFragmentShaderWebGL1 = `
+  static webGL1FragmentShader = `
     precision mediump float;
-
     varying vec4 vColor;
     varying vec2 vUV;
-
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
-
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
@@ -48,36 +41,27 @@ class Material {
       gl_FragColor = color;
     }
   `;
-
-  static standardVertexShaderWebGL2 = `#version 300 es
+  static webGL2VertexShader = `#version 300 es
     in vec3 aVertexPosition;
     in vec4 aVertexColor;
     in vec2 aTextureCoord;
-
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
-
     out vec4 vColor;
     out vec2 vUV;
-
     void main() {
       vColor = aVertexColor;
       vUV = aTextureCoord;
       gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
-
-  static standardFragmentShaderWebGL2 = `#version 300 es
+  static webGL2FragmentShader = `#version 300 es
     precision mediump float;
-
     in vec4 vColor;
     in vec2 vUV;
-
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
-
     out vec4 outColor;
-
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
@@ -86,16 +70,12 @@ class Material {
       outColor = color;
     }
   `;
-
-  // Keep the original shader property names as WebGL 1 aliases.
   static get standardVertexShader() {
-    return Material.standardVertexShaderWebGL1;
+    return Material.webGL1VertexShader;
   }
-
   static get standardFragmentShader() {
-    return Material.standardFragmentShaderWebGL1;
+    return Material.webGL1FragmentShader;
   }
-
   static normalizeColor(color) {
     if (!Array.isArray(color)) {
       return [ 1.0, 1.0, 1.0, 1.0 ];
@@ -108,19 +88,17 @@ class Material {
     }
     return [ 1.0, 1.0, 1.0, 1.0 ];
   }
-
   static interpolate(a, b, t) {
     return a + (b - a) * t;
   }
-
   static createStandardProgram(gameLib) {
     if (!gameLib || !gameLib.webgl) {
-      throw new Error("Material.createStandardProgram(gameLib) requires a GameLib instance with a WebGL context.");
+      throw new GameLibCore.Error("Material.createStandardProgram(gameLib) requires a GameLib instance with a WebGL context.");
     }
     var webgl = gameLib.webgl;
     var isWebGL2 = !gameLib.options || gameLib.options.webGL2 !== false;
-    var vertexSource = isWebGL2 ? Material.standardVertexShaderWebGL2 : Material.standardVertexShaderWebGL1;
-    var fragmentSource = isWebGL2 ? Material.standardFragmentShaderWebGL2 : Material.standardFragmentShaderWebGL1;
+    var vertexSource = isWebGL2 ? Material.webGL2VertexShader : Material.webGL1VertexShader;
+    var fragmentSource = isWebGL2 ? Material.webGL2FragmentShader : Material.webGL1FragmentShader;
     var vertexShader = gameLib.compileShader(webgl.VERTEX_SHADER, vertexSource);
     var fragmentShader = gameLib.compileShader(webgl.FRAGMENT_SHADER, fragmentSource);
     if (!vertexShader || !fragmentShader) {
@@ -134,30 +112,25 @@ class Material {
     }
     return program;
   }
-
   static getDefaultProgram(gameLib) {
     return Material.createStandardProgram(gameLib);
   }
-
   ensureProgram(gameLib = this.gameLib) {
     if (!this.program && gameLib) {
       this.program = Material.createStandardProgram(gameLib);
     }
     return this.program;
   }
-
   setColor(color) {
     this.color = Material.normalizeColor(color);
     this.hasColor = true;
     this.gradient = null;
     return this;
   }
-
   setTexture(texture) {
     this.texture = texture;
     return this;
   }
-
   setGradient(stops, options = {}) {
     if (!Array.isArray(stops) || stops.length === 0) {
       this.gradient = null;
@@ -184,7 +157,6 @@ class Material {
     this.color = null;
     return this;
   }
-
   interpolateGradient(value) {
     if (!this.gradient || this.gradient.stops.length === 0) {
       return [ 1.0, 1.0, 1.0, 1.0 ];
@@ -208,24 +180,20 @@ class Material {
     }
     return stops[stops.length - 1][1];
   }
-
   getVertexColors(geometry) {
     var vertexCount = Math.max(1, Math.floor((geometry.positions?.length || 0) / 3));
     var colors = [];
-
     if (!this.hasColor && !this.gradient) {
       for (var i = 0; i < vertexCount; i++) {
         colors.push(1.0, 1.0, 1.0, 1.0);
       }
       return new Float32Array(colors);
     }
-
     if (this.gradient) {
       var axis = (this.gradient.axis || "y").toLowerCase();
       var source = (this.gradient.source || "uv").toLowerCase();
       var axisIndex = axis === "x" ? 0 : axis === "z" ? 2 : 1;
       var coordinates = [];
-
       if (source === "position" && Array.isArray(geometry.positions)) {
         for (var i = 0; i < vertexCount; i++) {
           coordinates.push(geometry.positions[i * 3 + axisIndex]);
@@ -244,14 +212,12 @@ class Material {
           coordinates.push(0.5);
         }
       }
-
       for (var i = 0; i < vertexCount; i++) {
         var color = this.interpolateGradient(coordinates[i]);
         colors.push(color[0], color[1], color[2], color[3]);
       }
       return new Float32Array(colors);
     }
-
     var baseColor = Material.normalizeColor(this.color || [ 1.0, 1.0, 1.0, 1.0 ]);
     for (var i = 0; i < vertexCount; i++) {
       colors.push(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
@@ -259,7 +225,6 @@ class Material {
     return new Float32Array(colors);
   }
 }
-
 export {
   Material
 }
