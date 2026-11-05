@@ -55,11 +55,11 @@ class GMLLoader {
       view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)
     );
     if (magic !== GMLLoader.MAGIC) {
-      throw new GameLibCore.Error(`Invalid native model signature: expected ${MAGIC}.`);
+      throw new GameLibCore.Error(`Invalid native model signature: expected ${GMLLoader.MAGIC}.`);
     }
     offset = 4;
     const version = readUint16();
-    if (version !== GMLVersion.VERSION) {
+    if (version !== GMLLoader.VERSION) {
       throw new GameLibCore.Error(`Unsupported GML1 model version: ${version}.`);
     }
     const meshCount = readUint16();
