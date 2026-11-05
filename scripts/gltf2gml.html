@@ -19,8 +19,8 @@
   </style>
 </head>
 <body>
-  <h1>glTF → GML</h1>
-  <p>Convert static glTF 2.0 meshes to GameLib's GML1 binary format. Files are processed locally in your browser.</p>
+  <h1>glTF to GML</h1>
+  <p>Convert static glTF 2.0 meshes to GML1 binary format.</p>
   <section class="panel">
     <label for="files">Choose a .gltf or .glb file</label>
     <input id="files" type="file" accept=".gltf,.glb,model/gltf+json,model/gltf-binary" multiple>
@@ -34,10 +34,8 @@
   const button = document.getElementById('convert');
   const status = document.getElementById('status');
   const MAGIC = 'GML1';
-
   function fail(message) { throw new Error(message); }
   function readU32(view, offset) { return view.getUint32(offset, true); }
-
   function parseGLB(buffer) {
     const view = new DataView(buffer);
     if (view.byteLength < 20 || readU32(view, 0) !== 0x46546c67) fail('Invalid or truncated GLB file.');
@@ -61,7 +59,6 @@
     if (!json) fail('GLB has no JSON chunk.');
     return { json, binary };
   }
-
   function dataUriBytes(uri) {
     const comma = uri.indexOf(',');
     if (comma < 0) fail('Malformed data URI in glTF buffer.');
@@ -74,7 +71,6 @@
     }
     return new TextEncoder().encode(decodeURIComponent(payload)).buffer;
   }
-
   async function getGltf(file, selectedFiles) {
     const bytes = await file.arrayBuffer();
     if (/\.glb$/i.test(file.name)) {
@@ -111,10 +107,8 @@
     }
     return { json, buffers };
   }
-
   const COMPONENTS = { 5120: [1, 'getInt8'], 5121: [1, 'getUint8'], 5122: [2, 'getInt16'], 5123: [2, 'getUint16'], 5125: [4, 'getUint32'], 5126: [4, 'getFloat32'] };
   const ITEM_COUNTS = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
-
   function makeAccessorReader(json, buffers) {
     return function accessor(index) {
       const def = json.accessors?.[index];
@@ -150,7 +144,6 @@
       return { values, count: def.count, components: itemCount, componentType: def.componentType };
     };
   }
-
   function identity() { return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]; }
   function multiply(a, b) {
     const out = new Array(16).fill(0);
@@ -267,7 +260,6 @@
     if (!meshes.length) fail('No supported triangle meshes found in this glTF asset.');
     return meshes;
   }
-
   function encodeGML(meshes) {
     const encoder=new TextEncoder();
     const encoded=meshes.map(mesh => {
@@ -296,7 +288,6 @@
     }
     return buffer;
   }
-
   button.addEventListener('click', async () => {
     status.textContent='';
     try {
