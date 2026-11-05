@@ -3,7 +3,6 @@
   Copyright (c) 2025 Charles Jager
   Libraries Used in GameLib:
     Ammo.js Copyright (c) 2011 ammo.js contributors
-    PeerJS Copyright (c) 2015 Michelle Bu and Eric Zhang
     Matter.js Liam Brummitt Copyright (c) and contributors
 */
 import { GameLibCore } from "./Core/index.js"
