@@ -5,6 +5,7 @@
     glMatrix Copyright (c) 2015-2025, Brandon Jones, Colin MacKenzie IV
     Ammo.js Copyright (c) 2011 ammo.js contributors
     PeerJS Copyright (c) 2015 Michelle Bu and Eric Zhang
+    Matter.js Liam Brummitt Copyright (c) and contributors
 */
 import { GameLibCore } from "./Core/index.js"
 import { GameLib2D } from "./2D/index.js"
