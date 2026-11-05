@@ -90,11 +90,10 @@ class GameLib extends GameLibCore.GameLibBase {
     });
   }
   static spriteImage(sprite, url) {
-    var image = new Image();
-    image.onload = (function() {
+    return GameLibCore.AssetManager.shared.loadImage(url).then(image => {
       sprite.image = image;
-    }).bind(this);
-    image.src = url;
+      return image;
+    });
   }
   addRenderable(renderable) {
     if (renderable instanceof Renderable) {
