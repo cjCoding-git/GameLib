@@ -99,7 +99,16 @@ class InputManager {
     }
     this._triggerKeyBind(evt.keyCode, 'down');
   }
-  _fireMouseListener(type) {}
+  _fireMouseListener(type) {
+    for(var i=0;i<this._mouseListeners.length;i++) {
+      var listener = this._mouseListeners[i]l
+      if(listener.type === type) {
+        if(listener.callback && typeof listener.callback === "function) {
+           listener.callback();
+        }
+      }
+    }
+  }
   mouseMove(evt) {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
