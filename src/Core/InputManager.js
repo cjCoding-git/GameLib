@@ -105,6 +105,10 @@ class InputManager {
   getMousePos() {
     return [ this._mouseX, this._mouseY ];
   }
+  getCanvasMousePos(canvas) {
+    var boundingRect = canvas.getBoundingClientRect();
+    return [ this._mouseX - boundingRect.left, this._mouseY - boundingRect.top ];
+  }
   _callBind(keyBindName) {
     if(this._keyBindCallbacks[keyBindName]) {
       for(var i=0;i<this._keyBindCallbacks[keyBindName].length;i++) {
