@@ -15,12 +15,20 @@ class mat4 {
     return out;
   }
   multiply(out, a, b) {
+    var aCopy = new Float32Array(16);
+    var bCopy = new Float32Array(16);
+    for(var i=0;i<a.length;i++) {
+      aCopy[i] = a[i];
+    }
+    for(var i=0;i<b.length;i++) {
+      bCopy[i] = b[i];
+    }
     var size = 4;
     for(var row=0;row<size;row++) {
       for(var col=0;col<size;col++) {
         var sum = 0;
         for(var offset=0;offset<size;offset++) {
-          sum += a[row * 4 + offset] * b[offset * 4 + col];
+          sum += aCopy[row * 4 + offset] * bCopy[offset * 4 + col];
         }
         out[row * 4 + col] = sum;
       }
