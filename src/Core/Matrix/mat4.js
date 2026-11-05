@@ -15,22 +15,14 @@ class mat4 {
     return out;
   }
   multiply(out, a, b) {
-    var getMatrixIndex = (row, col) => {
-      var rowOffset = row * 4;
-      var colOffset = col;
-      return rowOffset + colOffset;
-    };
-    var getMatrixItem = (matrix, row, col) => {
-      return matrix[getMatrixIndex(row, col)];
-    };
     var size = 4;
-    for(var bGroup=0;bGroup<size;bGroup++) {
-      for(var aGroup=0;aGroup<size;aGroup++) {
+    for(var row=0;row<size;row++) {
+      for(var col=0;col<size;col++) {
         var sum = 0;
         for(var offset=0;offset<size;offset++) {
-          sum += getMatrixItem(a, aGroup, offset) * getMatrixItem(b, offset, bGroup);
+          sum += a[row * 4 + offset] * b[offset * 4 + col];
         }
-        out[getMatrixIndex(bGroup, aGroup)] = sum;
+        out[row * 4 + col] = sum;
       }
     }
     return out;
