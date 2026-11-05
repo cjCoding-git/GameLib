@@ -23,7 +23,6 @@ class 3DLoading extends UIObject {
     Loading.render(this.source, this.source.getContext('2d'), this.config);
     this.textureDirty = true;
   }
-  }
 }
 export {
   3DLoading
