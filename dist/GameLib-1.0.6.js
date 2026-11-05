@@ -4802,7 +4802,7 @@
     }
   };
 
-  // src/2D/Loading.js
+  // src/Core/Loading.js
   var Loading = class _Loading {
     constructor() {
       throw new GameLibCore2.Error("Class Loading may not be constructed!");
@@ -6245,6 +6245,7 @@ ${nodesText}`;
       gl.enable(gl.DEPTH_TEST);
     }
     renderObject(object) {
+      if (object.update && typeof object.update == "function") object.update();
       if (object.isTexturedUI) return this._renderTexturedObject(object);
       var x = object.x;
       var y = object.y;
@@ -6267,6 +6268,46 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/UI/UIObject.js
+  var UIObject = class {
+    constructor(gameLib, scene, x, y, width, height, color) {
+      this._gameLib = gameLib;
+      this.scene = scene;
+      this.x = x;
+      this.y = y;
+      this.width = width;
+      this.height = height;
+      this.color = color;
+      this.visible = true;
+    }
+  };
+
+  // src/3D/UI/UILoading.js
+  var UILoading = class extends UIObject {
+    constructor(gameLib) {
+      var x = 0;
+      var y = 0;
+      var width = gameLib._canvas.width;
+      var height = gameLib._canvas.height;
+      super(gameLib, "loading", x, y, width, height, [1, 1, 1, 1]);
+      this.isTexturedUI = true;
+      this.source = document.createElement("canvas");
+      this.source.width = width;
+      this.source.height = height;
+      this.textureDirty = true;
+      this.config = {};
+      this.setConfig(this.config);
+      this.update();
+    }
+    setConfig(config) {
+      this.config = config;
+    }
+    update() {
+      Loading.render(this.source, this.source.getContext("2d"), this.config);
+      this.textureDirty = true;
+    }
+  };
+
   // src/3D/GameLib.js
   var GameLib2 = class extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, options) {
@@ -6284,9 +6325,17 @@ ${nodesText}`;
         this._program = null;
         this._uiRenderer = new UIRenderer(this);
         this._scene = "loading";
+        this._loadingConfig = {};
+        this._uiLoading = new UILoading(this);
+        this._uiLoading.setConfig(this._loadingConfig);
+        this._uiRenderer.addObject(this._uiLoading);
         this.registerMainloop();
         GameLib3D.GameLib._instance = this;
       }
+    }
+    setLoadingConfig(config) {
+      thos._loadingConfig = config;
+      this._uiLoading.setConfig(config);
     }
     static getContext(canvas, webgl2 = true) {
       if (webgl2) {
@@ -78381,20 +78430,6 @@ ${nodesText}`;
     }
     static load(gl, url, options = {}) {
       return Texture.load(gl, url, options);
-    }
-  };
-
-  // src/3D/UI/UIObject.js
-  var UIObject = class {
-    constructor(gameLib, scene, x, y, width, height, color) {
-      this._gameLib = gameLib;
-      this.scene = scene;
-      this.x = x;
-      this.y = y;
-      this.width = width;
-      this.height = height;
-      this.color = color;
-      this.visible = true;
     }
   };
 
