@@ -1,13 +1,4 @@
 import { GameLibError } from "../Error.js"
-function getItem(matrix, row, col) {
-  var rowOffset = row * 4;
-  var colOffset = col;
-  var offset  = rowOffset + colOffset;
-  return matrix[offset];
-}
-function makeGet(matrix) {
-  return getItem.bind(this, matrix);
-}
 class mat4 {
   constructor() {
     throw new GameLibError("Class mat4 may not be constructed!");
@@ -24,14 +15,25 @@ class mat4 {
     return out;
   }
   multiply(out, a, b) {
-    var getA = makeGet(a);
-    var getB = makeGet(b);
-    var m = (offset, a0, b0) => {
-      return getA(offset, a0) * getB(b0, offset);
+    var getMatrixIndex = (row, col) => {
+      var rowOffset = row * 4;
+      var colOffset = col;
+      return rowOffset + colOffset;
     };
-    out[0] = m(0, 0, 0) + m(1, 0, 0) + m(2, 0, 0) + m(3, 0, 0);
-    out[1] = m(0, 1, 0) + m(1, 1, 0) + m(2, 1, 0) + m(3, 1, 0);
-    out[2] = m(0, 2, 0) + m(1, 2, 0) + m(2, 2, 0) + m(3, 2, 0);
+    var getMatrixItem = (matrix, row, col) => {
+      return matrix[getMatrixIndex(row, col)];
+    };
+    var size = 4;
+    for(var bGroup=0;bGroup<size;bGroup++) {
+      for(var aGroup=0;aGroup<size;aGroup++) {
+        var sum = 0;
+        for(var offset=0;offset<size;offset++) {
+          sum += getMatrixItem(a, aGroup, offset) * getMatrixItem(b, offset, bGroup);
+        }
+        out[getMatrixIndex(bGroup, aGroup)] = sum;
+      }
+    }
+    return out;
   }
   translate(out, a, v) {}
   rotateX(out, a, rad) {}
