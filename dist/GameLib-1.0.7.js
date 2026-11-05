@@ -89,6 +89,9 @@
         this._activeLoopingSoundPool = {};
         this._currentMusic = null;
         this._musicPaused = true;
+        this._musicSource = null;
+        this._musicOffset = 0;
+        this._musicStartedAt = 0;
         this._audioCtx = new AudioContext();
         this.bindEvents();
         GameLibCore2.AudioManager._instance = this;
@@ -127,42 +130,80 @@
         delete this._activeLoopingSoundPool[name];
       }
     }
-    resumeMusic() {
-      if (!this._musicPaused) {
-        this._currentMusic.play();
+    async addSong(url) {
+      var data = await GameLibCore2.AssetManager.shared.loadArrayBuffer(url);
+      var buffer = await this._audioCtx.decodeAudioData(data.slice(0));
+      this._musicPool.push(buffer);
+    }
+    stopCurrentMusicSource() {
+      if (this._musicSource != null) {
+        this._musicSource.onended = null;
+        try {
+          this._musicSource.stop();
+        } catch (error) {
+        }
+        this._musicSource.disconnect();
+        this._musicSource = null;
       }
     }
-    addSong(url) {
-      var audio = new Audio();
-      audio.onended = this.nextSong.bind(this);
-      audio.src = url;
-      audio.pause();
-      this._musicPool.push(audio);
+    startCurrentMusic() {
+      if (this._currentMusic == null || this._musicPaused || this._musicSource != null) {
+        return;
+      }
+      var source = this._audioCtx.createBufferSource();
+      source.buffer = this._currentMusic;
+      source.connect(this._audioCtx.destination);
+      source.onended = () => {
+        if (this._musicSource === source) {
+          this._musicSource = null;
+          this._musicOffset = 0;
+          if (!this._musicPaused) {
+            this.nextSong();
+          }
+        }
+      };
+      this._musicSource = source;
+      this._musicStartedAt = this._audioCtx.currentTime;
+      source.start(0, this._musicOffset);
     }
     nextSong() {
       if (this._musicPool.length <= 0) {
         throw new GameLibCore2.Error("Music Pool is empty!");
-        return;
       }
-      if (this._currentMusic != null) {
-        this._currentMusic.pause();
-      }
+      this.stopCurrentMusicSource();
       this._currentMusic = GameLibCore2.Utils.getRandomListItem(this._musicPool);
-      this._currentMusic.currentTime = 0;
-      this._currentMusic.play();
+      this._musicOffset = 0;
+      this.startCurrentMusic();
     }
-    playMusic() {
+    async playMusic() {
       this._musicPaused = false;
       if (this._currentMusic == null) {
-        this.nextSong();
-      } else {
-        this._currentMusic.play();
+        if (this._musicPool.length <= 0) {
+          this._musicPaused = true;
+          throw new GameLibCore2.Error("Music Pool is empty!");
+        }
+        this._currentMusic = GameLibCore2.Utils.getRandomListItem(this._musicPool);
+        this._musicOffset = 0;
+      }
+      if (this._audioCtx.state === "suspended") {
+        await this._audioCtx.resume();
+      }
+      this.startCurrentMusic();
+    }
+    async resumeMusic() {
+      if (this._audioCtx.state === "suspended") {
+        await this._audioCtx.resume();
+      }
+      if (!this._musicPaused) {
+        this.startCurrentMusic();
       }
     }
     pauseMusic() {
       this._musicPaused = true;
-      if (this._currentMusic != null) {
-        this._currentMusic.pause();
+      if (this._musicSource != null) {
+        this._musicOffset += this._audioCtx.currentTime - this._musicStartedAt;
+        this._musicOffset %= this._currentMusic.duration;
+        this.stopCurrentMusicSource();
       }
     }
     async loadSfx(name, url) {
@@ -10984,6 +11025,136 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/Geometry/ModelLoaders/GMLLoader.js
+  var GMLLoader = class _GMLLoader {
+    static MAGIC = "GML1";
+    static VERSION = 1;
+    static async load(url, options = {}) {
+      if (typeof fetch !== "function") {
+        throw new GameLibCore2.Error("GMLLoader.load requires fetch support.");
+      }
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new GameLibCore2.Error(`Failed to load model (${response.status} ${response.statusText}): ${url}`);
+      }
+      return _GMLLoader.parse(await response.arrayBuffer());
+    }
+    static parse(input) {
+      let buffer;
+      if (input instanceof ArrayBuffer) {
+        buffer = input;
+      } else if (ArrayBuffer.isView(input)) {
+        buffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+      } else {
+        throw new GameLibCore2.Error("GMLLoader.parse expects an ArrayBuffer or typed-array view.");
+      }
+      const view = new DataView(buffer);
+      let offset = 0;
+      const ensure = (byteLength) => {
+        if (!Number.isSafeInteger(byteLength) || byteLength < 0 || offset + byteLength > view.byteLength) {
+          throw new GameLibCore2.Error("Invalid or truncated GML1 model data.");
+        }
+      };
+      const readUint16 = () => {
+        ensure(2);
+        const value = view.getUint16(offset, true);
+        offset += 2;
+        return value;
+      };
+      const readUint32 = () => {
+        ensure(4);
+        const value = view.getUint32(offset, true);
+        offset += 4;
+        return value;
+      };
+      const readFloat32Array = (length2) => {
+        const byteLength = length2 * 4;
+        ensure(byteLength);
+        const values = new Float32Array(length2);
+        for (let i2 = 0; i2 < length2; i2++) {
+          values[i2] = view.getFloat32(offset, true);
+          offset += 4;
+        }
+        return values;
+      };
+      ensure(8);
+      const magic = String.fromCharCode(
+        view.getUint8(0),
+        view.getUint8(1),
+        view.getUint8(2),
+        view.getUint8(3)
+      );
+      if (magic !== _GMLLoader.MAGIC) {
+        throw new GameLibCore2.Error(`Invalid native model signature: expected ${MAGIC}.`);
+      }
+      offset = 4;
+      const version = readUint16();
+      if (version !== GMLVersion.VERSION) {
+        throw new GameLibCore2.Error(`Unsupported GML1 model version: ${version}.`);
+      }
+      const meshCount = readUint16();
+      const decoder = new TextDecoder();
+      const meshes = [];
+      for (let meshIndex = 0; meshIndex < meshCount; meshIndex++) {
+        const nameLength = readUint16();
+        ensure(nameLength);
+        const name = decoder.decode(new Uint8Array(buffer, offset, nameLength));
+        offset += nameLength;
+        const vertexCount = readUint32();
+        const indexCount = readUint32();
+        if (vertexCount === 0 || indexCount === 0 || indexCount % 3 !== 0) {
+          throw new GameLibCore2.Error(`Invalid vertex or triangle index count in GML1 mesh ${meshIndex}.`);
+        }
+        const color = readFloat32Array(4);
+        const positions = readFloat32Array(vertexCount * 3);
+        const normals = readFloat32Array(vertexCount * 3);
+        const uv = readFloat32Array(vertexCount * 2);
+        const indices = readFloat32Array(0);
+        void indices;
+        const indexByteLength = indexCount * 4;
+        ensure(indexByteLength);
+        const meshIndices = new Uint32Array(indexCount);
+        for (let i2 = 0; i2 < indexCount; i2++) {
+          const index = readUint32();
+          if (index >= vertexCount) {
+            throw new GameLibCore2.Error(`GML1 mesh ${meshIndex} contains an out-of-range index.`);
+          }
+          meshIndices[i2] = index;
+        }
+        meshes.push({
+          name,
+          positions,
+          normals,
+          uv,
+          indices: meshIndices,
+          material: { color }
+        });
+      }
+      if (offset !== view.byteLength) {
+        throw new GameLibCore2.Error("Unexpected trailing bytes in GML1 model data.");
+      }
+      return { format: _GMLLoader.MAGIC, version, meshes };
+    }
+  };
+
+  // src/3D/Geometry/ModelLoaders/GLBLoader.js
+  var GLBLoader = class {
+  };
+
+  // src/3D/Geometry/ModelLoaders/GLTFLoader.js
+  var GLTFLoader = class {
+  };
+
+  // src/3D/Geometry/ModelLoaders/index.js
+  var ModelLoaders = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class ModelLoaders may not be constructed!");
+    }
+    static GMLLoader = GMLLoader;
+    static GLBLoader = GLBLoader;
+    static GLTFLoader = GLTFLoader;
+  };
+
   // src/3D/Geometry/index.js
   var Geometry = class {
     constructor() {
@@ -10993,6 +11164,7 @@ ${nodesText}`;
     static Sphere = Sphere;
     static Cone = Cone;
     static Pyramid = Pyramid;
+    static ModelLoaders = ModelLoaders;
   };
 
   // src/Lib/Ammo.js
