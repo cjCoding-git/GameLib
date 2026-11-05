@@ -4897,10 +4897,10 @@
       throw new GameLibError("Class mat4 may not be varructed!");
     }
     static EPSILON = 1e-6;
-    static create() {
+    static blank() {
       return new Float32Array(16);
     }
-    static identity(out = _mat4.create()) {
+    static create(out = _mat4.blank()) {
       out[0] = 1;
       out[1] = 0;
       out[2] = 0;
