@@ -101,7 +101,7 @@ class InputManager {
   }
   _fireMouseListener(type) {
     for (var i = 0; i < this._mouseListeners.length; i++) {
-      var listener = this._mouseListeners[i] l
+      var listener = this._mouseListeners[i];
       if (listener.type === type) {
         if (listener.callback && typeof listener.callback === "function) {
           listener.callback();
