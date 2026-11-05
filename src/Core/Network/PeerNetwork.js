@@ -1,326 +1,442 @@
-const DEFAULT_ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
-const PEERJS_PROTOCOL_VERSION = "1.5.4";
+const DEFAULT_CONFIG = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+};
+const SIGNALING_VERSION = "1.5.5";
+const CLOSE_PACKET = JSON.stringify({ __peerData: { type: "close" } });
 
 /**
- * A small PeerJS-signaling-compatible WebRTC data-channel client.
+ * A compact game networking layer built on native WebRTC.
  *
- * `options` accepts PeerServer-style settings (`host`, `port`, `path`, `key`,
- * `secure`, and `config`). The signaling server must speak the PeerJS
- * PeerServer protocol; media calls and PeerJS reliability shims are not
- * implemented here.
+ * Signaling messages and the WebSocket URL follow the PeerServer protocol so
+ * this can use PeerJS brokers, but connection management, events, and the game
+ * API here are independent of the PeerJS client library.
  */
 class PeerNetwork {
   constructor(options = {}) {
     this.options = options;
-    this.id = options.id || null;
-    this.token = options.token || PeerNetwork._randomToken();
-    this.connections = new Map();
-    this.handlers = new Map();
-    this.pendingSignals = [];
+    this.id = options.id || PeerNetwork._makeId();
+    this.token = options.token || PeerNetwork._makeToken();
     this.socket = null;
-    this.heartbeat = null;
-    this.destroyed = false;
-
-    if (options.autoConnect !== false) this.connectToServer();
+    this.peers = new Map();
+    this.listeners = new Map();
+    this.candidates = new Map();
+    this.state = "idle";
+    this._ready = null;
+    this._heartbeat = null;
+    this._closed = false;
   }
 
-  on(event, handler) {
-    if (typeof handler !== "function") throw new TypeError("handler must be a function");
-    if (!this.handlers.has(event)) this.handlers.set(event, new Set());
-    this.handlers.get(event).add(handler);
+  on(event, listener) {
+    if (typeof listener !== "function") throw new TypeError("listener must be a function");
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(listener);
     return this;
   }
 
-  off(event, handler) {
-    this.handlers.get(event)?.delete(handler);
+  off(event, listener) {
+    this.listeners.get(event)?.delete(listener);
     return this;
   }
 
-  emit(event, ...args) {
-    for (const handler of this.handlers.get(event) || []) {
+  /** Register with a PeerJS-compatible signaling server. */
+  start() {
+    if (this._closed) return Promise.reject(new Error("Network has been closed"));
+    if (this.state === "ready") return Promise.resolve(this.id);
+    if (this._ready) return this._ready;
+
+    const WebSocketType = this.options.WebSocket || globalThis.WebSocket;
+    if (!WebSocketType) return Promise.reject(new Error("WebSocket is unavailable"));
+
+    this.state = "connecting";
+    this._ready = new Promise((resolve, reject) => {
+      let registered = false;
       try {
-        handler(...args);
+        this.socket = new WebSocketType(this._brokerUrl());
       } catch (error) {
-        // A consumer callback should not prevent other network listeners running.
-        queueMicrotask(() => { throw error; });
+        this.state = "idle";
+        this._ready = null;
+        reject(error);
+        return;
       }
-    }
-    return this;
+
+      const socket = this.socket;
+      socket.onopen = () => {
+        this._heartbeat = setInterval(() => this._signal({ type: "HEARTBEAT" }), this.options.heartbeatInterval || 5000);
+      };
+      socket.onmessage = ({ data }) => {
+        let message;
+        try {
+          message = JSON.parse(data);
+        } catch {
+          this._emit("error", new Error("Invalid broker message"));
+          return;
+        }
+        if (message.type === "OPEN") {
+          registered = true;
+          this.state = "ready";
+          this._ready = null;
+          this._emit("ready", this.id);
+          resolve(this.id);
+          return;
+        }
+        this._route(message);
+      };
+      socket.onerror = (error) => {
+        this._emit("error", error);
+        if (!registered) {
+          this.state = "idle";
+          this._ready = null;
+          reject(error instanceof Error ? error : new Error("Could not connect to signaling server"));
+        }
+      };
+      socket.onclose = (event) => {
+        clearInterval(this._heartbeat);
+        this._heartbeat = null;
+        if (this.socket === socket) this.socket = null;
+        const wasReady = this.state === "ready";
+        this.state = this._closed ? "closed" : "idle";
+        if (!registered) {
+          this._ready = null;
+          reject(new Error(`Signaling socket closed before registration (${event.code || "closed"})`));
+        }
+        if (wasReady && !this._closed) this._emit("serverclose", event);
+      };
+    });
+    return this._ready;
   }
 
-  connectToServer() {
-    if (this.destroyed) throw new Error("PeerNetwork has been destroyed");
-    if (this.socket && this.socket.readyState < WebSocket.CLOSING) return this;
+  /** Create a direct data-channel connection to another registered peer. */
+  async connect(peerId, options = {}) {
+    if (!peerId) throw new TypeError("peerId is required");
+    if (this._closed) throw new Error("Network has been closed");
+    await this.start();
 
-    const socket = new WebSocket(this._signalingUrl());
-    this.socket = socket;
-    socket.onopen = () => {
-      this._flushSignals();
-      this.heartbeat = setInterval(() => {
-        this._sendSignal({ type: "HEARTBEAT" });
-      }, this.options.heartbeatInterval || 5000);
-      this.emit("connect");
-    };
-    socket.onmessage = ({ data }) => this._handleSignal(data);
-    socket.onerror = (error) => this.emit("error", error);
-    socket.onclose = (event) => {
-      clearInterval(this.heartbeat);
-      this.heartbeat = null;
-      if (!this.destroyed) this.emit("disconnected", event);
-    };
-    return this;
-  }
-
-  /** Open a WebRTC data-channel connection to another PeerJS peer ID. */
-  connect(peerId, options = {}) {
-    if (!peerId || typeof peerId !== "string") throw new TypeError("peerId must be a non-empty string");
-    if (this.destroyed) throw new Error("PeerNetwork has been destroyed");
-
-    const connectionId = options.connectionId || `dc_${PeerNetwork._randomToken()}`;
-    const connection = this._createConnection(peerId, connectionId, options, true);
-    const label = options.label || connectionId;
-    connection.label = label;
-    connection.reliable = options.reliable !== false;
-    connection.serialization = options.serialization || "json";
-    connection.metadata = options.metadata;
-    connection.dataChannel = connection.peerConnection.createDataChannel(label, {
-      ordered: connection.reliable,
+    const id = options.connectionId || `dc_${PeerNetwork._makeToken()}`;
+    const link = this._newLink(peerId, id, options);
+    link.channel = link.pc.createDataChannel(options.label || id, {
+      ordered: options.reliable !== false,
       ...(options.maxRetransmits == null ? {} : { maxRetransmits: options.maxRetransmits }),
     });
-    this._bindDataChannel(connection, connection.dataChannel);
+    this._watchChannel(link);
 
-    connection.peerConnection.createOffer()
-      .then((offer) => connection.peerConnection.setLocalDescription(offer))
-      .then(() => this._sendSignal({
+    const opened = new Promise((resolve, reject) => {
+      link.once("open", () => resolve(link));
+      link.once("error", reject);
+      link.once("close", () => reject(new Error(`Connection to ${peerId} closed before opening`)));
+    });
+
+    try {
+      const offer = await link.pc.createOffer();
+      await link.pc.setLocalDescription(offer);
+      this._signal({
         type: "OFFER",
         dst: peerId,
         payload: {
-          sdp: connection.peerConnection.localDescription,
-          connectionId,
-          label,
-          reliable: connection.reliable,
-          serialization: connection.serialization,
-          metadata: connection.metadata,
+          type: "data",
+          connectionId: id,
+          sdp: link.pc.localDescription,
+          label: link.label,
+          reliable: link.reliable,
+          serialization: link.serialization,
+          metadata: link.metadata,
         },
-      }))
-      .catch((error) => this._connectionError(connection, error));
-
-    return connection;
+      });
+    } catch (error) {
+      this._fail(link, error);
+      throw error;
+    }
+    return opened;
   }
 
-  disconnect() {
-    clearInterval(this.heartbeat);
-    this.heartbeat = null;
-    if (this.socket) {
-      const socket = this.socket;
-      this.socket = null;
-      if (socket.readyState === WebSocket.OPEN) socket.close();
+  getConnectedIds() {
+    return [...this.peers.keys()];
+  }
+
+  send(peerId, data) {
+    const link = this.peers.get(peerId);
+    if (!link?.open) return false;
+    link.send(data);
+    return true;
+  }
+
+  broadcast(data) {
+    let delivered = 0;
+    for (const link of this.peers.values()) {
+      if (link.open) {
+        link.send(data);
+        delivered++;
+      }
     }
-    this.emit("disconnected");
+    return delivered;
+  }
+
+  close(peerId) {
+    if (peerId == null) {
+      for (const link of new Set(this.peers.values())) this._end(link, true);
+    } else {
+      const link = this.peers.get(peerId);
+      if (link) this._end(link, true);
+    }
     return this;
   }
 
   destroy() {
-    if (this.destroyed) return this;
-    this.destroyed = true;
-    this.disconnect();
-    for (const connection of this.connections.values()) connection.close();
-    this.connections.clear();
-    this.emit("close");
-    this.handlers.clear();
+    if (this._closed) return this;
+    this._closed = true;
+    this.close();
+    clearInterval(this._heartbeat);
+    this._heartbeat = null;
+    const socket = this.socket;
+    this.socket = null;
+    if (socket) {
+      socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null;
+      if (socket.readyState < 2) socket.close();
+    }
+    this.state = "closed";
+    this._emit("close");
+    this.listeners.clear();
     return this;
   }
 
-  _signalingUrl() {
-    const secure = this.options.secure ?? globalThis.location?.protocol === "https:";
-    const protocol = secure ? "wss:" : "ws:";
-    const host = this.options.host || globalThis.location?.hostname || "0.peerjs.com";
+  _brokerUrl() {
+    const location = globalThis.location;
+    const host = this.options.host || location?.hostname || "0.peerjs.com";
+    const secure = this.options.secure ?? (host === "0.peerjs.com" || location?.protocol === "https:");
     const port = this.options.port ?? (secure ? 443 : 9000);
-    const path = `/${(this.options.path || "/peerjs").replace(/^\/+|\/+$/g, "")}`;
-    const url = new URL(`${protocol}//${host}:${port}${path}`);
+    let path = this.options.path || "/";
+    if (!path.startsWith("/")) path = `/${path}`;
+    if (!path.endsWith("/")) path += "/";
+    const protocol = secure ? "wss:" : "ws:";
+    const url = new URL(`${protocol}//${host}:${port}${path}peerjs`);
     url.searchParams.set("key", this.options.key || "peerjs");
-    url.searchParams.set("id", this.id || "");
+    url.searchParams.set("id", this.id);
     url.searchParams.set("token", this.token);
-    url.searchParams.set("version", PEERJS_PROTOCOL_VERSION);
-    return url.toString();
+    url.searchParams.set("version", SIGNALING_VERSION);
+    return url.href;
   }
 
-  _sendSignal(message) {
-    const socket = this.socket;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      this.pendingSignals.push(message);
-      if (!this.destroyed && (!socket || socket.readyState >= WebSocket.CLOSING)) this.connectToServer();
-      return;
-    }
-    if (this.id && message.type !== "HEARTBEAT" && message.type !== "LEAVE") message.src = this.id;
-    socket.send(JSON.stringify(message));
+  _signal(message) {
+    if (this.socket?.readyState === 1) this.socket.send(JSON.stringify(message));
   }
 
-  _flushSignals() {
-    for (const message of this.pendingSignals.splice(0)) this._sendSignal(message);
-  }
-
-  _handleSignal(raw) {
-    let message;
-    try {
-      message = JSON.parse(raw);
-    } catch (error) {
-      this.emit("error", new Error(`Invalid signaling message: ${error.message}`));
-      return;
-    }
-
+  _route(message) {
+    const payload = message.payload || {};
     switch (message.type) {
-      case "OPEN":
-        this.id = message.payload?.id || message.id || this.id;
-        this.emit("open", this.id);
-        break;
       case "OFFER":
-        this._handleOffer(message);
+        if (payload.type === "data") this._acceptOffer(message.src, payload);
         break;
       case "ANSWER":
-        this._handleAnswer(message);
+        this._acceptAnswer(payload);
         break;
       case "CANDIDATE":
-        this._handleCandidate(message);
+        this._acceptCandidate(payload);
+        break;
+      case "LEAVE":
+        for (const link of this.peers.values()) {
+          if (link.peerId === message.src) this._end(link, false);
+        }
+        break;
+      case "EXPIRE":
+        this._emit("error", new Error(`Peer unavailable: ${message.src || "unknown"}`));
         break;
       case "ID-TAKEN":
+        this._emit("error", new Error(`Peer ID already in use: ${this.id}`));
+        break;
       case "INVALID-KEY":
       case "ERROR":
-      case "EXPIRE":
-        this.emit("error", new Error(message.payload?.msg || message.msg || message.type));
+        this._emit("error", new Error(payload.msg || message.type));
         break;
       default:
-        this.emit("signal", message);
+        this._emit("signal", message);
     }
   }
 
-  _createConnection(peerId, connectionId, options, outgoing) {
-    const config = options.config || this.options.config || { iceServers: DEFAULT_ICE_SERVERS };
-    const peerConnection = new RTCPeerConnection(config);
-    const connection = {
+  _newLink(peerId, connectionId, options = {}) {
+    const RTCPeerConnectionType = this.options.RTCPeerConnection || globalThis.RTCPeerConnection;
+    if (!RTCPeerConnectionType) throw new Error("WebRTC is unavailable");
+    const pc = new RTCPeerConnectionType(options.config || this.options.config || DEFAULT_CONFIG);
+    const listeners = new Map();
+    const link = {
       peerId,
       connectionId,
-      outgoing,
-      peerConnection,
-      dataChannel: null,
       label: options.label || connectionId,
       metadata: options.metadata,
-      reliable: options.reliable !== false,
       serialization: options.serialization || "json",
-      opened: false,
-      send: (data) => {
-        if (!connection.dataChannel || connection.dataChannel.readyState !== "open") {
-          throw new Error("Data channel is not open");
-        }
-        if (connection.serialization === "json" && typeof data !== "string" && !(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data)) {
-          connection.dataChannel.send(JSON.stringify(data));
-        } else {
-          connection.dataChannel.send(data);
-        }
+      reliable: options.reliable !== false,
+      pc,
+      channel: null,
+      open: false,
+      on(name, callback) {
+        if (!listeners.has(name)) listeners.set(name, new Set());
+        listeners.get(name).add(callback);
+        return this;
       },
-      close: () => {
-        if (connection.dataChannel && connection.dataChannel.readyState !== "closed") connection.dataChannel.close();
-        if (peerConnection.signalingState !== "closed") peerConnection.close();
-        this.connections.delete(connectionId);
+      once(name, callback) {
+        const onceCallback = (...args) => {
+          this.off(name, onceCallback);
+          callback(...args);
+        };
+        return this.on(name, onceCallback);
       },
+      off(name, callback) {
+        listeners.get(name)?.delete(callback);
+        return this;
+      },
+      emit(name, ...args) {
+        for (const callback of [...(listeners.get(name) || [])]) callback(...args);
+      },
+      send(data) {
+        if (!this.open || this.channel?.readyState !== "open") throw new Error("Connection is not open");
+        this.channel.send(this.serialization === "json" ? JSON.stringify(data) : data);
+      },
+      close: () => this._end(link, true),
     };
-    this.connections.set(connectionId, connection);
-    peerConnection.onicecandidate = ({ candidate }) => {
-      if (candidate) this._sendSignal({
-        type: "CANDIDATE",
-        dst: peerId,
-        payload: { candidate: candidate.toJSON ? candidate.toJSON() : candidate, type: "data" },
-      });
-    };
-    peerConnection.onconnectionstatechange = () => {
-      if (["failed", "closed"].includes(peerConnection.connectionState)) {
-        if (peerConnection.connectionState === "failed") this._connectionError(connection, new Error("WebRTC connection failed"));
-        connection.close();
+    pc.onicecandidate = ({ candidate }) => {
+      if (candidate?.candidate) {
+        this._signal({
+          type: "CANDIDATE",
+          dst: peerId,
+          payload: { type: "data", connectionId, candidate },
+        });
       }
     };
-    peerConnection.ondatachannel = ({ channel }) => {
-      connection.dataChannel = channel;
-      connection.label = channel.label;
-      this._bindDataChannel(connection, channel);
+    pc.ondatachannel = ({ channel }) => {
+      link.channel = channel;
+      link.label = channel.label;
+      this._watchChannel(link);
     };
-    return connection;
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed") this._fail(link, new Error("WebRTC connection failed"));
+      else if (pc.connectionState === "closed") this._end(link, false);
+    };
+    return link;
   }
 
-  _bindDataChannel(connection, channel) {
+  _watchChannel(link) {
+    const channel = link.channel;
     channel.onopen = () => {
-      if (connection.opened) return;
-      connection.opened = true;
-      this.emit("connection", connection);
-      this.emit("connectionopen", connection);
+      if (link.open) return;
+      link.open = true;
+      this.peers.set(link.peerId, link);
+      link.emit("open", link);
+      this._emit("connection", link);
     };
     channel.onmessage = ({ data }) => {
-      let value = data;
-      if (connection.serialization === "json" && typeof data === "string") {
-        try { value = JSON.parse(data); } catch { /* Preserve non-JSON text. */ }
+      let packet = data;
+      if (link.serialization === "json" && typeof data === "string") {
+        try { packet = JSON.parse(data); } catch { /* Deliver plain text unchanged. */ }
       }
-      this.emit("data", value, connection);
-      connection.ondata?.(value);
+      if (packet?.__peerData?.type === "close") {
+        this._end(link, false);
+        return;
+      }
+      link.emit("data", packet);
+      this._emit("data", packet, link);
     };
-    channel.onerror = (error) => this._connectionError(connection, error);
-    channel.onclose = () => {
-      this.connections.delete(connection.connectionId);
-      this.emit("connectionclose", connection);
-    };
+    channel.onerror = (error) => this._fail(link, error);
+    channel.onclose = () => this._end(link, false);
   }
 
-  async _handleOffer(message) {
-    const payload = message.payload || {};
-    const peerId = message.src;
+  async _acceptOffer(peerId, payload) {
     if (!peerId || !payload.connectionId || !payload.sdp) return;
-    const connection = this._createConnection(peerId, payload.connectionId, payload, false);
-    connection.label = payload.label || payload.connectionId;
-    connection.metadata = payload.metadata;
-    connection.reliable = payload.reliable !== false;
-    connection.serialization = payload.serialization || "json";
+    const link = this._newLink(peerId, payload.connectionId, payload);
+    link.label = payload.label || payload.connectionId;
+    link.metadata = payload.metadata;
+    link.serialization = payload.serialization || "json";
+    link.reliable = payload.reliable !== false;
     try {
-      await connection.peerConnection.setRemoteDescription(payload.sdp);
-      const answer = await connection.peerConnection.createAnswer();
-      await connection.peerConnection.setLocalDescription(answer);
-      this._sendSignal({
+      await link.pc.setRemoteDescription(payload.sdp);
+      await this._drainCandidates(link);
+      const answer = await link.pc.createAnswer();
+      await link.pc.setLocalDescription(answer);
+      this._signal({
         type: "ANSWER",
         dst: peerId,
-        payload: { sdp: connection.peerConnection.localDescription, connectionId: payload.connectionId },
+        payload: { type: "data", connectionId: link.connectionId, sdp: link.pc.localDescription },
       });
     } catch (error) {
-      this._connectionError(connection, error);
+      this._fail(link, error);
     }
   }
 
-  async _handleAnswer(message) {
-    const payload = message.payload || {};
-    const connection = this.connections.get(payload.connectionId);
-    if (!connection || !payload.sdp) return;
+  async _acceptAnswer(payload) {
+    const link = this._findLink(payload.connectionId);
+    if (!link || !payload.sdp) return;
     try {
-      await connection.peerConnection.setRemoteDescription(payload.sdp);
+      await link.pc.setRemoteDescription(payload.sdp);
+      await this._drainCandidates(link);
     } catch (error) {
-      this._connectionError(connection, error);
+      this._fail(link, error);
     }
   }
 
-  async _handleCandidate(message) {
-    const payload = message.payload || {};
-    const connection = this.connections.get(payload.connectionId);
-    if (!connection || !payload.candidate) return;
+  async _acceptCandidate(payload) {
+    if (!payload.connectionId || !payload.candidate) return;
+    const link = this._findLink(payload.connectionId);
+    if (!link || !link.pc.remoteDescription) {
+      if (!this.candidates.has(payload.connectionId)) this.candidates.set(payload.connectionId, []);
+      this.candidates.get(payload.connectionId).push(payload.candidate);
+      return;
+    }
     try {
-      await connection.peerConnection.addIceCandidate(payload.candidate);
+      await link.pc.addIceCandidate(payload.candidate);
     } catch (error) {
-      this._connectionError(connection, error);
+      this._emit("error", error, link);
     }
   }
 
-  _connectionError(connection, error) {
-    this.emit("error", error, connection);
-    connection.close();
+  async _drainCandidates(link) {
+    const queued = this.candidates.get(link.connectionId) || [];
+    this.candidates.delete(link.connectionId);
+    for (const candidate of queued) await link.pc.addIceCandidate(candidate);
   }
 
-  static _randomToken() {
+  _findLink(connectionId) {
+    for (const link of this.peers.values()) if (link.connectionId === connectionId) return link;
+    return this._pendingLinks?.get(connectionId) || null;
+  }
+
+  _fail(link, error) {
+    link.emit("error", error);
+    this._emit("error", error, link);
+    this._end(link, false);
+  }
+
+  _end(link, notifyPeer) {
+    if (!link || link._ended) return;
+    link._ended = true;
+    if (notifyPeer && link.channel?.readyState === "open") {
+      try { link.channel.send(CLOSE_PACKET); } catch { /* Closing transport. */ }
+    }
+    link.open = false;
+    if (link.channel && link.channel.readyState !== "closed") {
+      link.channel.onopen = link.channel.onmessage = link.channel.onerror = link.channel.onclose = null;
+      try { link.channel.close(); } catch { /* Already closed. */ }
+    }
+    if (link.pc.signalingState !== "closed") {
+      link.pc.onicecandidate = link.pc.ondatachannel = link.pc.onconnectionstatechange = null;
+      try { link.pc.close(); } catch { /* Already closed. */ }
+    }
+    if (this.peers.get(link.peerId) === link) this.peers.delete(link.peerId);
+    this._pendingLinks?.delete(link.connectionId);
+    this.candidates.delete(link.connectionId);
+    link.emit("close");
+    this._emit("connectionclose", link);
+  }
+
+  _emit(event, ...args) {
+    for (const callback of [...(this.listeners.get(event) || [])]) {
+      try { callback(...args); } catch (error) { queueMicrotask(() => { throw error; }); }
+    }
+  }
+
+  static _makeId() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  static _makeToken() {
     if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID().replace(/-/g, "");
-    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
   }
 }
 
