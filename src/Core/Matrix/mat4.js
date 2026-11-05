@@ -8,9 +8,9 @@ class mat4 {
     return new Float32Array(16);
   }
   identity(out=create()) {
-    out[0]  = 1; out[1]  = 0; out[2]  = 0; out[3]  = 0;
-    out[4]  = 0; out[5]  = 1; out[6]  = 0; out[7]  = 0;
-    out[8]  = 0; out[9]  = 0; out[10] = 1; out[11] = 0;
+    out[0] = 1; out[1] = 0; out[2] = 0; out[3] = 0;
+    out[4] = 0; out[5] = 1; out[6] = 0; out[7] = 0;
+    out[8] = 0; out[9] = 0; out[10] = 1; out[11] = 0;
     out[12] = 0; out[13] = 0; out[14] = 0; out[15] = 1;
     return out;
   }
@@ -37,14 +37,14 @@ class mat4 {
   }
   translate(out, a, v) {
     var x = v[0], y = v[1], z = v[2];
-    var a00 = a[0],  a01 = a[1],  a02 = a[2],  a03 = a[3];
-    var a10 = a[4],  a11 = a[5],  a12 = a[6],  a13 = a[7];
-    var a20 = a[8],  a21 = a[9],  a22 = a[10], a23 = a[11];
+    var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+    var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+    var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
     var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
     if(a !== out) {
-      out[0]  = a00; out[1]  = a01; out[2]  = a02; out[3]  = a03;
-      out[4]  = a10; out[5]  = a11; out[6]  = a12; out[7]  = a13;
-      out[8]  = a20; out[9]  = a21; out[10] = a22; out[11] = a23;
+      out[0] = a00; out[1] = a01; out[2] = a02; out[3] = a03;
+      out[4] = a10; out[5] = a11; out[6] = a12; out[7] = a13;
+      out[8] = a20; out[9] = a21; out[10] = a22; out[11] = a23;
       out[12] = a30; out[13] = a31; out[14] = a32; out[15] = a33;
     }
     out[12] = a00 * x + a10 * y + a20 * z + a30;
@@ -53,7 +53,25 @@ class mat4 {
     out[15] = a03 * x + a13 * y + a23 * z + a33;
     return out;
   }
-  rotateX(out, a, rad) {}
+  rotateX(out, a, rad) {
+    var s = Math.sin(rad);
+    var c = Math.cos(rad);
+    var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+    var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+    if(a !== out) {
+      out[0] = a[0]; out[1] = a[1]; out[2] = a[2]; out[3] = a[3];
+      out[12] = a[12]; out[13] = a[13]; out[14] = a[14]; out[15] = a[15]; out[16] = a[16];
+    }
+    out[4] = a10 * c + a20 * s;
+    out[5] = a11 * c + a21 * s;
+    out[6] = a12 * c + a22 * s;
+    out[7] = a13 * c + a23 * s;
+    out[8] = a20 * c - a10 * s;
+    out[9] = a21 * c - a11 * s;
+    out[10] = a22 * c - a12 * s;
+    out[11] = a23 * c - a13 * s;
+    return out;
+  }
   rotateY(out, a, rad) {}
   rotateZ(out, a, rad) {}
   scale(out, a, v) {}
