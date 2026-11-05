@@ -22,20 +22,73 @@
       } else {
         console.log("[GameLib] No InputManager instance found. Creating new instance...");
         this._keys = [];
+        this._keyBinds = {};
+        this._keyBindCallbacks = {};
         this._active = false;
+        this._mouseX = -1;
+        this._mouseY = -1;
+        this._mouseListeners = [];
         this.bindEvents();
         GameLibCore2.InputManager._instance = this;
       }
     }
     static KEYS = {
+      "ESCAPE": 27,
+      "BACKTICK": 192,
+      "ONE": 49,
+      "TWO": 50,
+      "THREE": 51,
+      "FOUR": 52,
+      "FIVE": 53,
+      "SIX": 54,
+      "SEVEN": 55,
+      "EIGHT": 56,
+      "NINE": 57,
+      "ZERO": 48,
+      "MINUS": 189,
+      "EQUALS": 187,
+      "TAB": 9,
+      "LEFTBRACKET": 219,
+      "RIGHTBRACKET": 221,
+      "BACKSLASH": 220,
+      "META": 91,
+      "SEMICOLON": 186,
+      "APOSTROPE": 222,
+      "ENTER": 13,
+      "SHIFT": 16,
+      "COMMA": 188,
+      "PERIOD": 190,
+      "SLASH": 191,
+      "CONTROL": 17,
+      "ALT": 18,
       "UP": 38,
       "DOWN": 40,
       "LEFT": 37,
       "RIGHT": 39,
+      "SPACE": 32,
       "A": 65,
+      "B": 66,
+      "C": 67,
       "D": 68,
+      "E": 69,
+      "F": 70,
+      "G": 71,
+      "H": 72,
+      "I": 73,
+      "J": 74,
+      "K": 75,
+      "L": 76,
+      "M": 77,
+      "N": 78,
+      "O": 79,
+      "P": 80,
+      "Q": 81,
+      "R": 82,
       "S": 83,
-      "W": 87
+      "W": 87,
+      "X": 88,
+      "Y": 89,
+      "Z": 90
     };
     get keys() {
       return this._keys;
@@ -51,6 +104,7 @@
         return;
       }
       this._keys = this._keys.filter((key2) => key2 != evt.keyCode);
+      this._triggerKeyBind(evt.keyCode, "up");
     }
     keyDown(evt) {
       if (!this._active) {
@@ -59,9 +113,76 @@
       if (this._keys.indexOf(evt.keyCode) == -1) {
         this._keys.push(evt.keyCode);
       }
+      this._triggerKeyBind(evt.keyCode, "down");
+    }
+    _fireMouseListener(type) {
+      for (var i2 = 0; i2 < this._mouseListeners.length; i2++) {
+        var listener = this._mouseListeners[i2];
+        if (listener.type === type) {
+          if (listener.callback && typeof listener.callback === "function") {
+            listener.callback();
+          }
+        }
+      }
+    }
+    mouseMove(evt) {
+      this._mouseX = evt.clientX;
+      this._mouseY = evt.clientY;
+      this._fireMouseListener("move");
+    }
+    mouseDown(evt) {
+      this._mouseX = evt.clientX;
+      this._mouseY = evt.clientY;
+      this._fireMouseListener("down");
+    }
+    mouseUp(evt) {
+      this._mouseX = evt.clientX;
+      this._mouseY = evt.clientY;
+      this._fireMouseListener("up");
+    }
+    click(evt) {
+      this._mouseX = evt.clientX;
+      this._mouseY = evt.clientY;
+      this._fireMouseListener("click");
+    }
+    getMousePos() {
+      return [this._mouseX, this._mouseY];
+    }
+    getCanvasMousePos(canvas) {
+      var boundingRect = canvas.getBoundingClientRect();
+      return [this._mouseX - boundingRect.x, this._mouseY - boundingRect.y];
+    }
+    _callBind(keyBindName) {
+      if (this._keyBindCallbacks[keyBindName]) {
+        for (var i2 = 0; i2 < this._keyBindCallbacks[keyBindName].length; i2++) {
+          var bindCallback = this._keyBindCallbacks[keyBindName][i2];
+          if (bindCallback && typeof bindCallback === "function") bindCallback();
+        }
+      }
+    }
+    _triggerKeyBind(key2, type) {
+      if (this._keyBinds[key2]) {
+        for (var i2 = 0; i2 < this._keyBinds.length; i2++) {
+          var keyBind = this._keyBinds[i2];
+          if (keyBind.type === type) {
+            this.__callBind(this._keyBinds[i2].name);
+          }
+        }
+      }
     }
     isKeyDown(key2) {
       return this._keys.indexOf(key2) != -1;
+    }
+    bindKey(key2, type, name) {
+      if (!this._keyBinds[key2]) this._keyBinds[key2] = [];
+      this._keyBinds[key2].push({
+        name,
+        type
+      });
+    }
+    registerKeyBindCallback(name, callback) {
+      if (!this._keyBindCallbacks[name]) this._keyBindCallbacks[name] = [];
+      this._keyBindCallbacks[name].push({ callback });
     }
     static isKeyDown(key2) {
       if (GameLibCore2.InputManager._instance != null) {
@@ -70,9 +191,19 @@
         throw new GameLibCore2.Error("An InputManager instance must exist to use GameLibCore.InputManager.isKeyDown(key)!");
       }
     }
+    addMouseListener(type, callback) {
+      this._mouseListeners.push({
+        type,
+        callback
+      });
+    }
     bindEvents() {
       window.addEventListener("keyup", this.keyUp.bind(this), false);
       window.addEventListener("keydown", this.keyDown.bind(this), false);
+      window.addEventListener("mousemove", this.mouseMove.bind(this), false);
+      window.addEventListener("mousedown", this.mouseDown.bind(this), false);
+      window.addEventListener("mouseup", this.mouseUp.bind(this), false);
+      window.addEventListener("click", this.click.bind(this), false);
     }
   };
 
@@ -5076,8 +5207,9 @@
         this._background = {};
         this._loadingScreen = Loading.DEFAULT_CONFIG;
         this.oncontextmenu = null;
-        window.addEventListener("click", this.checkButtons.bind(this), false);
-        window.addEventListener("mousemove", this.hoverButtons.bind(this), false);
+        this.inputManager = new InputManager();
+        this.inputManager.addMouseListener("move", this.hoverButtons.bind(this), false);
+        this.inputManager.addMouseListener("click", this.checkButtons.bind(this), false);
         window.addEventListener("contextmenu", this.contextMenu.bind(this), false);
         _GameLib._instance = this;
       }
@@ -5093,9 +5225,9 @@
       document.body.setAttribute("style", "cursor: " + cursorType + ";");
     }
     hoverButtons(evt) {
-      var canvasRect = this._viewportCanvas.getBoundingClientRect();
+      var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas);
       var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
-      var calcXY = new Coord(evt.pageX - canvasRect.x, evt.pageY - canvasRect.y);
+      var calcXY = new Coord(mousePos[0], mousePos[1]);
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonHover = false;
         buttons.forEach((function(button) {
@@ -5111,9 +5243,9 @@
       }
     }
     checkButtons(evt) {
-      var canvasRect = this._viewportCanvas.getBoundingClientRect();
+      var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas);
       var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
-      var calcXY = new Coord(evt.clientX - canvasRect.x, evt.clientY - canvasRect.y);
+      var calcXY = new Coord(mousePos[0], mousePos[1]);
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonClicked = false;
         buttons.forEach((function(button) {
@@ -11039,6 +11171,9 @@ ${nodesText}`;
 
   // src/3D/Geometry/ModelLoaders/GMLLoader.js
   var GMLLoader = class _GMLLoader {
+    constructor() {
+      throw new GameLibCore2.Error("Class GMLLoader may not be constructed!");
+    }
     static MAGIC = "GML1";
     static VERSION = 1;
     static async load(url, options = {}) {
@@ -11151,10 +11286,32 @@ ${nodesText}`;
 
   // src/3D/Geometry/ModelLoaders/GLBLoader.js
   var GLBLoader = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class GLBLoader may not be constructed!");
+    }
+    static load(url, options = {}) {
+      throw new GameLibCore2.Error("Loading GLB files is not yet implemented.");
+    }
   };
 
   // src/3D/Geometry/ModelLoaders/GLTFLoader.js
   var GLTFLoader = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class GLTFLoader may not be constructed!");
+    }
+    static load(url, options = {}) {
+      throw new GameLibCore2.Error("Loading GLTF files is not yet implemented.");
+    }
+  };
+
+  // src/3D/Geometry/ModelLoaders/OBJLoader.js
+  var OBJLoader = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class OBJLoader may not be constructed!");
+    }
+    static load(url, options = {}) {
+      throw new GameLibCore2.Error("Loading OBJ files is not yet implemented.");
+    }
   };
 
   // src/3D/Geometry/ModelLoaders/index.js
@@ -11165,6 +11322,7 @@ ${nodesText}`;
     static GMLLoader = GMLLoader;
     static GLBLoader = GLBLoader;
     static GLTFLoader = GLTFLoader;
+    static OBJLoader = OBJLoader;
   };
 
   // src/3D/Geometry/index.js
