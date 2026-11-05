@@ -22,6 +22,18 @@ class UILoading extends UIObject {
   update() {
     Loading.render(this.source, this.source.getContext('2d'), this.config);
     this.textureDirty = true;
+    if(this.width !== this._gameLib._canvas.width) {
+      this.width = this._gameLib._canvas.width;
+    }
+    if(this.height !== this._gameLib._canvas.height) {
+      this.height = this._gameLib._canvas.height;
+    }
+    if(this.source.width !== this.width) {
+      this.source.width = this.width;
+    }
+    if(this.source.height !== this.height) {
+      this.source.height = this.height;
+    }
   }
 }
 export {
