@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>glTF to GML converter</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px system-ui, sans-serif; }
+    body { max-width: 680px; margin: 3rem auto; padding: 0 1rem; }
+    h1 { margin-bottom: .35rem; }
+    p { line-height: 1.5; }
+    .panel { border: 1px solid #8886; border-radius: 10px; padding: 1.25rem; }
+    label { display: block; font-weight: 600; margin-bottom: .5rem; }
+    input, button { font: inherit; }
+    input[type=file] { display: block; max-width: 100%; margin: .7rem 0 1rem; }
+    button { padding: .55rem .9rem; cursor: pointer; }
+    #status { min-height: 1.5em; margin-top: .8rem; }
+    .hint { opacity: .8; font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <h1>glTF → GML</h1>
+  <p>Convert static glTF 2.0 meshes to GameLib's GML1 binary format. Files are processed locally in your browser.</p>
+  <section class="panel">
+    <label for="files">Choose a .gltf or .glb file</label>
+    <input id="files" type="file" accept=".gltf,.glb,model/gltf+json,model/gltf-binary" multiple>
+    <p class="hint">For .gltf files with external .bin buffers, select the .bin files at the same time. Images and materials' textures are not included in GML1.</p>
+    <button id="convert" type="button">Convert and download .gml</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </section>
+<script>
+(() => {
+  const fileInput = document.getElementById('files');
+  const button = document.getElementById('convert');
+  const status = document.getElementById('status');
+  const MAGIC = 'GML1';
+
+  function fail(message) { throw new Error(message); }
+  function readU32(view, offset) { return view.getUint32(offset, true); }
+
+  function parseGLB(buffer) {
+    const view = new DataView(buffer);
+    if (view.byteLength < 20 || readU32(view, 0) !== 0x46546c67) fail('Invalid or truncated GLB file.');
+    if (readU32(view, 4) !== 2) fail('Only GLB version 2 is supported.');
+    if (readU32(view, 8) !== view.byteLength) fail('GLB declared length does not match the file size.');
+    let offset = 12, json = null, binary = null;
+    while (offset < view.byteLength) {
+      if (offset + 8 > view.byteLength) fail('Truncated GLB chunk header.');
+      const length = readU32(view, offset), type = readU32(view, offset + 4);
+      offset += 8;
+      if (offset + length > view.byteLength) fail('GLB chunk extends beyond the file.');
+      const chunk = buffer.slice(offset, offset + length);
+      if (type === 0x4e4f534a) {
+        if (json) fail('GLB contains multiple JSON chunks.');
+        json = JSON.parse(new TextDecoder().decode(chunk).replace(/[\u0000\u0020]+$/g, ''));
+      } else if (type === 0x004e4942 && !binary) {
+        binary = chunk;
+      }
+      offset += length;
+    }
+    if (!json) fail('GLB has no JSON chunk.');
+    return { json, binary };
+  }
+
+  function dataUriBytes(uri) {
+    const comma = uri.indexOf(',');
+    if (comma < 0) fail('Malformed data URI in glTF buffer.');
+    const metadata = uri.slice(0, comma), payload = uri.slice(comma + 1);
+    if (/;base64/i.test(metadata)) {
+      const raw = atob(payload);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      return bytes.buffer;
+    }
+    return new TextEncoder().encode(decodeURIComponent(payload)).buffer;
+  }
+
+  async function getGltf(file, selectedFiles) {
+    const bytes = await file.arrayBuffer();
+    if (/\.glb$/i.test(file.name)) {
+      const parsed = parseGLB(bytes);
+      const buffers = [];
+      for (let i = 0; i < (parsed.json.buffers || []).length; i++) {
+        const def = parsed.json.buffers[i];
+        if (def.uri) {
+          if (/^data:/i.test(def.uri)) buffers.push(dataUriBytes(def.uri));
+          else {
+            const wanted = decodeURIComponent(def.uri.split('/').pop());
+            const match = selectedFiles.find(candidate => candidate.name === wanted);
+            if (!match) fail(`Select external buffer "${wanted}" along with the glTF file.`);
+            buffers.push(await match.arrayBuffer());
+          }
+        } else if (i === 0 && parsed.binary) buffers.push(parsed.binary);
+        else fail(`No data found for glTF buffer ${i}.`);
+      }
+      return { json: parsed.json, buffers };
+    }
+    let json;
+    try { json = JSON.parse(new TextDecoder().decode(bytes)); }
+    catch { fail('The selected .gltf file is not valid JSON.'); }
+    const buffers = [];
+    for (const [i, def] of (json.buffers || []).entries()) {
+      if (!def.uri) fail(`glTF buffer ${i} has no URI (select a .glb file for embedded binary data).`);
+      if (/^data:/i.test(def.uri)) buffers.push(dataUriBytes(def.uri));
+      else {
+        const wanted = decodeURIComponent(def.uri.split('/').pop());
+        const match = selectedFiles.find(candidate => candidate.name === wanted);
+        if (!match) fail(`Select external buffer "${wanted}" along with the glTF file.`);
+        buffers.push(await match.arrayBuffer());
+      }
+    }
+    return { json, buffers };
+  }
+
+  const COMPONENTS = { 5120: [1, 'getInt8'], 5121: [1, 'getUint8'], 5122: [2, 'getInt16'], 5123: [2, 'getUint16'], 5125: [4, 'getUint32'], 5126: [4, 'getFloat32'] };
+  const ITEM_COUNTS = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
+
+  function makeAccessorReader(json, buffers) {
+    return function accessor(index) {
+      const def = json.accessors?.[index];
+      if (!def) fail(`Missing glTF accessor ${index}.`);
+      if (def.sparse) fail('Sparse glTF accessors are not supported by this converter.');
+      const info = COMPONENTS[def.componentType], itemCount = ITEM_COUNTS[def.type];
+      if (!info || !itemCount || !Number.isInteger(def.count) || def.count < 0) fail(`Unsupported or invalid glTF accessor ${index}.`);
+      if (def.bufferView === undefined) fail(`Accessor ${index} has no bufferView (zero-initialized accessors are not supported).`);
+      const bv = json.bufferViews?.[def.bufferView];
+      const buffer = buffers[bv?.buffer];
+      if (!bv || !buffer) fail(`Accessor ${index} references a missing bufferView or buffer.`);
+      const [size, getter] = info, elementSize = size * itemCount;
+      const stride = bv.byteStride || elementSize;
+      if (stride < elementSize || stride % size !== 0) fail(`Invalid byteStride in accessor ${index}.`);
+      const start = (bv.byteOffset || 0) + (def.byteOffset || 0);
+      const lastEnd = def.count ? start + (def.count - 1) * stride + elementSize : start;
+      if (start < (bv.byteOffset || 0) || lastEnd > (bv.byteOffset || 0) + bv.byteLength || lastEnd > buffer.byteLength) fail(`Accessor ${index} data lies outside its bufferView.`);
+      const view = new DataView(buffer);
+      const values = new Array(def.count * itemCount);
+      for (let i = 0; i < def.count; i++) {
+        for (let c = 0; c < itemCount; c++) {
+          let value = view[getter](start + i * stride + c * size, true);
+          if (def.normalized && def.componentType !== 5126) {
+            if (def.componentType === 5120) value = Math.max(value / 127, -1);
+            else if (def.componentType === 5121) value /= 255;
+            else if (def.componentType === 5122) value = Math.max(value / 32767, -1);
+            else if (def.componentType === 5123) value /= 65535;
+            else fail('Normalized unsigned-int accessors are not supported.');
+          }
+          values[i * itemCount + c] = value;
+        }
+      }
+      return { values, count: def.count, components: itemCount, componentType: def.componentType };
+    };
+  }
+
+  function identity() { return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]; }
+  function multiply(a, b) {
+    const out = new Array(16).fill(0);
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+      for (let k = 0; k < 4; k++) out[c * 4 + r] += a[k * 4 + r] * b[c * 4 + k];
+    return out;
+  }
+  function nodeMatrix(node) {
+    if (node.matrix) return node.matrix;
+    const [x,y,z,w] = node.rotation || [0,0,0,1];
+    const [sx,sy,sz] = node.scale || [1,1,1];
+    const [tx,ty,tz] = node.translation || [0,0,0];
+    return [
+      (1-2*y*y-2*z*z)*sx, (2*x*y+2*w*z)*sx, (2*x*z-2*w*y)*sx, 0,
+      (2*x*y-2*w*z)*sy, (1-2*x*x-2*z*z)*sy, (2*y*z+2*w*x)*sy, 0,
+      (2*x*z+2*w*y)*sz, (2*y*z-2*w*x)*sz, (1-2*x*x-2*y*y)*sz, 0,
+      tx,ty,tz,1
+    ];
+  }
+  function transformPosition(m, x, y, z) {
+    const w = m[3]*x + m[7]*y + m[11]*z + m[15] || 1;
+    return [(m[0]*x + m[4]*y + m[8]*z + m[12])/w, (m[1]*x + m[5]*y + m[9]*z + m[13])/w, (m[2]*x + m[6]*y + m[10]*z + m[14])/w];
+  }
+  function normalMatrix(m) {
+    const a=m[0], b=m[4], c=m[8], d=m[1], e=m[5], f=m[9], g=m[2], h=m[6], i=m[10];
+    const A=e*i-f*h, B=f*g-d*i, C=d*h-e*g;
+    const det=a*A+b*B+c*C;
+    if (Math.abs(det) < 1e-12) fail('Cannot convert a mesh with a singular node transform.');
+    const inv=1/det;
+    return [A*inv,(c*h-b*i)*inv,(b*f-c*e)*inv, (B*inv),(a*i-c*g)*inv,(c*d-a*f)*inv, (C*inv),(b*g-a*h)*inv,(a*e-b*d)*inv];
+  }
+  function transformNormal(nm, x, y, z) {
+    const nx=nm[0]*x+nm[1]*y+nm[2]*z, ny=nm[3]*x+nm[4]*y+nm[5]*z, nz=nm[6]*x+nm[7]*y+nm[8]*z;
+    const length=Math.hypot(nx,ny,nz) || 1;
+    return [nx/length,ny/length,nz/length];
+  }
+  function generateNormals(positions, indices) {
+    const normals = new Array(positions.length).fill(0);
+    for (let i=0;i<indices.length;i+=3) {
+      const a=indices[i]*3,b=indices[i+1]*3,c=indices[i+2]*3;
+      const ab=[positions[b]-positions[a],positions[b+1]-positions[a+1],positions[b+2]-positions[a+2]];
+      const ac=[positions[c]-positions[a],positions[c+1]-positions[a+1],positions[c+2]-positions[a+2]];
+      const n=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]];
+      for (const v of [a,b,c]) { normals[v]+=n[0]; normals[v+1]+=n[1]; normals[v+2]+=n[2]; }
+    }
+    for (let i=0;i<normals.length;i+=3) { const l=Math.hypot(normals[i],normals[i+1],normals[i+2])||1; normals[i]/=l; normals[i+1]/=l; normals[i+2]/=l; }
+    return normals;
+  }
+  function primitiveIndices(primitive, accessor, vertexCount) {
+    let indices = primitive.indices === undefined ? Array.from({length: vertexCount}, (_,i)=>i) : accessor(primitive.indices).values;
+    const mode = primitive.mode === undefined ? 4 : primitive.mode;
+    if (mode === 4) {
+      if (indices.length % 3) fail('Triangle-list index count must be divisible by 3.');
+      return indices;
+    }
+    const triangles=[];
+    if (mode === 5) {
+      for (let i=2;i<indices.length;i++) {
+        if (i%2===0) triangles.push(indices[i-2],indices[i-1],indices[i]);
+        else triangles.push(indices[i-1],indices[i-2],indices[i]);
+      }
+    } else if (mode === 6) {
+      for (let i=2;i<indices.length;i++) triangles.push(indices[0],indices[i-1],indices[i]);
+    } else fail('Only glTF triangle, triangle-strip, and triangle-fan primitives are supported.');
+    return triangles;
+  }
+
+  function convert(json, buffers) {
+    if (json.asset?.version?.split('.')[0] !== '2') fail('Only glTF 2.x assets are supported.');
+    if (json.extensionsRequired?.length) fail(`Required glTF extensions are not supported: ${json.extensionsRequired.join(', ')}.`);
+    const accessor = makeAccessorReader(json, buffers), meshes=[];
+    const materials = json.materials || [];
+    const addMesh = (meshDef, world, nodeName) => {
+      for (let p=0;p<(meshDef.primitives || []).length;p++) {
+        const primitive=meshDef.primitives[p];
+        if (primitive.attributes?.POSITION === undefined) fail('Every supported primitive must have POSITION data.');
+        const pos=accessor(primitive.attributes.POSITION);
+        if (pos.components !== 3) fail('POSITION accessor must be VEC3.');
+        let indices=primitiveIndices(primitive, accessor, pos.count);
+        if (!indices.length || indices.length%3) continue;
+        if (indices.some(index => !Number.isInteger(index) || index<0 || index>=pos.count)) fail('Primitive contains an out-of-range vertex index.');
+        let positions=pos.values;
+        let normals=primitive.attributes.NORMAL === undefined ? generateNormals(positions,indices) : accessor(primitive.attributes.NORMAL).values;
+        if (normals.length !== positions.length) fail('NORMAL accessor must match POSITION vertex count.');
+        const tex=primitive.attributes.TEXCOORD_0 === undefined ? {values:new Array(pos.count*2).fill(0),count:pos.count,components:2} : accessor(primitive.attributes.TEXCOORD_0);
+        if (tex.components!==2 || tex.count!==pos.count) fail('TEXCOORD_0 must be a VEC2 accessor matching POSITION.');
+        const nm=normalMatrix(world), transformedPositions=[], transformedNormals=[];
+        for(let i=0;i<positions.length;i+=3) transformedPositions.push(...transformPosition(world,positions[i],positions[i+1],positions[i+2]));
+        for(let i=0;i<normals.length;i+=3) transformedNormals.push(...transformNormal(nm,normals[i],normals[i+1],normals[i+2]));
+        const material=materials[primitive.material] || {};
+        const color=material.pbrMetallicRoughness?.baseColorFactor || [1,1,1,1];
+        const name=meshDef.name || nodeName || `mesh_${meshes.length}`;
+        meshes.push({name: meshDef.primitives.length>1 ? `${name}_${p}` : name, positions:transformedPositions, normals:transformedNormals, uv:tex.values, indices, color});
+      }
+    };
+    const nodes=json.nodes || [], visited=new Set();
+    function visit(nodeIndex,parent) {
+      if(visited.has(nodeIndex)) fail('glTF node graph contains a cycle or repeated node instance.');
+      const node=nodes[nodeIndex]; if(!node) fail(`Missing glTF node ${nodeIndex}.`);
+      visited.add(nodeIndex);
+      const world=multiply(parent,nodeMatrix(node));
+      if(node.mesh!==undefined) { const mesh=json.meshes?.[node.mesh]; if(!mesh) fail(`Node references missing mesh ${node.mesh}.`); addMesh(mesh,world,node.name); }
+      for(const child of node.children || []) visit(child,world);
+      visited.delete(nodeIndex);
+    }
+    if (nodes.length) {
+      const scenes=json.scenes || [];
+      const scene=scenes[json.scene === undefined ? 0 : json.scene];
+      if (scene) for (const root of scene.nodes || []) visit(root,identity());
+      else if (!scenes.length) for (let i=0;i<nodes.length;i++) if (!nodes.some(n => (n.children || []).includes(i))) visit(i,identity());
+    } else {
+      for(const mesh of json.meshes || []) addMesh(mesh,identity(),mesh.name);
+    }
+    if (!meshes.length) fail('No supported triangle meshes found in this glTF asset.');
+    return meshes;
+  }
+
+  function encodeGML(meshes) {
+    const encoder=new TextEncoder();
+    const encoded=meshes.map(mesh => {
+      const name=encoder.encode(mesh.name);
+      if(name.length>65535) fail(`Mesh name is too long: ${mesh.name}`);
+      const vertexCount=mesh.positions.length/3, indexCount=mesh.indices.length;
+      if(!Number.isInteger(vertexCount) || vertexCount<1 || vertexCount>0xffffffff || indexCount>0xffffffff) fail('Mesh is too large for GML1.');
+      return {mesh,name,vertexCount,indexCount};
+    });
+    if(encoded.length>65535) fail('GML1 supports at most 65535 meshes.');
+    let total=8;
+    for(const {name,vertexCount,indexCount} of encoded) total+=2+name.length+8+16+(vertexCount*8+indexCount)*4;
+    if(!Number.isSafeInteger(total)) fail('Output model is too large.');
+    const buffer=new ArrayBuffer(total), view=new DataView(buffer), bytes=new Uint8Array(buffer);
+    bytes.set(encoder.encode(MAGIC),0); view.setUint16(4,1,true); view.setUint16(6,encoded.length,true);
+    let offset=8;
+    const putU16=v=>{view.setUint16(offset,v,true);offset+=2;};
+    const putU32=v=>{view.setUint32(offset,v,true);offset+=4;};
+    const putFloats=values=>{for(const value of values){if(!Number.isFinite(value))fail('Model contains a non-finite numeric value.');view.setFloat32(offset,value,true);offset+=4;}};
+    for(const {mesh,name,vertexCount,indexCount} of encoded){
+      putU16(name.length); bytes.set(name,offset); offset+=name.length;
+      putU32(vertexCount); putU32(indexCount);
+      putFloats(mesh.color.length===4?mesh.color:[1,1,1,1]);
+      putFloats(mesh.positions); putFloats(mesh.normals); putFloats(mesh.uv);
+      for(const index of mesh.indices) putU32(index);
+    }
+    return buffer;
+  }
+
+  button.addEventListener('click', async () => {
+    status.textContent='';
+    try {
+      const files=Array.from(fileInput.files || []);
+      const modelFile=files.find(file => /\.(gltf|glb)$/i.test(file.name));
+      if(!modelFile) fail('Choose one .gltf or .glb model file.');
+      const {json,buffers}=await getGltf(modelFile,files);
+      const meshes=convert(json,buffers), output=encodeGML(meshes);
+      const url=URL.createObjectURL(new Blob([output],{type:'application/octet-stream'}));
+      const link=document.createElement('a');
+      link.href=url; link.download=modelFile.name.replace(/\.(gltf|glb)$/i,'')+'.gml';
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      status.textContent=`Converted ${meshes.length} mesh${meshes.length===1?'':'es'} (${(output.byteLength/1024).toFixed(1)} KiB).`;
+    } catch(error) {
+      status.textContent=error instanceof Error ? error.message : String(error);
+    }
+  });
+})();
+</script>
+</body>
+</html>
