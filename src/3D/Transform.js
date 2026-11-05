@@ -1,7 +1,7 @@
 import { Position } from "./Position.js"
 import { Rotation } from "./Rotation.js"
 import { Scale } from "./Scale.js"
-import { mat4 } from "../Lib/GLMatrix.js"
+import { mat4 } from "../Core/Matrix/mat4.js"
 class Transform {
   constructor(position=new Position(), rotation=new Rotation(), scale=new Scale()) {
     this.position = position;
