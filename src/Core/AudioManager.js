@@ -28,9 +28,8 @@ class AudioManager {
     }
   }
   async loadLoopingSound(name, url) {
-    var resp = await fetch(url);
-    var ab = await resp.arrayBuffer();
-    this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(ab);
+    var data = await GameLibCore.AssetManager.shared.loadArrayBuffer(url);
+    this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(data.slice(0));
   }
   playLoopingSound(name) {
     if (this._loopingSoundPool[name] != null) {
@@ -89,9 +88,8 @@ class AudioManager {
     }
   }
   async loadSfx(name, url) {
-    var resp = await fetch(url);
-    var ab = await resp.arrayBuffer();
-    this._sfxPool[name] = await this._audioCtx.decodeAudioData(ab);
+    var data = await GameLibCore.AssetManager.shared.loadArrayBuffer(url); 
+    this._sfxPool[name] = await this._audioCtx.decodeAudioData(data.slice(0));
   }
   playSfx(name, speed = 1, gain = 1.5) {
     if (this._sfxPool[name]) {
