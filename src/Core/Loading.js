@@ -1,4 +1,4 @@
-import { GameLibCore } from "../Core/index.js"
+import { GameLibCore } from "./index.js"
 class Loading {
   constructor() {
     throw new GameLibCore.Error("Class Loading may not be constructed!");
