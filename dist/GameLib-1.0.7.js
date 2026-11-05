@@ -11085,11 +11085,11 @@ ${nodesText}`;
         view.getUint8(3)
       );
       if (magic !== _GMLLoader.MAGIC) {
-        throw new GameLibCore2.Error(`Invalid native model signature: expected ${MAGIC}.`);
+        throw new GameLibCore2.Error(`Invalid native model signature: expected ${_GMLLoader.MAGIC}.`);
       }
       offset = 4;
       const version = readUint16();
-      if (version !== GMLVersion.VERSION) {
+      if (version !== _GMLLoader.VERSION) {
         throw new GameLibCore2.Error(`Unsupported GML1 model version: ${version}.`);
       }
       const meshCount = readUint16();
