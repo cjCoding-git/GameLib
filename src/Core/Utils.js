@@ -20,9 +20,9 @@ class Utils {
     }
     return resultString;
   }
-	static UUID() {
-		return crypto.randomUUID();
-	}
+  static UUID() {
+    return crypto.randomUUID();
+  }
 }
 export {
   Utils
