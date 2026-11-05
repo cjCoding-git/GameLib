@@ -103,6 +103,18 @@ class InputManager {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
   }
+  mouseDown(evt) {
+    this._mouseX = evt.clientX;
+    this._mouseY = evt.clientY;
+  }
+  mouseUp(evt) {
+    this._mouseX = evt.clientX;
+    this._mouseY = evt.clientY;
+  }
+  click(evt) {
+    this._mouseX = evt.clientX;
+    this._mouseY = evt.clientY;
+  }
   getMousePos() {
     return [ this._mouseX, this._mouseY ];
   }
@@ -153,6 +165,9 @@ class InputManager {
     window.addEventListener('keyup', this.keyUp.bind(this), false);
     window.addEventListener('keydown', this.keyDown.bind(this), false);
     window.addEventListener('mousemove', this.mouseMove.bind(this), false);
+    window.addEventListener('mousedown', this.mouseDown.bind(this), false);
+    window.addEventListener('mouseup', this.mouseUp.bind(this), false);
+    window.addEventListener('click', this.click.bind(this), false);
   }
 }
 export {
