@@ -1,4 +1,13 @@
 import { GameLibError } from "../Error.js"
+function getItem(matrix, row, col) {
+  var rowOffset = row * 4;
+  var colOffset = col;
+  var offset  = rowOffset + colOffset;
+  return matrix[offset];
+}
+function makeGet(matrix) {
+  return getItem.bind(this, matrix);
+}
 class mat4 {
   constructor() {
     throw new GameLibError("Class mat4 may not be constructed!");
@@ -14,7 +23,16 @@ class mat4 {
     out[12] = 0; out[13] = 0; out[14] = 0; out[15] = 1;
     return out;
   }
-  multiply(out, a, b) {}
+  multiply(out, a, b) {
+    var getA = makeGet(a);
+    var getB = makeGet(b);
+    var m = (offset, a0, b0) => {
+      return getA(offset, a0) * getB(b0, offset);
+    };
+    out[0] = m(0, 0, 0) + m(1, 0, 0) + m(2, 0, 0) + m(3, 0, 0);
+    out[1] = m(0, 1, 0) + m(1, 1, 0) + m(2, 1, 0) + m(3, 1, 0);
+    out[2] = m(0, 2, 0) + m(1, 2, 0) + m(2, 2, 0) + m(3, 2, 0);
+  }
   translate(out, a, v) {}
   rotateX(out, a, rad) {}
   rotateY(out, a, rad) {}
