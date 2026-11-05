@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GML1 model viewer</title>
+  <style>
+    :root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #10151d; color: #e8eef7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    header { padding: 1.1rem clamp(1rem, 4vw, 2.5rem); background: #171f2b; border-bottom: 1px solid #ffffff1a; }
+    h1 { margin: 0 0 .25rem; font-size: 1.25rem; }
+    header p { margin: 0; color: #aab8ca; font-size: .92rem; }
+    main { width: min(1200px, 100%); margin: auto; padding: 1.25rem; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+    input, button { font: inherit; }
+    input[type=file] { max-width: 100%; }
+    button { border: 1px solid #53647b; border-radius: 6px; background: #222e3d; color: inherit; padding: .5rem .8rem; cursor: pointer; }
+    button:hover { background: #304158; }
+    .stage { position: relative; min-height: min(68vh, 680px); height: min(68vh, 680px); border: 1px solid #ffffff20; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at center, #202c3b, #10151d 75%); }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #status { min-height: 1.5em; color: #afbdd0; }
+    #status.error { color: #ff9a9a; }
+    .help { color: #9eacbf; font-size: .88rem; }
+    @media (max-width: 600px) { main { padding: .75rem; } .stage { min-height: 55vh; height: 55vh; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GML1 model viewer</h1>
+    <p>Inspect GameLib GML1 models locally in your browser. Files are not uploaded.</p>
+  </header>
+  <main>
+    <div class="toolbar">
+      <label for="file">Open a .gml file</label>
+      <input id="file" type="file" accept=".gml,application/octet-stream">
+      <button id="reset" type="button">Reset view</button>
+    </div>
+    <div class="stage"><canvas id="view" aria-label="Interactive 3D model view"></canvas></div>
+    <p id="status" role="status" aria-live="polite">Choose a GML1 file to view it. Drag to rotate; scroll or pinch to zoom.</p>
+    <p class="help">Supports GML1 version 1 triangle meshes. Mesh colors and normals are rendered with simple lighting.</p>
+  </main>
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('view');
+  const input = document.getElementById('file');
+  const status = document.getElementById('status');
+  const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+  let meshes = [];
+  let yaw = 0.65, pitch = -0.35, zoom = 1;
+  let dragging = false, previousX = 0, previousY = 0;
+
+  function fail(message) { throw new Error(message); }
+  function parseGML(inputBuffer) {
+    const buffer = inputBuffer instanceof ArrayBuffer ? inputBuffer : inputBuffer.buffer.slice(inputBuffer.byteOffset, inputBuffer.byteOffset + inputBuffer.byteLength);
+    const view = new DataView(buffer);
+    let offset = 0;
+    function ensure(size) {
+      if (!Number.isSafeInteger(size) || size < 0 || size > view.byteLength - offset) fail('Invalid or truncated GML1 model data.');
+    }
+    function u16() { ensure(2); const value = view.getUint16(offset, true); offset += 2; return value; }
+    function u32() { ensure(4); const value = view.getUint32(offset, true); offset += 4; return value; }
+    function floats(count) {
+      const bytes = count * 4;
+      if (!Number.isSafeInteger(bytes)) fail('GML1 mesh is too large.');
+      ensure(bytes);
+      const values = new Float32Array(count);
+      for (let i = 0; i < count; i++, offset += 4) {
+        values[i] = view.getFloat32(offset, true);
+        if (!Number.isFinite(values[i])) fail('GML1 model contains a non-finite value.');
+      }
+      return values;
+    }
+    ensure(8);
+    if (view.getUint8(0) !== 71 || view.getUint8(1) !== 77 || view.getUint8(2) !== 76 || view.getUint8(3) !== 49) fail('Not a GML1 model (expected GML1 signature).');
+    offset = 4;
+    const version = u16();
+    if (version !== 1) fail(`Unsupported GML version ${version}; this viewer supports version 1.`);
+    const meshCount = u16();
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    const result = [];
+    for (let meshIndex = 0; meshIndex < meshCount; meshIndex++) {
+      const nameLength = u16();
+      ensure(nameLength);
+      let name;
+      try { name = decoder.decode(new Uint8Array(buffer, offset, nameLength)); }
+      catch { fail(`Mesh ${meshIndex} has an invalid UTF-8 name.`); }
+      offset += nameLength;
+      const vertexCount = u32(), indexCount = u32();
+      if (!vertexCount || !indexCount || indexCount % 3 !== 0) fail(`Invalid vertex or triangle index count in mesh ${meshIndex}.`);
+      if (vertexCount > 0x1fffffff || indexCount > 0x1fffffff) fail(`Mesh ${meshIndex} exceeds supported browser limits.`);
+      const color = floats(4);
+      const positions = floats(vertexCount * 3);
+      const normals = floats(vertexCount * 3);
+      const uv = floats(vertexCount * 2);
+      const indices = new Uint32Array(indexCount);
+      ensure(indexCount * 4);
+      for (let i = 0; i < indexCount; i++) {
+        const index = u32();
+        if (index >= vertexCount) fail(`Mesh ${meshIndex} contains an out-of-range vertex index.`);
+        indices[i] = index;
+      }
+      result.push({ name: name || `Mesh ${meshIndex + 1}`, color, positions, normals, uv, indices });
+    }
+    if (offset !== view.byteLength) fail('Unexpected trailing bytes after GML1 model data.');
+    if (!result.length) fail('This GML1 file contains no meshes.');
+    return result;
+  }
+
+  if (!gl) {
+    status.textContent = 'WebGL is not available in this browser.';
+    status.classList.add('error');
+    return;
+  }
+  const vertexSource = `
+    attribute vec3 aPosition;
+    attribute vec3 aNormal;
+    attribute vec4 aColor;
+    uniform float uYaw;
+    uniform float uPitch;
+    uniform float uZoom;
+    uniform float uAspect;
+    varying vec3 vNormal;
+    varying vec4 vColor;
+    void main() {
+      float cy = cos(uYaw), sy = sin(uYaw), cx = cos(uPitch), sx = sin(uPitch);
+      vec3 p = vec3(cy*aPosition.x + sy*aPosition.z, aPosition.y, -sy*aPosition.x + cy*aPosition.z);
+      vec3 n = vec3(cy*aNormal.x + sy*aNormal.z, aNormal.y, -sy*aNormal.x + cy*aNormal.z);
+      p = vec3(p.x, cx*p.y - sx*p.z, sx*p.y + cx*p.z);
+      n = vec3(n.x, cx*n.y - sx*n.z, sx*n.y + cx*n.z);
+      float depth = 3.2 - p.z * uZoom;
+      float focal = 1.8 * uZoom;
+      gl_Position = vec4(p.x * focal / uAspect, p.y * focal, (depth - 1.0) / 4.0 * depth, depth);
+      vNormal = normalize(n);
+      vColor = aColor;
+    }`;
+  const fragmentSource = `
+    precision mediump float;
+    varying vec3 vNormal;
+    varying vec4 vColor;
+    void main() {
+      vec3 light = normalize(vec3(-0.4, 0.7, 0.8));
+      float diffuse = max(dot(normalize(vNormal), light), 0.0);
+      float shade = 0.3 + diffuse * 0.7;
+      gl_FragColor = vec4(vColor.rgb * shade, vColor.a);
+    }`;
+  function shader(type, source) {
+    const item = gl.createShader(type);
+    gl.shaderSource(item, source);
+    gl.compileShader(item);
+    if (!gl.getShaderParameter(item, gl.COMPILE_STATUS)) fail(gl.getShaderInfoLog(item) || 'Unable to compile viewer shader.');
+    return item;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, shader(gl.VERTEX_SHADER, vertexSource));
+  gl.attachShader(program, shader(gl.FRAGMENT_SHADER, fragmentSource));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    status.textContent = gl.getProgramInfoLog(program) || 'Unable to initialize the WebGL renderer.';
+    status.classList.add('error');
+    return;
+  }
+  const locations = {
+    position: gl.getAttribLocation(program, 'aPosition'), normal: gl.getAttribLocation(program, 'aNormal'), color: gl.getAttribLocation(program, 'aColor'),
+    yaw: gl.getUniformLocation(program, 'uYaw'), pitch: gl.getUniformLocation(program, 'uPitch'), zoom: gl.getUniformLocation(program, 'uZoom'), aspect: gl.getUniformLocation(program, 'uAspect')
+  };
+  const gpuMeshes = [];
+  function disposeMeshes() {
+    for (const mesh of gpuMeshes) {
+      gl.deleteBuffer(mesh.position); gl.deleteBuffer(mesh.normal); gl.deleteBuffer(mesh.color); gl.deleteBuffer(mesh.index);
+    }
+    gpuMeshes.length = 0;
+  }
+  function uploadMeshes() {
+    disposeMeshes();
+    let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+    for (const mesh of meshes) for (let i = 0; i < mesh.positions.length; i += 3) {
+      for (let axis = 0; axis < 3; axis++) { min[axis] = Math.min(min[axis], mesh.positions[i + axis]); max[axis] = Math.max(max[axis], mesh.positions[i + axis]); }
+    }
+    const center = min.map((value, axis) => (value + max[axis]) / 2);
+    let radius = 0;
+    for (const mesh of meshes) for (let i = 0; i < mesh.positions.length; i += 3) {
+      const x = mesh.positions[i] - center[0], y = mesh.positions[i + 1] - center[1], z = mesh.positions[i + 2] - center[2];
+      radius = Math.max(radius, Math.hypot(x, y, z));
+    }
+    if (!Number.isFinite(radius) || radius === 0) radius = 1;
+    for (const mesh of meshes) {
+      const positions = new Float32Array(mesh.positions.length);
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i] = (mesh.positions[i] - center[0]) / radius;
+        positions[i + 1] = (mesh.positions[i + 1] - center[1]) / radius;
+        positions[i + 2] = (mesh.positions[i + 2] - center[2]) / radius;
+      }
+      const position = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, position); gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      const normal = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, normal); gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+      const color = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, color); gl.bufferData(gl.ARRAY_BUFFER, mesh.color, gl.STATIC_DRAW);
+      const index = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+      gpuMeshes.push({ position, normal, color, index, count: mesh.indices.length });
+    }
+  }
+  function resize() {
+    const rect = canvas.getBoundingClientRect(), ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.round(rect.width * ratio)), height = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    gl.viewport(0, 0, width, height);
+  }
+  function draw() {
+    resize();
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.useProgram(program);
+    gl.uniform1f(locations.yaw, yaw); gl.uniform1f(locations.pitch, pitch); gl.uniform1f(locations.zoom, zoom);
+    gl.uniform1f(locations.aspect, canvas.width / canvas.height);
+    for (const mesh of gpuMeshes) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.position); gl.enableVertexAttribArray(locations.position); gl.vertexAttribPointer(locations.position, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normal); gl.enableVertexAttribArray(locations.normal); gl.vertexAttribPointer(locations.normal, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.color); gl.enableVertexAttribArray(locations.color); gl.vertexAttribPointer(locations.color, 4, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.index);
+      gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
+    }
+  }
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    status.classList.remove('error'); status.textContent = 'Loading model…';
+    try {
+      meshes = parseGML(await file.arrayBuffer());
+      uploadMeshes(); yaw = 0.65; pitch = -0.35; zoom = 1;
+      draw();
+      const vertices = meshes.reduce((sum, mesh) => sum + mesh.positions.length / 3, 0);
+      const triangles = meshes.reduce((sum, mesh) => sum + mesh.indices.length / 3, 0);
+      status.textContent = `${file.name}: ${meshes.length} mesh${meshes.length === 1 ? '' : 'es'}, ${vertices.toLocaleString()} vertices, ${triangles.toLocaleString()} triangles.`;
+    } catch (error) {
+      meshes = []; disposeMeshes(); draw();
+      status.textContent = error instanceof Error ? error.message : String(error);
+      status.classList.add('error');
+    }
+  });
+  canvas.addEventListener('pointerdown', event => { dragging = true; previousX = event.clientX; previousY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener('pointermove', event => {
+    if (!dragging) return;
+    yaw += (event.clientX - previousX) * 0.008;
+    pitch = Math.max(-1.5, Math.min(1.5, pitch + (event.clientY - previousY) * 0.008));
+    previousX = event.clientX; previousY = event.clientY; draw();
+  });
+  canvas.addEventListener('pointerup', () => { dragging = false; });
+  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  canvas.addEventListener('wheel', event => { event.preventDefault(); zoom = Math.max(0.35, Math.min(3, zoom * Math.exp(-event.deltaY * 0.001))); draw(); }, { passive: false });
+  document.getElementById('reset').addEventListener('click', () => { yaw = 0.65; pitch = -0.35; zoom = 1; draw(); });
+  new ResizeObserver(draw).observe(canvas);
+  draw();
+})();
+</script>
+</body>
+</html>
