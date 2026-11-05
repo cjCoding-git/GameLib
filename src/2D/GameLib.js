@@ -6,6 +6,7 @@ import { Box } from "./Box.js"
 import { Renderable } from "./Renderable.js"
 import { Sprite } from "./Sprite.js"
 import { Loading } from "../Core/Loading.js"
+import { InputManager } from "../Core/InputManager.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, viewportCanvas, viewportCtx) {
     if (GameLib2D.GameLib._instance != null) {
@@ -27,8 +28,9 @@ class GameLib extends GameLibCore.GameLibBase {
       this._background = {};
       this._loadingScreen = Loading.DEFAULT_CONFIG;
       this.oncontextmenu = null;
-      window.addEventListener('click', this.checkButtons.bind(this), false);
-      window.addEventListener('mousemove', this.hoverButtons.bind(this), false);
+      this.inputManager = new InputManager();
+      this.inputManager.addMouseListener('move', this.hoverButtons.bind(this), false);
+      this.inputManager.addMouseListener('click', this.checkButtons.bind(this), false0;
       window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
       GameLib._instance = this;
     }
@@ -44,9 +46,9 @@ class GameLib extends GameLibCore.GameLibBase {
     document.body.setAttribute('style', 'cursor: ' + cursorType + ';');
   }
   hoverButtons(evt) {
-    var canvasRect = this._viewportCanvas.getBoundingClientRect();
+    var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas);
     var buttons = this._renderables.filter(renderable => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
-    var calcXY = new Coord(evt.pageX - canvasRect.x, evt.pageY - canvasRect.y);
+    var calcXY = new Coord(mousePos[0], mousePos[1]);
     if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
       var buttonHover = false;
       buttons.forEach((function(button) {
@@ -62,9 +64,9 @@ class GameLib extends GameLibCore.GameLibBase {
     }
   }
   checkButtons(evt) {
-    var canvasRect = this._viewportCanvas.getBoundingClientRect();
+    var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas0;
     var buttons = this._renderables.filter(renderable => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
-    var calcXY = new Coord(evt.clientX - canvasRect.x, evt.clientY - canvasRect.y);
+    var calcXY = new Coord(mousePos[0], mousePos[1]);
     if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
       var buttonClicked = false;
       buttons.forEach((function(button) {
