@@ -106,9 +106,8 @@
       }
     }
     async loadLoopingSound(name, url) {
-      var resp = await fetch(url);
-      var ab = await resp.arrayBuffer();
-      this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(ab);
+      var data = await GameLibCore2.AssetManager.shared.loadArrayBuffer(url);
+      this._loopingSoundPool[name] = await this._audioCtx.decodeAudioData(data.slice(0));
     }
     playLoopingSound(name) {
       if (this._loopingSoundPool[name] != null) {
@@ -167,9 +166,8 @@
       }
     }
     async loadSfx(name, url) {
-      var resp = await fetch(url);
-      var ab = await resp.arrayBuffer();
-      this._sfxPool[name] = await this._audioCtx.decodeAudioData(ab);
+      var data = await GameLibCore2.AssetManager.shared.loadArrayBuffer(url);
+      this._sfxPool[name] = await this._audioCtx.decodeAudioData(data.slice(0));
     }
     playSfx(name, speed = 1, gain = 1.5) {
       if (this._sfxPool[name]) {
@@ -191,15 +189,6 @@
   var Utils = class _Utils {
     constructor() {
       throw new GameLibCore2.Error("Class Utils may not be constructed!");
-    }
-    static imagePromise(url) {
-      return new Promise(function(resolve, reject) {
-        var image = new Image();
-        image.onload = (function() {
-          resolve(image);
-        });
-        image.src = url;
-      });
     }
     static getRandomListItem(list) {
       var index = Math.floor(Math.random() * list.length);
@@ -4618,6 +4607,118 @@
     }
   };
 
+  // src/Core/AssetManager.js
+  var AssetManager = class _AssetManager {
+    static _shared = null;
+    static get shared() {
+      if (!_AssetManager._shared) {
+        _AssetManager._shared = new _AssetManager();
+      }
+      return _AssetManager._shared;
+    }
+    constructor() {
+      this._cache = /* @__PURE__ */ new Map();
+      this._loaders = /* @__PURE__ */ new Map();
+      this.registerLoader("image", (url, options = {}) => {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          if (options.crossOrigin !== void 0) {
+            image.crossOrigin = options.crossOrigin;
+          }
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new GameLibError(`Failed to load image: ${url}`));
+          image.src = url;
+        });
+      });
+      this.registerLoader("json", async (url, options = {}) => {
+        const response = await fetch(url, options.fetchOptions);
+        if (!response.ok) {
+          throw new GameLibError(`Failed to load JSON "${url}": ${response.status}`);
+        }
+        return response.json();
+      });
+      this.registerLoader("text", async (url, options = {}) => {
+        const response = await fetch(url, options.fetchOptions);
+        if (!response.ok) {
+          throw new GameLibError(`Failed to load text "${url}": ${response.status}`);
+        }
+        return response.text();
+      });
+      this.registerLoader("arrayBuffer", async (url, options = {}) => {
+        const response = await fetch(url, options.fetchOptions);
+        if (!response.ok) {
+          throw new GameLibError(`Failed to load data "${url}": ${response.status}`);
+        }
+        return response.arrayBuffer();
+      });
+    }
+    registerLoader(type, loader) {
+      if (typeof loader !== "function") {
+        throw new TypeError("Asset loader must be a function");
+      }
+      this._loaders.set(type, loader);
+      return this;
+    }
+    load(type, url, options = {}) {
+      const loader = this._loaders.get(type);
+      if (!loader) {
+        return Promise.reject(new GameLibError(`No asset loader registered for type "${type}"`));
+      }
+      const key2 = `${type}:${url}`;
+      if (this._cache.has(key2)) {
+        return this._cache.get(key2);
+      }
+      const promise = Promise.resolve().then(() => loader(url, options)).catch((error) => {
+        this._cache.delete(key2);
+        throw error;
+      });
+      this._cache.set(key2, promise);
+      return promise;
+    }
+    loadImage(url, options) {
+      return this.load("image", url, options);
+    }
+    loadJSON(url, options) {
+      return this.load("json", url, options);
+    }
+    loadText(url, options) {
+      return this.load("text", url, options);
+    }
+    loadArrayBuffer(url, options) {
+      return this.load("arrayBuffer", url, options);
+    }
+    async loadBatch(manifest, onProgress = null) {
+      const total = manifest.length;
+      let completed = 0;
+      const entries = await Promise.all(manifest.map(async (asset) => {
+        try {
+          const value = await this.load(asset.type, asset.url, asset.options);
+          return [asset.name, value];
+        } finally {
+          completed++;
+          if (onProgress) {
+            onProgress({
+              completed,
+              total,
+              progress: total === 0 ? 1 : completed / total,
+              asset
+            });
+          }
+        }
+      }));
+      return Object.fromEntries(entries);
+    }
+    has(type, url) {
+      return this._cache.has(`${type}:${url}`);
+    }
+    unload(type, url) {
+      return this._cache.delete(`${type}:${url}`);
+    }
+    clear() {
+      this._cache.clear();
+    }
+  };
+
   // src/Core/index.js
   var GameLibCore2 = class {
     constructor() {
@@ -4632,6 +4733,7 @@
     static Store = Store;
     static FullscreenManager = FullscreenManager;
     static Multiplayer = Multiplayer;
+    static AssetManager = AssetManager;
   };
 
   // src/2D/Coord.js
@@ -4996,11 +5098,10 @@
       });
     }
     static spriteImage(sprite, url) {
-      var image = new Image();
-      image.onload = (function() {
+      return GameLibCore2.AssetManager.shared.loadImage(url).then((image) => {
         sprite.image = image;
-      }).bind(this);
-      image.src = url;
+        return image;
+      });
     }
     addRenderable(renderable) {
       if (renderable instanceof Renderable) {
@@ -78405,12 +78506,7 @@ ${nodesText}`;
       return new _Texture(gl, image, options);
     }
     static load(gl, url, options = {}) {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(_Texture.fromImage(gl, image, options));
-        image.onerror = () => reject(new Error(`Failed to load texture image: ${url}`));
-        image.src = url;
-      });
+      return GameLibCore2.AssetManager.shared.loadImage(url, { crossOrigin: options.crossOrigin }).then((image) => _Texture.fromImage(gl, image, options));
     }
   };
 
