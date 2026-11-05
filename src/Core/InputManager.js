@@ -9,6 +9,8 @@ class InputManager {
       this._keyBinds = {};
       this._keyBindCallbacks = {};
       this._active = false;
+      this._mouseX = -1;
+      this._mouseY = -1;
       this.bindEvents();
       GameLibCore.InputManager._instance = this;
     }
@@ -96,7 +98,13 @@ class InputManager {
     }
     this._triggerKeyBind(evt.keyCode, 'down');
   }
-  mouseMove(evt) {}
+  mouseMove(evt) {
+    this._mouseX = evt.clientX;
+    this._mouseY = evt.clientY;
+  }
+  getMousePos() {
+    return [ this._mouseX, this._mouseY ];
+  }
   _callBind(keyBindName) {
     if(this._keyBindCallbacks[keyBindName]) {
       for(var i=0;i<this._keyBindCallbacks[keyBindName].length;i++) {
