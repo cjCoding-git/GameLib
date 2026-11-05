@@ -99,21 +99,26 @@ class InputManager {
     }
     this._triggerKeyBind(evt.keyCode, 'down');
   }
+  _fireMouseListener(type) {}
   mouseMove(evt) {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
+    this._fireMouseListener('move');
   }
   mouseDown(evt) {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
+    this._fireMouseListener('down');
   }
   mouseUp(evt) {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
+    this._fireMouseListener('up');
   }
   click(evt) {
     this._mouseX = evt.clientX;
     this._mouseY = evt.clientY;
+    this._fireMouseListener('click');
   }
   getMousePos() {
     return [ this._mouseX, this._mouseY ];
