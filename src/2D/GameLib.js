@@ -30,7 +30,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this.oncontextmenu = null;
       this.inputManager = new InputManager();
       this.inputManager.addMouseListener('move', this.hoverButtons.bind(this), false);
-      this.inputManager.addMouseListener('click', this.checkButtons.bind(this), false0;
+      this.inputManager.addMouseListener('click', this.checkButtons.bind(this), false);
       window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
       GameLib._instance = this;
     }
