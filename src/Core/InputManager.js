@@ -1,7 +1,7 @@
 import { GameLibCore } from "./index.js"
 class InputManager {
   constructor() {
-    if(GameLibCore.InputManager._instance) {
+    if (GameLibCore.InputManager._instance) {
       return GameLibCore.InputManager._instance;
     } else {
       console.log("[GameLib] No InputManager instance found. Creating new instance...");
@@ -44,8 +44,7 @@ class InputManager {
     'PERIOD': 190,
     'SLASH': 191,
     'CONTROL': 17,
-    'ALT': 18
-    'UP': 38,
+    'ALT': 18 'UP': 38,
     'DOWN': 40,
     'LEFT': 37,
     'RIGHT': 39,
@@ -100,11 +99,11 @@ class InputManager {
     this._triggerKeyBind(evt.keyCode, 'down');
   }
   _fireMouseListener(type) {
-    for(var i=0;i<this._mouseListeners.length;i++) {
-      var listener = this._mouseListeners[i]l
-      if(listener.type === type) {
-        if(listener.callback && typeof listener.callback === "function) {
-           listener.callback();
+    for (var i = 0; i < this._mouseListeners.length; i++) {
+      var listener = this._mouseListeners[i] l
+      if (listener.type === type) {
+        if (listener.callback && typeof listener.callback === "function) {
+          listener.callback();
         }
       }
     }
@@ -130,25 +129,25 @@ class InputManager {
     this._fireMouseListener('click');
   }
   getMousePos() {
-    return [ this._mouseX, this._mouseY ];
+    return [this._mouseX, this._mouseY];
   }
   getCanvasMousePos(canvas) {
     var boundingRect = canvas.getBoundingClientRect();
-    return [ this._mouseX - boundingRect.left, this._mouseY - boundingRect.top ];
+    return [this._mouseX - boundingRect.left, this._mouseY - boundingRect.top];
   }
   _callBind(keyBindName) {
-    if(this._keyBindCallbacks[keyBindName]) {
-      for(var i=0;i<this._keyBindCallbacks[keyBindName].length;i++) {
+    if (this._keyBindCallbacks[keyBindName]) {
+      for (var i = 0; i < this._keyBindCallbacks[keyBindName].length; i++) {
         var bindCallback = this._keyBindCallbacks[keyBindName][i];
-        if(bindCallback && typeof bindCallback === "function") bindCallback();
+        if (bindCallback && typeof bindCallback === "function") bindCallback();
       }
     }
   }
   _triggerKeyBind(key, type) {
-    if(this._keyBinds[key]) {
-      for(var i=0;i<this._keyBinds.length;i++) {
+    if (this._keyBinds[key]) {
+      for (var i = 0; i < this._keyBinds.length; i++) {
         var keyBind = this._keyBinds[i];
-        if(keyBind.type === type) {
+        if (keyBind.type === type) {
           this.__callBind(this._keyBinds[i].name);
         }
       }
@@ -158,12 +157,15 @@ class InputManager {
     return (this._keys.indexOf(key) != -1);
   }
   bindKey(key, type, name) {
-    if(!this._keyBinds[key]) this._keyBinds[key] = [];
-    this._keyBinds[key].push({ name: name, type: type });
+    if (!this._keyBinds[key]) this._keyBinds[key] = [];
+    this._keyBinds[key].push({
+      name: name,
+      type: type
+    });
   }
   registerKeyBindCallback(name, callback) {
-    if(!this._keyBindCallbacks[name]) this._keyBindCallbacks[name] = [];
-    this._keyBindCallbacks[name].push(callback: callback );
+    if (!this._keyBindCallbacks[name]) this._keyBindCallbacks[name] = [];
+    this._keyBindCallbacks[name].push(callback: callback);
   }
   static isKeyDown(key) {
     if (GameLibCore.InputManager._instance != null) {
@@ -173,7 +175,10 @@ class InputManager {
     }
   }
   addMouseListener(type, callback) {
-    this._mouseListeners.push({ type: type, callback: callback });
+    this._mouseListeners.push({
+      type: type,
+      callback: callback
+    });
   }
   bindEvents() {
     window.addEventListener('keyup', this.keyUp.bind(this), false);
