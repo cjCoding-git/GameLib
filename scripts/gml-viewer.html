@@ -17,7 +17,7 @@
     input[type=file] { max-width: 100%; }
     button { border: 1px solid #53647b; border-radius: 6px; background: #222e3d; color: inherit; padding: .5rem .8rem; cursor: pointer; }
     button:hover { background: #304158; }
-    .stage { position: relative; min-height: min(68vh, 680px); height: min(68vh, 680px); border: 1px solid #ffffff20; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at center, #202c3b, #10151d 75%); }
+    .stage { position: relative; min-height: min(68vh, 680px); height: min(68vh, 680px); border: 1px solid #ffffff20; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at center, #263448, #111720); }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
     canvas:active { cursor: grabbing; }
     #status { min-height: 1.5em; color: #afbdd0; }
@@ -114,6 +114,8 @@
     status.classList.add('error');
     return;
   }
+  // WebGL 1 only accepts UNSIGNED_INT indices when this optional extension exists.
+  const uint32IndexExtension = gl.getExtension('OES_element_index_uint');
   const vertexSource = `
     attribute vec3 aPosition;
     attribute vec3 aNormal;
@@ -175,6 +177,15 @@
   }
   function uploadMeshes() {
     disposeMeshes();
+    // Use 16-bit indices when possible so basic WebGL 1 implementations work
+    // without an extension. Larger meshes need OES_element_index_uint.
+    const indexBuffers = meshes.map(mesh => {
+      if (mesh.positions.length / 3 <= 0x10000) {
+        return { data: new Uint16Array(mesh.indices), type: gl.UNSIGNED_SHORT };
+      }
+      if (!uint32IndexExtension) fail(`Mesh "${mesh.name}" has more than 65,536 vertices, but this browser does not support 32-bit WebGL indices.`);
+      return { data: mesh.indices, type: gl.UNSIGNED_INT };
+    });
     let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
     for (const mesh of meshes) for (let i = 0; i < mesh.positions.length; i += 3) {
       for (let axis = 0; axis < 3; axis++) { min[axis] = Math.min(min[axis], mesh.positions[i + axis]); max[axis] = Math.max(max[axis], mesh.positions[i + axis]); }
@@ -186,7 +197,8 @@
       radius = Math.max(radius, Math.hypot(x, y, z));
     }
     if (!Number.isFinite(radius) || radius === 0) radius = 1;
-    for (const mesh of meshes) {
+    for (let meshIndex = 0; meshIndex < meshes.length; meshIndex++) {
+      const mesh = meshes[meshIndex];
       const positions = new Float32Array(mesh.positions.length);
       for (let i = 0; i < positions.length; i += 3) {
         positions[i] = (mesh.positions[i] - center[0]) / radius;
@@ -196,8 +208,8 @@
       const position = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, position); gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
       const normal = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, normal); gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
       const color = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, color); gl.bufferData(gl.ARRAY_BUFFER, mesh.color, gl.STATIC_DRAW);
-      const index = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-      gpuMeshes.push({ position, normal, color, index, count: mesh.indices.length });
+      const index = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBuffers[meshIndex].data, gl.STATIC_DRAW);
+      gpuMeshes.push({ position, normal, color, index, count: mesh.indices.length, indexType: indexBuffers[meshIndex].type });
     }
   }
   function resize() {
@@ -219,7 +231,7 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normal); gl.enableVertexAttribArray(locations.normal); gl.vertexAttribPointer(locations.normal, 3, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, mesh.color); gl.enableVertexAttribArray(locations.color); gl.vertexAttribPointer(locations.color, 4, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.index);
-      gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
+      gl.drawElements(gl.TRIANGLES, mesh.count, mesh.indexType, 0);
     }
   }
   input.addEventListener('change', async () => {
