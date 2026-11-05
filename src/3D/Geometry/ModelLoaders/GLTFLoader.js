@@ -1,0 +1,4 @@
+class GLTFLoader {}
+export {
+  GLTFLoader
+}
