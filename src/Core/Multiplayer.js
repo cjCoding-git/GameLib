@@ -1,50 +1,54 @@
-import { PeerNetwork } from "./Network/PeerNetwork.js";
-
-/** Small game-facing API; WebRTC and PeerServer details stay in PeerNetwork. */
+import { PeerNetwork } from "./Network/PeerNetwork.js"
 class Multiplayer {
   constructor(options = {}) {
     this.network = new PeerNetwork(options);
   }
-
-  get id() {
+  getPeerId() {
     return this.network.id;
   }
-
-  get peers() {
+  getConnectedIds() {
     return this.network.getConnectedIds();
   }
-
-  on(event, callback) {
-    this.network.on(event, callback);
+  bindDataCallback(callback) {
+    this.network.off("data", this._dataListener);
+    this._dataListener = (data, connection) => callback(data, connection);
+    this.network.on("data", this._dataListener);
     return this;
   }
-
-  off(event, callback) {
-    this.network.off(event, callback);
+  setConnectPeerCallback(callback) {
+    this.network.off("connection", this._connectListener);
+    this._connectListener = (connection) => callback(connection);
+    this.network.on("connection", this._connectListener);
     return this;
   }
-
-  start() {
+  setPeerCloseCallback(callback) {
+    this.network.off("connectionclose", this._closeListener);
+    this._closeListener = (connection) => callback(connection);
+    this.network.on("connectionclose", this._closeListener);
+    return this;
+  }
+  createPeer(peerOptions = {}) {
+    this.network.options = Object.assign({}, this.network.options, peerOptions);
     return this.network.start();
   }
-
-  connect(peerId, options) {
-    return this.network.connect(peerId, options);
+  connectPeer(peerId, peerOptions = {}) {
+    this.network.options = Object.assign({}, this.network.options, peerOptions);
+    return this.network.connect(peerId);
   }
-
-  send(data, peerId) {
-    return peerId == null
-      ? this.network.broadcast(data)
-      : this.network.send(peerId, data);
+  sendToAll(data) {
+    return this.network.broadcast(data);
   }
-
-  close(peerId) {
+  sendToPeer(data, peerId) {
+    return peerId == null ? this.network.broadcast(data) : this.network.send(peerId, data);
+  }
+  closePeer(peerId) {
     return this.network.close(peerId);
   }
-
+  isPeerDisconnected() {
+    return this.network.state !== "ready";
+  }
   destroy() {
     return this.network.destroy();
   }
 }
-
-export { Multiplayer };
+export { Multiplayer }
