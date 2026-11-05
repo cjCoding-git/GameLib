@@ -230,6 +230,7 @@ class UIRenderer {
     gl.enable(gl.DEPTH_TEST);
   }
   renderObject(object) {
+    if(object.update && typeof object.update == "function") object.update();
     if(object.isTexturedUI) return this._renderTexturedObject(object);
     var x = object.x;
     var y = object.y;
