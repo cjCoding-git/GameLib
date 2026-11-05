@@ -166,7 +166,7 @@ class InputManager {
   }
   registerKeyBindCallback(name, callback) {
     if (!this._keyBindCallbacks[name]) this._keyBindCallbacks[name] = [];
-    this._keyBindCallbacks[name].push(callback: callback);
+    this._keyBindCallbacks[name].push({ callback: callback });
   }
   static isKeyDown(key) {
     if (GameLibCore.InputManager._instance != null) {
