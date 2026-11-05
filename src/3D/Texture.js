@@ -1,3 +1,4 @@
+import { GameLibCore } from "../Core/index.js"
 class Texture {
   constructor(gl, source = null, options = {}) {
     this.gl = gl;
@@ -48,12 +49,9 @@ class Texture {
     return new Texture(gl, image, options);
   }
   static load(gl, url, options = {}) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(Texture.fromImage(gl, image, options));
-      image.onerror = () => reject(new Error(`Failed to load texture image: ${url}`));
-      image.src = url;
-    });
+    return GameLibCore.AssetManager.shared
+      .loadImage(url, { crossOrigin: options.crossOrigin })
+      .then(image => Texture.fromImage(gl, image, options));
   }
 }
 export {
