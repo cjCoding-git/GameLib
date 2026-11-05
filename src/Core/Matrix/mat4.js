@@ -151,7 +151,7 @@ class mat4 {
     out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
     out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
     out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
-    out[14] = (a31 * b01 - a30 * b03 + a32 * b00) * det;
+    out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
     out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
     return out;
   }
