@@ -1,6 +1,6 @@
 import { Object } from "./Object.js"
 import { Transform } from "./Transform.js"
-import { mat4 } from "../Lib/GLMatrix.js"
+import { mat4 } from "../Core/Matrix/mat4.js"
 class Mesh extends Object {
   constructor(gameLib, scene, geometryData, material) {
     super(gameLib, scene);
