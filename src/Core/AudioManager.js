@@ -11,6 +11,9 @@ class AudioManager {
       this._activeLoopingSoundPool = {};
       this._currentMusic = null;
       this._musicPaused = true;
+      this._musicSource = null;
+      this._musicOffset = 0;
+      this._musicStartedAt = 0;
       this._audioCtx = new AudioContext();
       this.bindEvents();
       GameLibCore.AudioManager._instance = this;
@@ -49,46 +52,90 @@ class AudioManager {
       delete this._activeLoopingSoundPool[name];
     }
   }
-  resumeMusic() {
-    if (!this._musicPaused) {
-      this._currentMusic.play();
+  async addSong(url) {
+    var data = await GameLibCore.AssetManager.shared.loadArrayBuffer(url);
+    var buffer = await this._audioCtx.decodeAudioData(data.slice(0));
+    this._musicPool.push(buffer);
+  }
+  stopCurrentMusicSource() {
+    if (this._musicSource != null) {
+      this._musicSource.onended = null;
+      try {
+        this._musicSource.stop();
+      } catch (error) {
+        // The source may have already ended.
+      }
+      this._musicSource.disconnect();
+      this._musicSource = null;
     }
   }
-  addSong(url) {
-    var audio = new Audio();
-    audio.onended = (this.nextSong).bind(this);
-    audio.src = url;
-    audio.pause();
-    this._musicPool.push(audio);
+  startCurrentMusic() {
+    if (this._currentMusic == null || this._musicPaused || this._musicSource != null) {
+      return;
+    }
+
+    var source = this._audioCtx.createBufferSource();
+    source.buffer = this._currentMusic;
+    source.connect(this._audioCtx.destination);
+    source.onended = () => {
+      if (this._musicSource === source) {
+        this._musicSource = null;
+        this._musicOffset = 0;
+        if (!this._musicPaused) {
+          this.nextSong();
+        }
+      }
+    };
+
+    this._musicSource = source;
+    this._musicStartedAt = this._audioCtx.currentTime;
+    source.start(0, this._musicOffset);
   }
   nextSong() {
     if (this._musicPool.length <= 0) {
       throw new GameLibCore.Error("Music Pool is empty!");
-      return;
     }
-    if (this._currentMusic != null) {
-      this._currentMusic.pause();
-    }
+
+    this.stopCurrentMusicSource();
     this._currentMusic = GameLibCore.Utils.getRandomListItem(this._musicPool);
-    this._currentMusic.currentTime = 0;
-    this._currentMusic.play();
+    this._musicOffset = 0;
+    this.startCurrentMusic();
   }
-  playMusic() {
+  async playMusic() {
     this._musicPaused = false;
+
     if (this._currentMusic == null) {
-      this.nextSong();
-    } else {
-      this._currentMusic.play();
+      if (this._musicPool.length <= 0) {
+        this._musicPaused = true;
+        throw new GameLibCore.Error("Music Pool is empty!");
+      }
+      this._currentMusic = GameLibCore.Utils.getRandomListItem(this._musicPool);
+      this._musicOffset = 0;
+    }
+
+    if (this._audioCtx.state === 'suspended') {
+      await this._audioCtx.resume();
+    }
+    this.startCurrentMusic();
+  }
+  async resumeMusic() {
+    if (this._audioCtx.state === 'suspended') {
+      await this._audioCtx.resume();
+    }
+    if (!this._musicPaused) {
+      this.startCurrentMusic();
     }
   }
   pauseMusic() {
     this._musicPaused = true;
-    if (this._currentMusic != null) {
-      this._currentMusic.pause();
+    if (this._musicSource != null) {
+      this._musicOffset += this._audioCtx.currentTime - this._musicStartedAt;
+      this._musicOffset %= this._currentMusic.duration;
+      this.stopCurrentMusicSource();
     }
   }
   async loadSfx(name, url) {
-    var data = await GameLibCore.AssetManager.shared.loadArrayBuffer(url); 
+    var data = await GameLibCore.AssetManager.shared.loadArrayBuffer(url);
     this._sfxPool[name] = await this._audioCtx.decodeAudioData(data.slice(0));
   }
   playSfx(name, speed = 1, gain = 1.5) {
