@@ -1,5 +1,8 @@
 import { GameLibCore } from "../../../Core/index.js"
 class GMLLoader {
+  constructor() {
+    throw new GameLibCore.Error("Class GMLLoader may not be constructed!");
+  }
   static MAGIC = "GML1";
   static VERSION = 1;
   static async load(url, options = {}) {
