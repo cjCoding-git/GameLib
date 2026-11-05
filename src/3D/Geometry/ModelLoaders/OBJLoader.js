@@ -3,6 +3,7 @@ class OBJLoader {
   constructor() {
     throw new GameLibCore.Error("Class OBJLoader may not be constructed!");
   }
+  static load(url, options={}) {}
 }
 export {
   OBJLoader
