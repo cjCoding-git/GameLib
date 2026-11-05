@@ -11,6 +11,7 @@ class InputManager {
       this._active = false;
       this._mouseX = -1;
       this._mouseY = -1;
+      this._mouseListeners = [];
       this.bindEvents();
       GameLibCore.InputManager._instance = this;
     }
@@ -144,6 +145,9 @@ class InputManager {
     } else {
       throw new GameLibCore.Error("An InputManager instance must exist to use GameLibCore.InputManager.isKeyDown(key)!");
     }
+  }
+  addMouseListener(type, callback) {
+    this._mouseListeners.push({ type: type, callback: callback });
   }
   bindEvents() {
     window.addEventListener('keyup', this.keyUp.bind(this), false);
