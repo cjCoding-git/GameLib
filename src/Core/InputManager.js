@@ -6,6 +6,8 @@ class InputManager {
     } else {
       console.log("[GameLib] No InputManager instance found. Creating new instance...");
       this._keys = [];
+      this._keyBinds = {};
+      this._keyBindCallbacks = {};
       this._active = false;
       this.bindEvents();
       GameLibCore.InputManager._instance = this;
@@ -83,6 +85,7 @@ class InputManager {
       return;
     }
     this._keys = this._keys.filter(key => key != evt.keyCode);
+    this._triggerKeyBind(evt.keyCode, 'up');
   }
   keyDown(evt) {
     if (!this._active) {
@@ -91,9 +94,37 @@ class InputManager {
     if (this._keys.indexOf(evt.keyCode) == -1) {
       this._keys.push(evt.keyCode);
     }
+    this._triggerKeyBind(evt.keyCode, 'down');
+  }
+  mouseMove(evt) {}
+  _callBind(keyBindName) {
+    if(this._keyBindCallbacks[keyBindName]) {
+      for(var i=0;i<this._keyBindCallbacks[keyBindName].length;i++) {
+        var bindCallback = this._keyBindCallbacks[keyBindName][i];
+        if(bindCallback && typeof bindCallback === "function") bindCallback();
+      }
+    }
+  }
+  _triggerKeyBind(key, type) {
+    if(this._keyBinds[key]) {
+      for(var i=0;i<this._keyBinds.length;i++) {
+        var keyBind = this._keyBinds[i];
+        if(keyBind.type === type) {
+          this.__callBind(this._keyBinds[i].name);
+        }
+      }
+    }
   }
   isKeyDown(key) {
     return (this._keys.indexOf(key) != -1);
+  }
+  bindKey(key, type, name) {
+    if(!this._keyBinds[key]) this._keyBinds[key] = [];
+    this._keyBinds[key].push({ name: name, type: type });
+  }
+  registerKeyBindCallback(name, callback) {
+    if(!this._keyBindCallbacks[name]) this._keyBindCallbacks[name] = [];
+    this._keyBindCallbacks[name].push(callback: callback );
   }
   static isKeyDown(key) {
     if (GameLibCore.InputManager._instance != null) {
@@ -105,6 +136,7 @@ class InputManager {
   bindEvents() {
     window.addEventListener('keyup', this.keyUp.bind(this), false);
     window.addEventListener('keydown', this.keyDown.bind(this), false);
+    window.addEventListener('mousemove', this.mouseMove.bind(this), false);
   }
 }
 export {
