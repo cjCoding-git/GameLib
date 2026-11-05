@@ -20,7 +20,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this._uiRenderer = new UIRenderer(this);
       this._scene = "loading";
       this._loadingConfig = {};
-      this._uiLoading = new 3DLoading(this);
+      this._uiLoading = new UILoading(this);
       this._uiLoading.setConfig(this._loadingConfig);
       this._uiRenderer.addObject(this._uiLoading);
       this.registerMainloop();
