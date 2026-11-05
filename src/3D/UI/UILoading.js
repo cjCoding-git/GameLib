@@ -1,6 +1,6 @@
 import { Loading } from "../../Core/Loading.js"
 import { UIObject } from "./UIObject.js"
-class 3DLoading extends UIObject {
+class UILoading extends UIObject {
   constructor(gameLib) {
     var x = 0;
     var y = 0;
@@ -25,5 +25,5 @@ class 3DLoading extends UIObject {
   }
 }
 export {
-  3DLoading
+  UILoading
 }
