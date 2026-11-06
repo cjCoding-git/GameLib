@@ -33,12 +33,10 @@ class Mesh extends Object {
     webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
     this.indexCount = this.geometry.indices.length;
   }
-  draw(camera, program) {
+  draw(camera) {
     var webgl = this._gl;
     var materialProgram = this.material && this.material.ensureProgram && this.material.ensureProgram(this._gameLib);
-    if (!materialProgram) {
-      return;
-    }
+    if (!materialProgram) return;
     this._gameLib.useProgram(materialProgram);
     var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
     var projectionMatrix = camera.getProjectionMatrix(aspect);
@@ -47,30 +45,82 @@ class Mesh extends Object {
     var modelViewMatrix = mat4.create();
     mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
     var normalMatrix = this.transform.getNormalMatrix(modelViewMatrix);
+    var uniform = name => this._gameLib.getAttributeLocation(materialProgram, name, "uniform");
     this._gameLib.setProgramAttribute(materialProgram, "aVertexPosition", this.buffers.position, 3);
     this._gameLib.setProgramAttribute(materialProgram, "aVertexNormal", this.buffers.normal, 3);
     this._gameLib.setProgramAttribute(materialProgram, "aVertexColor", this.buffers.color, 4);
     this._gameLib.setProgramAttribute(materialProgram, "aTextureCoord", this.buffers.uv, 2);
+    var useTextureLocation = uniform("uUseTexture");
+    if (useTextureLocation !== null) {
+      webgl.uniform1i(useTextureLocation, this.material.texture ? 1 : 0);
+    }
     if (this.material.texture) {
-      this.material.texture.bind(this.material.textureUnit || 0);
-      var textureLocation = this._gameLib.getAttributeLocation(materialProgram, "uTexture", "uniform");
-      if (textureLocation) {
-        webgl.uniform1i(textureLocation, this.material.textureUnit || 0);
+      var textureUnit = this.material.textureUnit || 0;
+      this.material.texture.bind(textureUnit);
+      var textureLocation = uniform("uTexture");
+      if (textureLocation !== null) {
+        webgl.uniform1i(textureLocation, textureUnit);
       }
-      var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
-      if (useTextureLocation) {
-        webgl.uniform1i(useTextureLocation, 1);
+    }
+    var projectionLocation = uniform("uProjectionMatrix");
+    if (projectionLocation !== null) {
+      webgl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
+    }
+    var modelViewLocation = uniform("uModelViewMatrix");
+    if (modelViewLocation !== null) {
+      webgl.uniformMatrix4fv(modelViewLocation, false, modelViewMatrix);
+    }
+    var normalLocation = uniform("uNormalMatrix");
+    if (normalLocation !== null) {
+      webgl.uniformMatrix4fv(normalLocation, false, normalMatrix);
+    }
+    var MAX_LIGHTS = 8;
+    var lights = this._gameLib.getLights(this.scene).slice(0, MAX_LIGHTS);
+    var lightTypes = [];
+    var lightColors = [];
+    var lightVectors = [];
+    var lightIntensities = [];
+    var lightRanges = [];
+    for (var light of lights) {
+      var type = light.type === "ambient" ? 0 : light.type === "point" ? 2 : 1;
+      lightTypes.push(type);
+      lightColors.push(light.color[0], light.color[1], light.color[2]);
+      lightIntensities.push(light.intensity);
+      lightRanges.push(light.range || 1);
+      var source = type === 2 ? light.position : light.direction;
+      var x = source[0];
+      var y = source[1];
+      var z = source[2];
+      var w = type === 2 ? 1 : 0;
+      lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8]  * z + viewMatrix[12] * w, viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9]  * z + viewMatrix[13] * w, viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14] * w);
+    }
+    var lightCountLocation = uniform("uLightCount");
+    if (lightCountLocation !== null) {
+      webgl.uniform1i(lightCountLocation, lights.length);
+    }
+    if (lights.length > 0) {
+      var typeLocation = uniform("uLightType[0]");
+      if (typeLocation !== null) {
+        webgl.uniform1iv(typeLocation, new Int32Array(lightTypes));
       }
-    } else {
-      var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
-      if (useTextureLocation) {
-        webgl.uniform1i(useTextureLocation, 0);
+      var colorLocation = uniform("uLightColor[0]");
+      if (colorLocation !== null) {
+        webgl.uniform3fv(colorLocation, new Float32Array(lightColors));
+      }
+      var vectorLocation = uniform("uLightVector[0]");
+      if (vectorLocation !== null) {
+        webgl.uniform3fv(vectorLocation, new Float32Array(lightVectors));
+      }
+      var intensityLocation = uniform("uLightIntensity[0]");
+      if (intensityLocation !== null) {
+        webgl.uniform1fv(intensityLocation, new Float32Array(lightIntensities));
+      }
+      var rangeLocation = uniform("uLightRange[0]");
+      if (rangeLocation !== null) {
+        webgl.uniform1fv(rangeLocation, new Float32Array(lightRanges));
       }
     }
     webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, 'uProjectionMatrix'), false, projectionMatrix);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, 'uModelViewMatrix'), false, modelViewMatrix);
-    webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, 'uNormalMatrix'), false, normalMatrix);
     webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
   }
 }
