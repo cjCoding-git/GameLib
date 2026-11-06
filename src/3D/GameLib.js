@@ -165,6 +165,13 @@ class GameLib extends GameLibCore.GameLibBase {
   setScene(scene) {
     this._scene = scene;
   }
+  fillWindow() {
+    this._canvas.width = window.innerWidth;
+    this._canvas.height = window.innerHeight;
+    this._canvas.style.position = "absolute";
+    this._canvas.style.top = "0";
+    this._canvas.style.left = "0";
+  }
 }
 export {
   GameLib
