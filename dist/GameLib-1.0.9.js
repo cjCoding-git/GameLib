@@ -362,6 +362,11 @@
     constructor() {
       throw new GameLibCore2.Error("Class Utils may not be constructed!");
     }
+    static createCanvas(width, height) {
+      var element = document.createElement("canvas");
+      element.width = width;
+      element.height = height;
+    }
     static getRandomListItem(list) {
       var index = Math.floor(Math.random() * list.length);
       return list[index];
@@ -1707,6 +1712,7 @@
         this.inputManager.addMouseListener("move", this.hoverButtons.bind(this), false);
         this.inputManager.addMouseListener("click", this.checkButtons.bind(this), false);
         window.addEventListener("contextmenu", this.contextMenu.bind(this), false);
+        this.registerMainloop();
         _GameLib._instance = this;
       }
     }
@@ -1852,6 +1858,9 @@
         this._viewportCtx.fillRect(0, 0, this._viewportCanvas.width, this._viewportCanvas.height);
       }
     }
+    resizeViewPort(size) {
+      this._viewport.size = size;
+    }
     mainloop() {
       this.update();
       this.draw();
@@ -1954,6 +1963,14 @@
     }
     setLoadingScreen(config) {
       this._loadingScreen = config;
+    }
+    fillWindow() {
+      this._viewportCanvas.width = window.innerWidth;
+      this._viewportCanvas.height = window.innerHeight;
+      this._viewport.size = new Size(window.innerWidth, window.innerHeight);
+      this._viewportCanvas.style.position = "absolute";
+      this._viewportCanvas.style.top = "0";
+      this._viewportCanvas.style.left = "0";
     }
   };
 
@@ -3252,6 +3269,13 @@ ${nodesText}`;
     }
     setScene(scene) {
       this._scene = scene;
+    }
+    fillWindow() {
+      this._canvas.width = window.innerWidth;
+      this._canvas.height = window.innerHeight;
+      this._canvas.style.position = "absolute";
+      this._canvas.style.top = "0";
+      this._canvas.style.left = "0";
     }
   };
 
