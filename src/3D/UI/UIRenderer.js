@@ -133,6 +133,7 @@ class UIRenderer {
   addObject(object) {
     object.id = GameLibCore.Utils.UUID();
     this._uiObjects.push(object);
+    return object.id;
   }
   getObjects() {
     return this._uiObjects;
