@@ -206,6 +206,7 @@ class UIRenderer {
     for(var i=0;i<this._uiObjects.length;i++) {
       var object = this._uiObjects[i];
       if(object.scene === scene && object.visible !== false) {
+        if(object.update && typeof object.update === "function") object.update();
         this.renderObject(object);
       }
     }
