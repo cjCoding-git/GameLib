@@ -32,6 +32,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this.inputManager.addMouseListener('move', this.hoverButtons.bind(this), false);
       this.inputManager.addMouseListener('click', this.checkButtons.bind(this), false);
       window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
+      this._listeners = {};
       this.registerMainloop();
       GameLib._instance = this;
     }
@@ -284,13 +285,30 @@ class GameLib extends GameLibCore.GameLibBase {
   setLoadingScreen(config) {
     this._loadingScreen = config;
   }
-  fillWindow() {
+  listen(type, callback) {
+    if(!this._listeners[type]) this._listeners[type] = [];
+    this._listeners[type].push(callback);
+  }
+  _fire(type) {
+    if(!this._listeners[type]) return;
+    for(var i=0;i<this._listeners[type].length;i++) {
+      var listener = this._listeners[type][i];
+      if(listener && typeof listener === "function") {
+        listener();
+      }
+    }
+  }
+  resizeToWindow() {
+    this._fire('resize');
     this._viewportCanvas.width = window.innerWidth;
     this._viewportCanvas.height = window.innerHeight;
     this._viewport.size = new Size(window.innerWidth, window.innerHeight);
-    this._viewportCanvas.style.position = "absolute";
+    this._viewportCanvas.style.position = "fixed";
     this._viewportCanvas.style.top = "0";
     this._viewportCanvas.style.left = "0";
+  }
+  fillWindow() {
+    window.addEventListener('resize', this.resizeToWindow.bind(this), false);
   }
 }
 export {
