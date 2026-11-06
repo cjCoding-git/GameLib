@@ -3277,6 +3277,10 @@ ${nodesText}`;
       this._canvas.style.top = "0";
       this._canvas.style.left = "0";
     }
+    getLights(scene) {
+      if (!scene) scene = this._scene;
+      return this._objects.filter((object) => object.isLight && object.scene === scene);
+    }
   };
 
   // src/3D/Position.js
@@ -71037,12 +71041,10 @@ ${nodesText}`;
       webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
       this.indexCount = this.geometry.indices.length;
     }
-    draw(camera, program) {
+    draw(camera) {
       var webgl = this._gl;
       var materialProgram = this.material && this.material.ensureProgram && this.material.ensureProgram(this._gameLib);
-      if (!materialProgram) {
-        return;
-      }
+      if (!materialProgram) return;
       this._gameLib.useProgram(materialProgram);
       var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
       var projectionMatrix = camera.getProjectionMatrix(aspect);
@@ -71051,30 +71053,95 @@ ${nodesText}`;
       var modelViewMatrix = mat4.create();
       mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
       var normalMatrix = this.transform.getNormalMatrix(modelViewMatrix);
+      var uniform = (name) => this._gameLib.getAttributeLocation(materialProgram, name, "uniform");
       this._gameLib.setProgramAttribute(materialProgram, "aVertexPosition", this.buffers.position, 3);
       this._gameLib.setProgramAttribute(materialProgram, "aVertexNormal", this.buffers.normal, 3);
       this._gameLib.setProgramAttribute(materialProgram, "aVertexColor", this.buffers.color, 4);
       this._gameLib.setProgramAttribute(materialProgram, "aTextureCoord", this.buffers.uv, 2);
+      var useTextureLocation = uniform("uUseTexture");
+      if (useTextureLocation !== null) {
+        webgl.uniform1i(useTextureLocation, this.material.texture ? 1 : 0);
+      }
       if (this.material.texture) {
-        this.material.texture.bind(this.material.textureUnit || 0);
-        var textureLocation = this._gameLib.getAttributeLocation(materialProgram, "uTexture", "uniform");
-        if (textureLocation) {
-          webgl.uniform1i(textureLocation, this.material.textureUnit || 0);
+        var textureUnit = this.material.textureUnit || 0;
+        this.material.texture.bind(textureUnit);
+        var textureLocation = uniform("uTexture");
+        if (textureLocation !== null) {
+          webgl.uniform1i(textureLocation, textureUnit);
         }
-        var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
-        if (useTextureLocation) {
-          webgl.uniform1i(useTextureLocation, 1);
+      }
+      var projectionLocation = uniform("uProjectionMatrix");
+      if (projectionLocation !== null) {
+        webgl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
+      }
+      var modelViewLocation = uniform("uModelViewMatrix");
+      if (modelViewLocation !== null) {
+        webgl.uniformMatrix4fv(modelViewLocation, false, modelViewMatrix);
+      }
+      var normalLocation = uniform("uNormalMatrix");
+      if (normalLocation !== null) {
+        webgl.uniformMatrix4fv(normalLocation, false, normalMatrix);
+      }
+      var MAX_LIGHTS = 8;
+      var lights = this._gameLib.getLights(this.scene).slice(0, MAX_LIGHTS);
+      var lightTypes = [];
+      var lightColors = [];
+      var lightVectors = [];
+      var lightIntensities = [];
+      var lightRanges = [];
+      var getVector3 = (value) => {
+        if (Array.isArray(value)) return [value[0] || 0, value[1] || 0, value[2] || 0];
+        if (value && typeof value === "object") {
+          if (typeof value.x !== "undefined" && typeof value.y !== "undefined" && typeof value.z !== "undefined") {
+            return [value.x, value.y, value.z];
+          }
         }
-      } else {
-        var useTextureLocation = this._gameLib.getAttributeLocation(materialProgram, "uUseTexture", "uniform");
-        if (useTextureLocation) {
-          webgl.uniform1i(useTextureLocation, 0);
+        return [0, 0, 0];
+      };
+      for (var light of lights) {
+        var type = light.type === "ambient" ? 0 : light.type === "point" ? 2 : 1;
+        lightTypes.push(type);
+        var color = Array.isArray(light.color) ? light.color : [1, 1, 1];
+        lightColors.push(color[0] || 0, color[1] || 0, color[2] || 0);
+        lightIntensities.push(light.intensity || 0);
+        lightRanges.push(light.range || 1);
+        var source = type === 2 ? getVector3(light.position) : getVector3(light.direction || light.position);
+        var x = source[0];
+        var y = source[1];
+        var z = source[2];
+        if (type === 2) {
+          lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z + viewMatrix[12], viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z + viewMatrix[13], viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14]);
+        } else {
+          lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z, viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z, viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z);
+        }
+      }
+      var lightCountLocation = uniform("uLightCount");
+      if (lightCountLocation !== null) {
+        webgl.uniform1i(lightCountLocation, lights.length);
+      }
+      if (lights.length > 0) {
+        var typeLocation = uniform("uLightType[0]");
+        if (typeLocation !== null) {
+          webgl.uniform1iv(typeLocation, new Int32Array(lightTypes));
+        }
+        var colorLocation = uniform("uLightColor[0]");
+        if (colorLocation !== null) {
+          webgl.uniform3fv(colorLocation, new Float32Array(lightColors));
+        }
+        var vectorLocation = uniform("uLightVector[0]");
+        if (vectorLocation !== null) {
+          webgl.uniform3fv(vectorLocation, new Float32Array(lightVectors));
+        }
+        var intensityLocation = uniform("uLightIntensity[0]");
+        if (intensityLocation !== null) {
+          webgl.uniform1fv(intensityLocation, new Float32Array(lightIntensities));
+        }
+        var rangeLocation = uniform("uLightRange[0]");
+        if (rangeLocation !== null) {
+          webgl.uniform1fv(rangeLocation, new Float32Array(lightRanges));
         }
       }
       webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uProjectionMatrix"), false, projectionMatrix);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uModelViewMatrix"), false, modelViewMatrix);
-      webgl.uniformMatrix4fv(this._gameLib.getAttributeLocation(materialProgram, "uNormalMatrix"), false, normalMatrix);
       webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
     }
   };
@@ -71094,63 +71161,145 @@ ${nodesText}`;
       this.textureUnit = 0;
       this.uniforms = {};
     }
-    static webGL1VertexShader = `
-    attribute vec3 aVertexPosition;
+    static webGL1VertexShader = `attribute vec3 aVertexPosition;
+    attribute vec3 aVertexNormal;
     attribute vec4 aVertexColor;
     attribute vec2 aTextureCoord;
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
+    uniform mat4 uNormalMatrix;
     varying vec4 vColor;
     varying vec2 vUV;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
     void main() {
+      vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);
       vColor = aVertexColor;
       vUV = aTextureCoord;
-      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-    }
-  `;
-    static webGL1FragmentShader = `
-    precision mediump float;
+      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
+      vViewPosition = viewPosition.xyz;
+      gl_Position = uProjectionMatrix * viewPosition;
+    }`;
+    static webGL1FragmentShader = `precision mediump float;
+    #define MAX_LIGHTS 8
     varying vec4 vColor;
     varying vec2 vUV;
+    varying vec3 vNormal;
+    varying vec3 vViewPosition;
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
+    uniform int uLightCount;
+    uniform int uLightType[MAX_LIGHTS];
+    uniform vec3 uLightColor[MAX_LIGHTS];
+    uniform vec3 uLightVector[MAX_LIGHTS];
+    uniform float uLightIntensity[MAX_LIGHTS];
+    uniform float uLightRange[MAX_LIGHTS];
+    vec3 calculateLighting() {
+      vec3 normal = normalize(vNormal);
+      vec3 illumination = vec3(0.0);
+      for (int i = 0; i < MAX_LIGHTS; i++) {
+        if (i >= uLightCount) {
+          break;
+        }
+        if (uLightType[i] == 0) {
+          illumination += uLightColor[i] * uLightIntensity[i];
+        } else {
+          vec3 toLight;
+          float attenuation = 1.0;
+          if (uLightType[i] == 1) {
+            toLight = normalize(uLightVector[i]);
+          } else {
+            vec3 delta = uLightVector[i] - vViewPosition;
+            float distanceToLight = length(delta);
+            toLight = normalize(delta);
+            float ratio = distanceToLight / max(uLightRange[i], 0.0001);
+            attenuation = 1.0 / (1.0 + ratio * ratio);
+          }
+          float diffuse = max(dot(normal, toLight), 0.0);
+          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
+        }
+      }
+      return illumination;
+    }
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
         color *= texture2D(uTexture, vUV);
       }
-      gl_FragColor = color;
-    }
-  `;
+      vec3 litRGB = color.rgb * calculateLighting();
+      gl_FragColor = vec4(litRGB, color.a);
+    }`;
     static webGL2VertexShader = `#version 300 es
     in vec3 aVertexPosition;
+    in vec3 aVertexNormal;
     in vec4 aVertexColor;
     in vec2 aTextureCoord;
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
+    uniform mat4 uNormalMatrix;
     out vec4 vColor;
     out vec2 vUV;
+    out vec3 vNormal;
+    out vec3 vViewPosition;
     void main() {
+      vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);
       vColor = aVertexColor;
       vUV = aTextureCoord;
-      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-    }
-  `;
+      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
+      vViewPosition = viewPosition.xyz;
+      gl_Position = uProjectionMatrix * viewPosition;
+    }`;
     static webGL2FragmentShader = `#version 300 es
     precision mediump float;
+    #define MAX_LIGHTS 8
     in vec4 vColor;
     in vec2 vUV;
+    in vec3 vNormal;
+    in vec3 vViewPosition;
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
+    uniform int uLightCount;
+    uniform int uLightType[MAX_LIGHTS];
+    uniform vec3 uLightColor[MAX_LIGHTS];
+    uniform vec3 uLightVector[MAX_LIGHTS];
+    uniform float uLightIntensity[MAX_LIGHTS];
+    uniform float uLightRange[MAX_LIGHTS];
     out vec4 outColor;
+    vec3 calculateLighting() {
+      vec3 normal = normalize(vNormal);
+      vec3 illumination = vec3(0.0);
+      for (int i = 0; i < MAX_LIGHTS; i++) {
+        if (i >= uLightCount) {
+          break;
+        }
+        if (uLightType[i] == 0) {
+          illumination += uLightColor[i] * uLightIntensity[i];
+        } else {
+          vec3 toLight;
+          float attenuation = 1.0;
+          if (uLightType[i] == 1) {
+            toLight = normalize(uLightVector[i]);
+          } else {
+            vec3 delta = uLightVector[i] - vViewPosition;
+            float distanceToLight = length(delta);
+            toLight = normalize(delta);
+            float ratio = distanceToLight / max(uLightRange[i], 0.0001);
+            attenuation = 1.0 / (1.0 + ratio * ratio);
+          }
+          float diffuse = max(dot(normal, toLight), 0.0);
+          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
+        }
+      }
+      return illumination;
+    }
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
         color *= texture(uTexture, vUV);
       }
-      outColor = color;
-    }
-  `;
+      vec3 litRGB = color.rgb * calculateLighting();
+      outColor = vec4(litRGB, color.a);
+    }`;
     static get standardVertexShader() {
       return _Material.webGL1VertexShader;
     }
@@ -71468,6 +71617,61 @@ ${nodesText}`;
     static Text = UIText;
   };
 
+  // src/3D/Lighting/PointLight.js
+  var PointLight = class extends Object2 {
+    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+      super(gameLib, scene);
+      this.isLight = true;
+      this.type = "point";
+      this.position = position;
+      this.options = options;
+      this.color = this.options.color;
+      this.intensity = this.options.intensity;
+      this.direction = this.options.direction;
+      this.range = this.options.range;
+    }
+  };
+
+  // src/3D/Lighting/DirectionalLight.js
+  var DirectionalLight = class extends Object2 {
+    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+      super(gameLib, scene);
+      this.isLight = true;
+      this.type = "directional";
+      this.position = position;
+      this.options = options;
+      this.color = this.options.color;
+      this.intensity = this.options.intensity;
+      this.direction = this.options.direction;
+      this.range = this.options.range;
+    }
+  };
+
+  // src/3D/Lighting/AmbientLight.js
+  var AmbientLight = class extends Object2 {
+    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+      super(gameLib, scene);
+      this.isLight = true;
+      this.type = "ambient";
+      this.position = position;
+      this.options = options;
+      this.color = this.options.color;
+      this.intensity = this.options.intensity;
+      this.direction = this.options.direction;
+      this.range = this.options.range;
+    }
+  };
+
+  // src/3D/Lighting/index.js
+  var Lighting = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Lighting may not be constructed!");
+    }
+    static PointLight = PointLight;
+    static DirectionalLight = DirectionalLight;
+    static AmbientLight = AmbientLight;
+  };
+
   // src/3D/index.js
   var GameLib3D = class {
     constructor() {
@@ -71489,6 +71693,7 @@ ${nodesText}`;
     static Texture = Texture;
     static TextureFactory = TextureFactory;
     static UI = UI2;
+    static Lighting = Lighting;
   };
 
   // src/index.js
