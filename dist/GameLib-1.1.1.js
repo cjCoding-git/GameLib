@@ -3027,6 +3027,7 @@ ${nodesText}`;
       for (var i2 = 0; i2 < this._uiObjects.length; i2++) {
         var object = this._uiObjects[i2];
         if (object.scene === scene && object.visible !== false) {
+          if (object.update && typeof object.update === "function") object.update();
           this.renderObject(object);
         }
       }
@@ -3086,6 +3087,8 @@ ${nodesText}`;
       this.height = height;
       this.color = color;
       this.visible = true;
+    }
+    update() {
     }
   };
 
