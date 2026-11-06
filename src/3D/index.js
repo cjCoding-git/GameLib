@@ -15,6 +15,7 @@ import { Material } from "./Material.js"
 import { Texture } from "./Texture.js"
 import { TextureFactory } from "./TextureFactory.js"
 import { UI } from "./UI/index.js"
+import { Lighting } from "./Lighting/index.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
@@ -35,6 +36,7 @@ class GameLib3D {
   static Texture = Texture;
   static TextureFactory = TextureFactory;
   static UI = UI;
+  static Lighting = Lighting;
 }
 export {
   GameLib3D
