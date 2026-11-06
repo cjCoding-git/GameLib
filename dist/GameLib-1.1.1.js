@@ -1712,6 +1712,7 @@
         this.inputManager.addMouseListener("move", this.hoverButtons.bind(this), false);
         this.inputManager.addMouseListener("click", this.checkButtons.bind(this), false);
         window.addEventListener("contextmenu", this.contextMenu.bind(this), false);
+        this._listeners = {};
         this.registerMainloop();
         _GameLib._instance = this;
       }
@@ -1964,13 +1965,30 @@
     setLoadingScreen(config) {
       this._loadingScreen = config;
     }
-    fillWindow() {
+    listen(type, callback) {
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(callback);
+    }
+    _fire(type) {
+      if (!this._listeners[type]) return;
+      for (var i2 = 0; i2 < this._listeners[type].length; i2++) {
+        var listener = this._listeners[type][i2];
+        if (listener && typeof listener === "function") {
+          listener();
+        }
+      }
+    }
+    resizeToWindow() {
+      this._fire("resize");
       this._viewportCanvas.width = window.innerWidth;
       this._viewportCanvas.height = window.innerHeight;
       this._viewport.size = new Size(window.innerWidth, window.innerHeight);
-      this._viewportCanvas.style.position = "absolute";
+      this._viewportCanvas.style.position = "fixed";
       this._viewportCanvas.style.top = "0";
       this._viewportCanvas.style.left = "0";
+    }
+    fillWindow() {
+      window.addEventListener("resize", this.resizeToWindow.bind(this), false);
     }
   };
 
@@ -2935,6 +2953,7 @@ ${nodesText}`;
     addObject(object) {
       object.id = GameLibCore2.Utils.UUID();
       this._uiObjects.push(object);
+      return object.id;
     }
     getObjects() {
       return this._uiObjects;
@@ -3128,6 +3147,7 @@ ${nodesText}`;
         this._uiLoading = new UILoading(this);
         this._uiLoading.setConfig(this._loadingConfig);
         this._uiRenderer.addObject(this._uiLoading);
+        this._listeners = {};
         this.registerMainloop();
         GameLib3D.GameLib._instance = this;
       }
@@ -3248,7 +3268,7 @@ ${nodesText}`;
       this.callHook("post-render");
     }
     addUIObject(object) {
-      this._uiRenderer.addObject(object);
+      return this._uiRenderer.addObject(object);
     }
     getUIObjects() {
       return this._uiRenderer.getObjects();
@@ -3270,12 +3290,30 @@ ${nodesText}`;
     setScene(scene) {
       this._scene = scene;
     }
-    fillWindow() {
+    listen(type, callback) {
+      if (!this._listeners[type]) this._listeners[type] = [];
+      this._listeners[type].push(callback);
+    }
+    _fire(type) {
+      if (!this._listeners[type]) return;
+      for (var i2 = 0; i2 < this._listeners[type].length; i2++) {
+        var listener = this._listeners[type][i2];
+        if (listener && typeof listener === "function") {
+          listener();
+        }
+      }
+    }
+    resizeToWindow() {
       this._canvas.width = window.innerWidth;
       this._canvas.height = window.innerHeight;
-      this._canvas.style.position = "absolute";
+      this._canvas.style.position = "fixed";
       this._canvas.style.top = "0";
       this._canvas.style.left = "0";
+      this._gl.viewport(0, 0, this._canvas.width, this._canvas.height);
+      this._fire("resize");
+    }
+    fillWindow() {
+      window.addEventListener("resize", this.resizeToWindow.bind(this), false);
     }
     getLights(scene) {
       if (!scene) scene = this._scene;
