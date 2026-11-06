@@ -9,6 +9,7 @@ class UIObject {
     this.color = color;
     this.visible = true;
   }
+  update() {}
 }
 export {
   UIObject
