@@ -81,18 +81,39 @@ class Mesh extends Object {
     var lightVectors = [];
     var lightIntensities = [];
     var lightRanges = [];
+    var getVector3 = (value) => {
+      if (Array.isArray(value)) return [value[0] || 0, value[1] || 0, value[2] || 0];
+      if (value && typeof value === "object") {
+        if (typeof value.x !== "undefined" && typeof value.y !== "undefined" && typeof value.z !== "undefined") {
+          return [value.x, value.y, value.z];
+        }
+      }
+      return [0, 0, 0];
+    };
     for (var light of lights) {
       var type = light.type === "ambient" ? 0 : light.type === "point" ? 2 : 1;
       lightTypes.push(type);
-      lightColors.push(light.color[0], light.color[1], light.color[2]);
-      lightIntensities.push(light.intensity);
+      var color = Array.isArray(light.color) ? light.color : [1, 1, 1];
+      lightColors.push(color[0] || 0, color[1] || 0, color[2] || 0);
+      lightIntensities.push(light.intensity || 0);
       lightRanges.push(light.range || 1);
-      var source = type === 2 ? light.position : light.direction;
+      var source = type === 2 ? getVector3(light.position) : getVector3(light.direction || light.position);
       var x = source[0];
       var y = source[1];
       var z = source[2];
-      var w = type === 2 ? 1 : 0;
-      lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8]  * z + viewMatrix[12] * w, viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9]  * z + viewMatrix[13] * w, viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14] * w);
+      if (type === 2) {
+        lightVectors.push(
+          viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z + viewMatrix[12],
+          viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z + viewMatrix[13],
+          viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14]
+        );
+      } else {
+        lightVectors.push(
+          viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z,
+          viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z,
+          viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z
+        );
+      }
     }
     var lightCountLocation = uniform("uLightCount");
     if (lightCountLocation !== null) {
