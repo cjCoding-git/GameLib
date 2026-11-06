@@ -3,6 +3,11 @@ class Utils {
   constructor() {
     throw new GameLibCore.Error("Class Utils may not be constructed!");
   }
+  static createCanvas(width, height) {
+    var element = document.createElement('canvas');
+    element.width = width;
+    element.height = height;
+  }
   static getRandomListItem(list) {
     var index = Math.floor(Math.random() * list.length);
     return list[index];
