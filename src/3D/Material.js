@@ -17,13 +17,17 @@ class Material {
     attribute vec3 aVertexPosition;
     attribute vec4 aVertexColor;
     attribute vec2 aTextureCoord;
+    attribute vec3 aVertexNormal;
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
+    uniform mat4 uNormalMatrix;
     varying vec4 vColor;
     varying vec2 vUV;
+    varying vec3 vNormal;
     void main() {
       vColor = aVertexColor;
       vUV = aTextureCoord;
+      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
       gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
@@ -31,27 +35,37 @@ class Material {
     precision mediump float;
     varying vec4 vColor;
     varying vec2 vUV;
+    varying vec3 vNormal;
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
+    uniform vec3 uLightDirection;
+    uniform vec3 uAmbientColor;
+    uniform vec3 uLightColor;
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
         color *= texture2D(uTexture, vUV);
       }
-      gl_FragColor = color;
+      float diffuse = max(dot(normalize(vNormal), normalize(uLightDirection)), 0.0);
+      vec3 illumination = uAmbientColor + uLightColor * diffuse;
+      gl_FragColor = vec4(color.rgb * illumnation, color.a);
     }
   `;
   static webGL2VertexShader = `#version 300 es
     in vec3 aVertexPosition;
     in vec4 aVertexColor;
     in vec2 aTextureCoord;
+    in vec3 aVertexNormal;
     uniform mat4 uProjectionMatrix;
     uniform mat4 uModelViewMatrix;
+    uniform mat4 uNormalMatrix;
     out vec4 vColor;
     out vec2 vUV;
+    out vec3 vNormal;
     void main() {
       vColor = aVertexColor;
       vUV = aTextureCoord;
+      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
       gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
     }
   `;
@@ -59,15 +73,21 @@ class Material {
     precision mediump float;
     in vec4 vColor;
     in vec2 vUV;
+    in vec3 vNormal;
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
+    uniform vec3 uLightDirection;
+    uniform vec3 uAmbientColor;
+    uniform vec3 uLightColor;
     out vec4 outColor;
     void main() {
       vec4 color = vColor;
       if (uUseTexture) {
         color *= texture(uTexture, vUV);
       }
-      outColor = color;
+      float diffuse = max(dot(normalize(vNormal), normalize(uLightDirection)), 0.0);
+      vec3 illumination = uAmbientColor + uLightColor * diffuse;
+      outColor = vec4(color.rgb * illumination, color.a);
     }
   `;
   static get standardVertexShader() {
