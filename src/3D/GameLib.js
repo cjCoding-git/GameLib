@@ -23,6 +23,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this._uiLoading = new UILoading(this);
       this._uiLoading.setConfig(this._loadingConfig);
       this._uiRenderer.addObject(this._uiLoading);
+      this._listeners = {};
       this.registerMainloop();
       GameLib3D.GameLib._instance = this;
     }
@@ -165,13 +166,30 @@ class GameLib extends GameLibCore.GameLibBase {
   setScene(scene) {
     this._scene = scene;
   }
-  fillWindow() {
+  listen(type, callback) {
+    if(!this._listeners[type]) this._listeners[type] = [];
+    this._listeners[type].push(callback);
+  }
+  _fire(type) {
+    if(!this._listeners[type]) return;
+    for(var i=0;i<this._listeners[type].length;i++) {
+      var listener = this._listeners[type][i];
+      if(listener && typeof listener === "function") {
+        listener();
+      }
+    }
+  }
+  resizeToWindow() {
     this._canvas.width = window.innerWidth;
     this._canvas.height = window.innerHeight;
-    this._canvas.style.position = "absolute";
+    this._canvas.style.position = "fixed";
     this._canvas.style.top = "0";
     this._canvas.style.left = "0";
     this._gl.viewport(0, 0, this._canvas.width, this._canvas.height);
+    this._fire('resize');
+  }
+  fillWindow() {
+    window.addEventListener('resize', this.resizeToWindow.bind(this), false);
   }
   getLights(scene) {
     if(!scene) scene = this._scene;
