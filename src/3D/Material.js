@@ -25,7 +25,7 @@ class Material {
     varying vec3 vNormal;
     varying vec3 vViewPosition;
     void main() {
-      vec4 viewPosition = modelViewMatrix * vec4(aVertexPosition, 1.0);
+      vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);
       vColor = aVertexColor;
       vUV = aTextureCoord;
       vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
@@ -41,21 +41,24 @@ class Material {
     uniform sampler2D uTexture;
     uniform bool uUseTexture;
     uniform int uLightCount;
-    uniform int uLightTypes[MAX_LIGHTS];
+    uniform int uLightType[MAX_LIGHTS];
     uniform vec3 uLightColor[MAX_LIGHTS];
     uniform vec3 uLightVector[MAX_LIGHTS];
     uniform float uLightIntensity[MAX_LIGHTS];
-    uniform float uLightRange[MAX_LIGHTS];'
+    uniform float uLightRange[MAX_LIGHTS];
     vec3 calculateLighting() {
       vec3 normal = normalize(vNormal);
       vec3 illumination = vec3(0.0);
-      for(var i=0;i<MAX_LIGHTS;i++) {
-        if(i < uLightCount) {
+      for (int i = 0; i < MAX_LIGHTS; i++) {
+        if (i >= uLightCount) {
+          break;
+        }
+        if (uLightType[i] == 0) {
           illumination += uLightColor[i] * uLightIntensity[i];
         } else {
           vec3 toLight;
           float attenuation = 1.0;
-          if(uLightType[i] == 1) {
+          if (uLightType[i] == 1) {
             toLight = normalize(uLightVector[i]);
           } else {
             vec3 delta = uLightVector[i] - vViewPosition;
@@ -65,14 +68,14 @@ class Material {
             attenuation = 1.0 / (1.0 + ratio * ratio);
           }
           float diffuse = max(dot(normal, toLight), 0.0);
-          illumination += uLightColor[i] + uLightIntensity[i] * diffuse * attenuation;
+          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
         }
       }
       return illumination;
     }
     void main() {
       vec4 color = vColor;
-      if(uUseTexture) {
+      if (uUseTexture) {
         color *= texture2D(uTexture, vUV);
       }
       vec3 litRGB = color.rgb * calculateLighting();
@@ -113,36 +116,37 @@ class Material {
     uniform vec3 uLightVector[MAX_LIGHTS];
     uniform float uLightIntensity[MAX_LIGHTS];
     uniform float uLightRange[MAX_LIGHTS];
-    out vec4 vColor;
+    out vec4 outColor;
     vec3 calculateLighting() {
       vec3 normal = normalize(vNormal);
       vec3 illumination = vec3(0.0);
-      for(int i=0;i<MAX_LIGHTS;i++) {
-        if(i < uLightCount) {
-          if(uLightType[i] == 0) {
-            illumination += uLightColor[i] + uLightIntensity[i];
+      for (int i = 0; i < MAX_LIGHTS; i++) {
+        if (i >= uLightCount) {
+          break;
+        }
+        if (uLightType[i] == 0) {
+          illumination += uLightColor[i] * uLightIntensity[i];
+        } else {
+          vec3 toLight;
+          float attenuation = 1.0;
+          if (uLightType[i] == 1) {
+            toLight = normalize(uLightVector[i]);
           } else {
-            vec3 toLight;
-            float attenuation = 1.0;
-            if(uLightType[i] == 1) {
-              toLight = normalize(uLightVector[i]);
-            } else {
-              vec3 delta = uLightVector[i] - vViewPosition;
-              float distanceToLight = length(delta);
-              toLight = normalize(delta);
-              float ratio = distanceToLight / max(uLightRange[i], 0.0001);
-              attenuation = 1.0 / (1.0 + ratio * ratio);
-            }
-            float diffuse = max(dot(normal, toLight), 0.0);
-            illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
+            vec3 delta = uLightVector[i] - vViewPosition;
+            float distanceToLight = length(delta);
+            toLight = normalize(delta);
+            float ratio = distanceToLight / max(uLightRange[i], 0.0001);
+            attenuation = 1.0 / (1.0 + ratio * ratio);
           }
+          float diffuse = max(dot(normal, toLight), 0.0);
+          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
         }
       }
       return illumination;
     }
     void main() {
       vec4 color = vColor;
-      if(uUseTexture) {
+      if (uUseTexture) {
         color *= texture(uTexture, vUV);
       }
       vec3 litRGB = color.rgb * calculateLighting();
