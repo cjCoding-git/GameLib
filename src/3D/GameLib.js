@@ -171,6 +171,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this._canvas.style.position = "absolute";
     this._canvas.style.top = "0";
     this._canvas.style.left = "0";
+    this._gl.viewport(0, 0, this._canvas.width, this._canvas.height);
   }
   getLights(scene) {
     if(!scene) scene = this._scene;
