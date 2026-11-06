@@ -172,8 +172,8 @@ class GameLib extends GameLibCore.GameLibBase {
     this._canvas.style.top = "0";
     this._canvas.style.left = "0";
   }
-  getLights() {
-    var scene = this._scene;
+  getLights(scene) {
+    if(!scene) scene = this._scene;
     return this._objects.filter(object => object.isLight && object.scene === scene);
   }
 }
