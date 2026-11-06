@@ -284,6 +284,14 @@ class GameLib extends GameLibCore.GameLibBase {
   setLoadingScreen(config) {
     this._loadingScreen = config;
   }
+  fillWindow() {
+    this._viewportCanvas.width = window.innerWidth;
+    this._viewportCanvas.height = window.innerHeight;
+    this._viewport.size = new Size(window.innerWidth, window.innerHeight);
+    this._viewportCanvas.style.position = "absolute";
+    this._viewportCanvas.style.top = "0";
+    this._viewportCanvas.style.left = "0";
+  }
 }
 export {
   GameLib
