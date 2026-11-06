@@ -143,7 +143,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this.callHook('post-render');
   }
   addUIObject(object) {
-    this._uiRenderer.addObject(object);
+    return this._uiRenderer.addObject(object);
   }
   getUIObjects() {
     return this._uiRenderer.getObjects();
