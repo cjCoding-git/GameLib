@@ -1,7 +1,7 @@
 import { Object } from "../Object.js"
 import { Rotation } from "../Rotation.js"
 class AmbientLight extends Object {
-  constructor(gameLib, scene, position, { color: [1.0, 1.0, 1.0], intensity: 1, direction: new Rotation(0, -1, 0), range: 10 }) {
+  constructor(gameLib, scene, position, { color = [1.0, 1.0, 1.0], intensity = 1, direction = new Rotation(0, -1, 0), range = 10 }) {
     super(gameLib, scene);
     this.isLight = true;
     this.type = "ambient";
