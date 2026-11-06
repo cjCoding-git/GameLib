@@ -71754,5 +71754,5 @@ ${nodesText}`;
   Copyright (c) 2025 Charles Jager
   Libraries Used in GameLib:
     Ammo.js Copyright (c) 2011 ammo.js contributors
-    Matter.js Liam Brummitt Copyright (c) and contributors
+    Matter.js Copyright (c) Liam Brummitt and contributors
 */
