@@ -71619,46 +71619,43 @@ ${nodesText}`;
 
   // src/3D/Lighting/PointLight.js
   var PointLight = class extends Object2 {
-    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "point";
       this.position = position;
-      this.options = options;
-      this.color = this.options.color;
-      this.intensity = this.options.intensity;
-      this.direction = this.options.direction;
-      this.range = this.options.range;
+      this.color = color;
+      this.intensity = intensity;
+      this.direction = direction;
+      this.range = range;
     }
   };
 
   // src/3D/Lighting/DirectionalLight.js
   var DirectionalLight = class extends Object2 {
-    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "directional";
       this.position = position;
-      this.options = options;
-      this.color = this.options.color;
-      this.intensity = this.options.intensity;
-      this.direction = this.options.direction;
-      this.range = this.options.range;
+      this.color = color;
+      this.intensity = intensity;
+      this.direction = direction;
+      this.range = range;
     }
   };
 
   // src/3D/Lighting/AmbientLight.js
   var AmbientLight = class extends Object2 {
-    constructor(gameLib, scene, position, options = { color: [1, 1, 1], intensity: 1, direction: new Rotation2(0, -1, 0), range: 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "ambient";
       this.position = position;
-      this.options = options;
-      this.color = this.options.color;
-      this.intensity = this.options.intensity;
-      this.direction = this.options.direction;
-      this.range = this.options.range;
+      this.color = color;
+      this.intensity = intensity;
+      this.direction = direction;
+      this.range = range;
     }
   };
 
