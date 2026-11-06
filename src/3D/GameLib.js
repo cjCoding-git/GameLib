@@ -190,6 +190,7 @@ class GameLib extends GameLibCore.GameLibBase {
   }
   fillWindow() {
     window.addEventListener('resize', this.resizeToWindow.bind(this), false);
+    this.resizeToWindow();
   }
   getLights(scene) {
     if(!scene) scene = this._scene;
