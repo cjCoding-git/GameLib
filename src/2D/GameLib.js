@@ -178,6 +178,9 @@ class GameLib extends GameLibCore.GameLibBase {
       this._viewportCtx.fillRect(0, 0, this._viewportCanvas.width, this._viewportCanvas.height);
     }
   }
+  resizeViewPort(size) {
+    this._viewport.size = size;
+  }
   mainloop() {
     this.update();
     this.draw();
