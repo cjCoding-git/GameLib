@@ -1979,16 +1979,17 @@
       }
     }
     resizeToWindow() {
-      this._fire("resize");
       this._viewportCanvas.width = window.innerWidth;
       this._viewportCanvas.height = window.innerHeight;
       this._viewport.size = new Size(window.innerWidth, window.innerHeight);
       this._viewportCanvas.style.position = "fixed";
       this._viewportCanvas.style.top = "0";
       this._viewportCanvas.style.left = "0";
+      this._fire("resize");
     }
     fillWindow() {
       window.addEventListener("resize", this.resizeToWindow.bind(this), false);
+      this.resizeToWindow();
     }
   };
 
@@ -3314,6 +3315,7 @@ ${nodesText}`;
     }
     fillWindow() {
       window.addEventListener("resize", this.resizeToWindow.bind(this), false);
+      this.resizeToWindow();
     }
     getLights(scene) {
       if (!scene) scene = this._scene;
