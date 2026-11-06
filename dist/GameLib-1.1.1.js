@@ -3157,7 +3157,7 @@ ${nodesText}`;
       }
     }
     setLoadingConfig(config) {
-      thos._loadingConfig = config;
+      this._loadingConfig = config;
       this._uiLoading.setConfig(config);
     }
     static getContext(canvas, webgl2 = true) {
