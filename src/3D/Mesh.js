@@ -102,17 +102,9 @@ class Mesh extends Object {
       var y = source[1];
       var z = source[2];
       if (type === 2) {
-        lightVectors.push(
-          viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z + viewMatrix[12],
-          viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z + viewMatrix[13],
-          viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14]
-        );
+        lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z + viewMatrix[12], viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z + viewMatrix[13], viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z + viewMatrix[14]);
       } else {
-        lightVectors.push(
-          viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z,
-          viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z,
-          viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z
-        );
+        lightVectors.push(viewMatrix[0] * x + viewMatrix[4] * y + viewMatrix[8] * z, viewMatrix[1] * x + viewMatrix[5] * y + viewMatrix[9] * z, viewMatrix[2] * x + viewMatrix[6] * y + viewMatrix[10] * z);
       }
     }
     var lightCountLocation = uniform("uLightCount");
