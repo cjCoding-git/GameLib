@@ -15,9 +15,6 @@ var canvas = document.querySelector("#yourCanvas");
 ```
 Then, you need to get the WebGL rendering context from the canvas. To do this, GameLib provides a function to get the context from your canvas:
 ```javascript
-var ctx = GameLib3D.GameLib.getContext(canvas, options);
+var ctx = GameLib3D.GameLib.getContext(canvas, webgl2);
 ```
-Where **canvas** is your canvas reference and **options** is an object. Available options are:
-- **webGL2:** boolean
-
-**webGL2** controls whether or not the context will be configured to use WebGL1 or WebGL2.
+Where **canvas** is your canvas reference and **webGL2** controls whether or not the context will be configured to use WebGL1 or WebGL2.
