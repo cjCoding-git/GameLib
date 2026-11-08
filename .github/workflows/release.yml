@@ -23,8 +23,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Update package.json
         run: |
-          jq '.version = "${{ inputs.version }}"' package.json > tmp.json
-          mv tmp.json package.json
+          npm version ${{ inputs.version }} --no-git-tag-version
           date > buildtime.txt
           echo "${{ inputs.version }}" > buildversion.txt
       - name: Setup Node.js
