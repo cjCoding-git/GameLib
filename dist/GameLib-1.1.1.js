@@ -2801,6 +2801,18 @@ ${nodesText}`;
     }
   };
 
+  // src/Shaders/UI/Vertex/GL1.glsl
+  var GL1_default = "attribute vec2 aPosition;\nattribute vec2 aUV;\nuniform vec2 uResolution;\nvarying vec2 vUV;\nvoid main() {\n  vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;\n  clipPosition.y *= -1.0;\n  gl_Position = vec4(clipPosition, 0.0, 1.0);\n  vUV = aUV;\n}\n";
+
+  // src/Shaders/UI/Fragment/GL1.glsl
+  var GL1_default2 = "precision mediump float;\nvarying vec2 vUV;\nuniform sampler2D uTexture;\nvoid main() {\n  gl_FragColor = texture2D(uTexture, vUV);\n}\n";
+
+  // src/Shaders/UI/Vertex/GL2.glsl
+  var GL2_default = "#version 300 es\nin vec2 aPosition;\nin vec2 aUV;\nuniform vec2 uResolution;\nout vec2 vUV;\nvoid main() {\n  vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;\n  clipPosition.y *= -1.0;\n  gl_Position = vec4(clipPosition, 0.0, 1.0);\n  vUV = aUV;\n}\n";
+
+  // src/Shaders/UI/Fragment/GL2.glsl
+  var GL2_default2 = "#version 300 es\nprecision mediump float;\nin vec2 vUV;\nuniform sampler2D uTexture;\nout vec4 outColor;\nvoid main() {\n  outColor = texture(uTexture, vUV);\n}\n";
+
   // src/3D/UI/UIRenderer.js
   var UIRenderer = class {
     constructor(gameLib) {
@@ -2821,47 +2833,16 @@ ${nodesText}`;
     }
     _getTextureVertexShaderSource(webgl2) {
       if (webgl2) {
-        return `#version 300 es
-      in vec2 aPosition;
-      in vec2 aUV;
-      uniform vec2 uResolution;
-      out vec2 vUV;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vUV = aUV;
-      }`;
+        return GL2_default;
       } else {
-        return `attribute vec2 aPosition;
-      attribute vec2 aUV;
-      uniform vec2 uResolution;
-      varying vec2 vUV;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vUV = aUV;
-      }`;
+        return GL1_default;
       }
     }
     _getTextureFragmentShaderSource(webgl2) {
       if (webgl2) {
-        return `#version 300 es
-      precision mediump float;
-      in vec2 vUV;
-      uniform sampler2D uTexture;
-      out vec4 outColor;
-      void main() {
-        outColor = texture(uTexture, vUV);
-      }`;
+        return GL2_default2;
       } else {
-        return `precision mediump float;
-      varying vec2 vUV;
-      uniform sampler2D uTexture;
-      void main() {
-        gl_FragColor = texture2D(uTexture, vUV);
-      }`;
+        return GL1_default2;
       }
     }
     _initializeTextureRenderer() {
@@ -2961,49 +2942,6 @@ ${nodesText}`;
     }
     removeObject(id) {
       this._uiObjects = this._uiObjects.filter((object) => object.id !== id);
-    }
-    _getVertexShaderSource(webgl2) {
-      if (webgl2) {
-        return `#version 300 es
-      in vec2 aPosition;
-      in vec4 aColor;
-      uniform vec2 uResolution;
-      out vec4 vColor;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vColor = aColor;
-      }`;
-      } else {
-        return `attribute vec2 aPosition;
-      attribute vec4 aColor;
-      uniform vec2 uResolution;
-      varying vec4 vColor;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vColor = aColor;
-      }`;
-      }
-    }
-    _getFragmentShaderSource(webgl2) {
-      if (webgl2) {
-        return `#version 300 es
-      precision mediump float;
-      in vec4 vColor;
-      out vec4 outColor;
-      void main() {
-        outColor = vColor;
-      }`;
-      } else {
-        return `precision mediump float;
-      varying vec4 vColor;
-      void main() {
-        gl_FragColor = vColor;
-      }`;
-      }
     }
     _initialize() {
       if (this._program) return true;
@@ -71190,16 +71128,16 @@ ${nodesText}`;
   };
 
   // src/Shaders/Material/Vertex/GL1.glsl
-  var GL1_default = "attribute vec3 aVertexPosition;\nattribute vec3 aVertexNormal;\nattribute vec4 aVertexColor;\nattribute vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
+  var GL1_default3 = "attribute vec3 aVertexPosition;\nattribute vec3 aVertexNormal;\nattribute vec4 aVertexColor;\nattribute vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL1.glsl
-  var GL1_default2 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nvec3 calculateLighting() {\n  vec3 normal = normalize(vNormal);\n  vec3 illumination = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      illumination += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diffuse = max(dot(normal, toLight), 0.0);\n      illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;\n    }\n  }\n  return illumination;\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 litRGB = color.rgb * calculateLighting();\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
+  var GL1_default4 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nvec3 calculateLighting() {\n  vec3 normal = normalize(vNormal);\n  vec3 illumination = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      illumination += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diffuse = max(dot(normal, toLight), 0.0);\n      illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;\n    }\n  }\n  return illumination;\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 litRGB = color.rgb * calculateLighting();\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
 
   // src/Shaders/Material/Vertex/GL2.glsl
-  var GL2_default = "#version 300 es\nin vec3 aVertexPosition;\nin vec3 aVertexNormal;\nin vec4 aVertexColor;\nin vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nout vec4 vColor;\nout vec2 vUV;\nout vec3 vNormal;\nout vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
+  var GL2_default3 = "#version 300 es\nin vec3 aVertexPosition;\nin vec3 aVertexNormal;\nin vec4 aVertexColor;\nin vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nout vec4 vColor;\nout vec2 vUV;\nout vec3 vNormal;\nout vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL2.glsl
-  var GL2_default2 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nout vec4 outColor;\nvec3 calculateLighting() {\n  vec3 normal = normalize(vNormal);\n  vec3 illumination = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      illumination += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diffuse = max(dot(normal, toLight), 0.0);\n      illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;\n    }\n  }\n  return illumination;\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  vec3 litRGB = color.rgb * calculateLighting();\n  outColor = vec4(litRGB, color.a);\n}\n";
+  var GL2_default4 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nout vec4 outColor;\nvec3 calculateLighting() {\n  vec3 normal = normalize(vNormal);\n  vec3 illumination = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      illumination += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diffuse = max(dot(normal, toLight), 0.0);\n      illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;\n    }\n  }\n  return illumination;\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  vec3 litRGB = color.rgb * calculateLighting();\n  outColor = vec4(litRGB, color.a);\n}\n";
 
   // src/3D/Material.js
   var Material = class _Material {
@@ -71216,10 +71154,10 @@ ${nodesText}`;
       this.textureUnit = 0;
       this.uniforms = {};
     }
-    static webGL1VertexShader = GL1_default;
-    static webGL1FragmentShader = GL1_default2;
-    static webGL2VertexShader = GL2_default;
-    static webGL2FragmentShader = GL2_default2;
+    static webGL1VertexShader = GL1_default3;
+    static webGL1FragmentShader = GL1_default4;
+    static webGL2VertexShader = GL2_default3;
+    static webGL2FragmentShader = GL2_default4;
     static get standardVertexShader() {
       return _Material.webGL1VertexShader;
     }
