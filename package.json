@@ -13,5 +13,6 @@
   "devDependencies": {
     "esbuild": "0.28.2",
     "terser": "5.51.2"
-  }
+  },
+  "jsdelivr": "dist/GameLib-1.1.0.min.js"
 }
