@@ -23,6 +23,7 @@ jobs:
       - name: Update package.json
         run: |
           jq '.version = "${{ inputs.version }}"' package.json > tmp.json
+          jq '.jsdelivr = "dist/GameLib-${{ inputs.version }}.min.js"' tmp.json > tmp.json
           mv tmp.json package.json
           date > buildtime.txt
           echo "${{ inputs.version }}" > buildversion.txt
