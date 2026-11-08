@@ -40,7 +40,9 @@ jobs:
           UNMINIFIED_OUT="dist/GameLib.js"
           MINIFIED_OUT="dist/GameLib.min.js"
           node esbuild.config.mjs
+          echo Minifing with Terser...
           npx terser $UNMINIFIED_OUT -o $MINIFIED_OUT --config-file terser.config.json
+          echo Files minified!
       - name: Push changes
         run: |
           git config --global user.name "github-actions[bot]"
