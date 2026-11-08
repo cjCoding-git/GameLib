@@ -1,8 +1,8 @@
 import { GameLibCore } from "../Core/index.js"
-import { GL1Vertex } from "../Shaders/Material/Vertex/GL1.glsl"
-import { GL1Fragment } from "../Shaders/Material/Fragment/GL1.glsl"
-import { GL2Vertex } from "../Shaders/Material/Vertex/GL2.glsl"
-import { GL2Fragment } from "../Shaders/Material/Fragment/GL2.glsl"
+import GL1Vertex from "../Shaders/Material/Vertex/GL1.glsl"
+import GL1Fragment from "../Shaders/Material/Fragment/GL1.glsl"
+import GL2Vertex from "../Shaders/Material/Vertex/GL2.glsl"
+import GL2Fragment from "../Shaders/Material/Fragment/GL2.glsl"
 class Material {
   constructor(gameLib, shader = null) {
     if (!gameLib) {
