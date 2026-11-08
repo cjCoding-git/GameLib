@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Rotating Cube</title>
+        <script src="https://cdn.jsdelivr.net/npm/@cjcoding-git/gamelib@latest"></script>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <style>
+            html, body {
+                background: #000000;
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                padding: 0;
+            }
+            #renderCanvas {
+                background: #000000;
+            }
+        </style>
+        <script>
+            window.addEventListener('load', function() {
+                window.canvas = document.getElementById('renderCanvas');
+                window.ctx = GameLib3D.GameLib.getContext(window.canvas, false);
+                window.gl = new GameLib3D.GameLib(window.canvas, window.ctx, { webGL2: false });
+                window.gl.setActive(true);
+                window.gl.setRendering(true);
+                window.camera = new GameLib3D.Camera();
+                window.camera.transform.translate(0, 0, 3);
+                window.gl.setCamera(camera);
+                window.boxGeo = new GameLib3D.Geometry.Box(1, 1, 1);
+                window.boxMat = new GameLib3D.Material(window.gl);
+                window.boxMat.setColor([0, 1, 1, 1]);
+                window.boxMesh = new GameLib3D.Mesh(window.gl, "init", window.boxGeo, window.boxMat);
+                window.boxMesh.update = function() {
+                    window.boxMesh.transform.rotate(0.01, 0.01, 0.01);
+                };
+                window.gl.addObject(window.boxMesh);
+                window.ambientLight = new GameLib3D.Lighting.AmbientLight(window.gl, "init", new GameLib3D.Position(0, 0, 0), { intensity: 0.25, color: [0, 0, 1] });
+                window.gl.addObject(window.ambientLight);
+                window.pointLight = new GameLib3D.Lighting.PointLight(window.gl, "init", new GameLib3D.Position(0, 0, 1.5), { color: [ 1, 1, 1 ] });
+                window.gl.addObject(window.pointLight);
+                window.uiObject = new GameLib3D.UI.UIObject(window.gl, "init", 0, (window.canvas.height - 10), window.canvas.width, 10, [0.0, 0.0, 1.0, 0.5]);
+                window.gl.addUIObject(window.uiObject);
+                window.textObject = new GameLib3D.UI.Text(window.gl, "init", 10, 10, 97, 48, "Blah", {
+                    fillStyle: "#0000ff",
+                    font: "48px sans-serif"
+                });
+                window.textObject.xVelocity = 1;
+                window.textObject.yVelocity = 1;
+                window.textObject.speed = 0.8;
+                window.textObject.update = function() {
+                    if(window.textObject.x <= 0) {
+                        window.textObject.x = 0;
+                        window.textObject.xVelocity = 1;
+                    }
+                    if(window.textObject.y <= 0) {
+                        window.textObject.y = 0;
+                        window.textObject.yVelocity = 1;
+                    }
+                    if(window.textObject.x + window.textObject.width >= window.canvas.width) {
+                        window.textObject.x = window.canvas.width - window.textObject.width;
+                        window.textObject.xVelocity = -1;
+                    }
+                    if(window.textObject.y + window.textObject.height >= window.canvas.height) {
+                        window.textObject.y = window.canvas.height - window.textObject.height;
+                        window.textObject.yVelocity = -1;
+                    }
+                    window.textObject.x += window.textObject.xVelocity * window.textObject.speed;
+                    window.textObject.y += window.textObject.yVelocity * window.textObject.speed;
+                };
+                window.gl.addUIObject(window.textObject);
+                window.gl.listen('resize', function() {
+                    window.uiObject.y = (window.canvas.height - 10);
+                    window.uiObject.width = window.canvas.width;
+                });
+                window.gl.fillWindow();
+                setTimeout(function() {
+                    window.gl.stopLoading();
+                }, 4000);
+            });
+        </script>
+    </head>
+    <body>
+        <canvas id="renderCanvas" width="500" height="500"></canvas>
+    </body>
+</html>
