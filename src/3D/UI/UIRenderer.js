@@ -1,4 +1,8 @@
 import { GameLibCore } from "../../Core/index.js"
+import GL1Vertex from "../../Shaders/UI/Vertex/GL1.glsl"
+import GL1Fragment from "../../Shaders/UI/Fragment/GL1.glsl"
+import GL2Vertex from "../../Shaders/UI/Vertex/GL2.glsl"
+import GL2Fragment from "../../Shaders/UI/Fragment/GL2.glsl"
 class UIRenderer {
   constructor(gameLib) {
     this._gameLib = gameLib;
@@ -18,47 +22,16 @@ class UIRenderer {
   }
   _getTextureVertexShaderSource(webgl2) {
     if(webgl2) {
-      return `#version 300 es
-      in vec2 aPosition;
-      in vec2 aUV;
-      uniform vec2 uResolution;
-      out vec2 vUV;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vUV = aUV;
-      }`;
+      return GL2Vertex;
     } else {
-      return `attribute vec2 aPosition;
-      attribute vec2 aUV;
-      uniform vec2 uResolution;
-      varying vec2 vUV;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vUV = aUV;
-      }`;
+      return GL1Vertex;
     }
   }
   _getTextureFragmentShaderSource(webgl2) {
     if(webgl2) {
-      return `#version 300 es
-      precision mediump float;
-      in vec2 vUV;
-      uniform sampler2D uTexture;
-      out vec4 outColor;
-      void main() {
-        outColor = texture(uTexture, vUV);
-      }`;
+      return GL2Fragment;
     } else {
-      return `precision mediump float;
-      varying vec2 vUV;
-      uniform sampler2D uTexture;
-      void main() {
-        gl_FragColor = texture2D(uTexture, vUV);
-      }`;
+      return GL1Fragment;
     }
   }
   _initializeTextureRenderer() {
@@ -140,49 +113,6 @@ class UIRenderer {
   }
   removeObject(id) {
     this._uiObjects = this._uiObjects.filter(object => object.id !== id);
-  }
-  _getVertexShaderSource(webgl2) {
-    if(webgl2) {
-      return `#version 300 es
-      in vec2 aPosition;
-      in vec4 aColor;
-      uniform vec2 uResolution;
-      out vec4 vColor;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vColor = aColor;
-      }`;
-    } else {
-      return `attribute vec2 aPosition;
-      attribute vec4 aColor;
-      uniform vec2 uResolution;
-      varying vec4 vColor;
-      void main() {
-        vec2 clipPosition = (aPosition / uResolution) * 2.0 - 1.0;
-        clipPosition.y *= -1.0;
-        gl_Position = vec4(clipPosition, 0.0, 1.0);
-        vColor = aColor;
-      }`;
-    }
-  }
-  _getFragmentShaderSource(webgl2) {
-    if(webgl2) {
-      return `#version 300 es
-      precision mediump float;
-      in vec4 vColor;
-      out vec4 outColor;
-      void main() {
-        outColor = vColor;
-      }`;
-    } else {
-      return `precision mediump float;
-      varying vec4 vColor;
-      void main() {
-        gl_FragColor = vColor;
-      }`;
-    }
   }
   _initialize() {
     if(this._program) return true;
