@@ -1,4 +1,8 @@
 import { GameLibCore } from "../Core/index.js"
+import { GL1Vertex } from "../Shaders/Material/Vertex/GL1.glsl"
+import { GL1Fragment } from "../Shaders/Material/Fragment/GL1.glsl"
+import { GL2Vertex } from "../Shaders/Material/Vertex/GL2.glsl"
+import { GL2Fragment } from "../Shaders/Material/Fragment/GL2.glsl"
 class Material {
   constructor(gameLib, shader = null) {
     if (!gameLib) {
@@ -13,145 +17,10 @@ class Material {
     this.textureUnit = 0;
     this.uniforms = {};
   }
-  static webGL1VertexShader = `attribute vec3 aVertexPosition;
-    attribute vec3 aVertexNormal;
-    attribute vec4 aVertexColor;
-    attribute vec2 aTextureCoord;
-    uniform mat4 uProjectionMatrix;
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uNormalMatrix;
-    varying vec4 vColor;
-    varying vec2 vUV;
-    varying vec3 vNormal;
-    varying vec3 vViewPosition;
-    void main() {
-      vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);
-      vColor = aVertexColor;
-      vUV = aTextureCoord;
-      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
-      vViewPosition = viewPosition.xyz;
-      gl_Position = uProjectionMatrix * viewPosition;
-    }`;
-  static webGL1FragmentShader = `precision mediump float;
-    #define MAX_LIGHTS 8
-    varying vec4 vColor;
-    varying vec2 vUV;
-    varying vec3 vNormal;
-    varying vec3 vViewPosition;
-    uniform sampler2D uTexture;
-    uniform bool uUseTexture;
-    uniform int uLightCount;
-    uniform int uLightType[MAX_LIGHTS];
-    uniform vec3 uLightColor[MAX_LIGHTS];
-    uniform vec3 uLightVector[MAX_LIGHTS];
-    uniform float uLightIntensity[MAX_LIGHTS];
-    uniform float uLightRange[MAX_LIGHTS];
-    vec3 calculateLighting() {
-      vec3 normal = normalize(vNormal);
-      vec3 illumination = vec3(0.0);
-      for (int i = 0; i < MAX_LIGHTS; i++) {
-        if (i >= uLightCount) {
-          break;
-        }
-        if (uLightType[i] == 0) {
-          illumination += uLightColor[i] * uLightIntensity[i];
-        } else {
-          vec3 toLight;
-          float attenuation = 1.0;
-          if (uLightType[i] == 1) {
-            toLight = normalize(uLightVector[i]);
-          } else {
-            vec3 delta = uLightVector[i] - vViewPosition;
-            float distanceToLight = length(delta);
-            toLight = normalize(delta);
-            float ratio = distanceToLight / max(uLightRange[i], 0.0001);
-            attenuation = 1.0 / (1.0 + ratio * ratio);
-          }
-          float diffuse = max(dot(normal, toLight), 0.0);
-          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
-        }
-      }
-      return illumination;
-    }
-    void main() {
-      vec4 color = vColor;
-      if (uUseTexture) {
-        color *= texture2D(uTexture, vUV);
-      }
-      vec3 litRGB = color.rgb * calculateLighting();
-      gl_FragColor = vec4(litRGB, color.a);
-    }`;
-  static webGL2VertexShader = `#version 300 es
-    in vec3 aVertexPosition;
-    in vec3 aVertexNormal;
-    in vec4 aVertexColor;
-    in vec2 aTextureCoord;
-    uniform mat4 uProjectionMatrix;
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uNormalMatrix;
-    out vec4 vColor;
-    out vec2 vUV;
-    out vec3 vNormal;
-    out vec3 vViewPosition;
-    void main() {
-      vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);
-      vColor = aVertexColor;
-      vUV = aTextureCoord;
-      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
-      vViewPosition = viewPosition.xyz;
-      gl_Position = uProjectionMatrix * viewPosition;
-    }`;
-  static webGL2FragmentShader = `#version 300 es
-    precision mediump float;
-    #define MAX_LIGHTS 8
-    in vec4 vColor;
-    in vec2 vUV;
-    in vec3 vNormal;
-    in vec3 vViewPosition;
-    uniform sampler2D uTexture;
-    uniform bool uUseTexture;
-    uniform int uLightCount;
-    uniform int uLightType[MAX_LIGHTS];
-    uniform vec3 uLightColor[MAX_LIGHTS];
-    uniform vec3 uLightVector[MAX_LIGHTS];
-    uniform float uLightIntensity[MAX_LIGHTS];
-    uniform float uLightRange[MAX_LIGHTS];
-    out vec4 outColor;
-    vec3 calculateLighting() {
-      vec3 normal = normalize(vNormal);
-      vec3 illumination = vec3(0.0);
-      for (int i = 0; i < MAX_LIGHTS; i++) {
-        if (i >= uLightCount) {
-          break;
-        }
-        if (uLightType[i] == 0) {
-          illumination += uLightColor[i] * uLightIntensity[i];
-        } else {
-          vec3 toLight;
-          float attenuation = 1.0;
-          if (uLightType[i] == 1) {
-            toLight = normalize(uLightVector[i]);
-          } else {
-            vec3 delta = uLightVector[i] - vViewPosition;
-            float distanceToLight = length(delta);
-            toLight = normalize(delta);
-            float ratio = distanceToLight / max(uLightRange[i], 0.0001);
-            attenuation = 1.0 / (1.0 + ratio * ratio);
-          }
-          float diffuse = max(dot(normal, toLight), 0.0);
-          illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
-        }
-      }
-      return illumination;
-    }
-    void main() {
-      vec4 color = vColor;
-      if (uUseTexture) {
-        color *= texture(uTexture, vUV);
-      }
-      vec3 litRGB = color.rgb * calculateLighting();
-      outColor = vec4(litRGB, color.a);
-    }`;
+  static webGL1VertexShader = GL1Vertex;
+  static webGL1FragmentShader = GL1Fragment;
+  static webGL2VertexShader = GL2Vertex;
+  static webGL2FragmentShader = GL2Fragment;
   static get standardVertexShader() {
     return Material.webGL1VertexShader;
   }
