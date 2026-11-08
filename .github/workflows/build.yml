@@ -18,7 +18,6 @@ jobs:
       - name: Update package.json
         run: |
           jq '.version = "${{ inputs.version }}"' package.json > tmp.json
-          jq '.jsdelivr = "dist/GameLib-${{ inputs.version }}.min.js"' tmp.json > tmp.json
           mv tmp.json package.json
           date > buildtime.txt
           echo "${{ inputs.version }}" > buildversion.txt
@@ -39,8 +38,8 @@ jobs:
       - name: Create build files
         run: |
           VERSION="${{ inputs.version }}"
-          UNMINIFIED_OUT="dist/GameLib-${VERSION}.js"
-          MINIFIED_OUT="dist/GameLib-${VERSION}.min.js"
+          UNMINIFIED_OUT="dist/GameLib.js"
+          MINIFIED_OUT="dist/GameLib.min.js"
           esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT --external:ws --external:crypto --external:path --external:fs --loader:.glsl=text
           npx terser $UNMINIFIED_OUT -o $MINIFIED_OUT --compress --mangle --mangle-props regex=/^_/
       - name: Push changes
