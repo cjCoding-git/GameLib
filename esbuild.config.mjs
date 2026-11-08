@@ -1,5 +1,5 @@
 import esbuild from 'esbuild';
-console.log("Starting build...");
+console.log("Starting esbuild...");
 var outfile = process.env.UNMINIFIED_OUT || 'dist/GameLib.js';
 esbuild.build({
   entryPoints: ['src/index.js'],
@@ -12,4 +12,4 @@ esbuild.build({
     '.glsl': 'text',
   },
 }).catch(() => process.exit(1));
-console.log("Build complete!");
+console.log("Esbuild finished running!");
