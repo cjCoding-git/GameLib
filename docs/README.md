@@ -7,7 +7,7 @@ GameLib can be hosted from your own server, inlined in the page, or loaded from 
 - **Minified:** Use this for release builds. The exposed API remains the same but it has a smaller file size, and internal variables have been renamed.
 To get the code yourself, download the latest release at https://github.com/cjCoding-git/GameLib/releases. To load from a CDN, add this snippet to the top of your page:
 ```html
-<script src="https://cdn.jsdelivr.net/gh/cjCoding-git/GameLib@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@cjcoding-git/gamelib@latest"></script>
 ```
 
 ## Core Engine
