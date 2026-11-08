@@ -18,3 +18,11 @@ Then, you need to get the WebGL rendering context from the canvas. To do this, G
 var ctx = GameLib3D.GameLib.getContext(canvas, webgl2);
 ```
 Where **canvas** is your canvas reference and **webGL2** controls whether or not the context will be configured to use WebGL1 or WebGL2.
+
+## 3. Create the Engine Instance
+After getting the context, you need to create an instance of the 3D Engine. To do this, use:
+```javascript
+var gl = new GameLib3D.GameLib(canvas, ctx, options
+```
+Where **canvas** is your canvas, **ctx** is the rendering context for the canvas, and **options** is an object. Available options are:
+- **webGL2:** Whether or not to configure the game engine to use WebGL 2.
