@@ -73,4 +73,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release to NPM
         run: |
-          npm publish --provenance
+          npm publish --provenance --access public
