@@ -40,8 +40,8 @@ jobs:
           VERSION="${{ inputs.version }}"
           UNMINIFIED_OUT="dist/GameLib-${VERSION}.js"
           MINIFIED_OUT="dist/GameLib-${VERSION}.min.js"
-          esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT --external:ws --external:crypto --external:path --external:fs
-          npx terser $UNMINIFIED_OUT -o $MINIFIED_OUT --compress --mangle --mangle-props regex=/^_/ --loader:.glsl=text
+          esbuild src/index.js --bundle --format=iife --platform=browser --outfile=$UNMINIFIED_OUT --external:ws --external:crypto --external:path --external:fs --loader:.glsl=text
+          npx terser $UNMINIFIED_OUT -o $MINIFIED_OUT --compress --mangle --mangle-props regex=/^_/
       - name: Push changes
         run: |
           git config --global user.name "github-actions[bot]"
