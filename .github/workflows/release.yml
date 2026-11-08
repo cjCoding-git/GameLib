@@ -67,8 +67,8 @@ jobs:
           name: "Release v${{ inputs.version }}"
           body: "Release Notes: ${{ inputs.body }}"
           files: |
-            dist/GameLib-${{ inputs.version }}.js
-            dist/GameLib-${{ inputs.version }}.min.js
+            dist/GameLib.js
+            dist/GameLib.min.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release to NPM
