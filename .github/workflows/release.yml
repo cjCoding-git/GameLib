@@ -69,6 +69,11 @@ jobs:
             dist/GameLib.min.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Debug npm auth
+        run: |
+          echo "Checking npm registry auth configuration:"
+          npm config get registry
+          ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to NPM
         run: |
           npm publish --provenance --access public
