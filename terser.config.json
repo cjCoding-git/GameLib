@@ -1,0 +1,8 @@
+{
+  "compress": true,
+  "mangle": {
+    "properties": {
+      "regex": "^_"
+    }
+  }
+}
