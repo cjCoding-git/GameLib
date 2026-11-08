@@ -3,6 +3,10 @@ import GL1Vertex from "../../Shaders/UI/Vertex/GL1.glsl"
 import GL1Fragment from "../../Shaders/UI/Fragment/GL1.glsl"
 import GL2Vertex from "../../Shaders/UI/Vertex/GL2.glsl"
 import GL2Fragment from "../../Shaders/UI/Fragment/GL2.glsl"
+import TextureGL1Vertex from "../../Shaders/UITexture/Vertex/GL1.glsl"
+import TextureGL1Fragment from "../../Shaders/UITexture/Fragment/GL1.glsl"
+import TextureGL2Vertex from "../../Shaders/UITexture/Vertex/GL2.glsl"
+import TextureGL2Fragment from "../../Shaders/UITexture/Fragment/GL2.glsl"
 class UIRenderer {
   constructor(gameLib) {
     this._gameLib = gameLib;
@@ -20,18 +24,32 @@ class UIRenderer {
     this._textureResolutionLocation = null;
     this._textureSamplerLocation = null;
   }
-  _getTextureVertexShaderSource(webgl2) {
+  _getVertexShaderSource(webgl2) {
     if(webgl2) {
       return GL2Vertex;
     } else {
       return GL1Vertex;
     }
   }
-  _getTextureFragmentShaderSource(webgl2) {
+  _getFragmentShaderSource(webgl2) {
     if(webgl2) {
       return GL2Fragment;
     } else {
       return GL1Fragment;
+    }
+  }
+  _getTextureVertexShaderSource(webgl2) {
+    if(webgl2) {
+      return TextureGL2Vertex;
+    } else {
+      return TextureGL1Vertex;
+    }
+  }
+  _getTextureFragmentShaderSource(webgl2) {
+    if(webgl2) {
+      return TextureGL2Fragment;
+    } else {
+      return TextureGL1Fragment;
     }
   }
   _initializeTextureRenderer() {
