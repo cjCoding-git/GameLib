@@ -76,4 +76,4 @@ jobs:
           ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to NPM
         run: |
-          npx npm@latest publish --provenance --access public
+          npx npm@latest publish --provenance --access public --tag latest
