@@ -1,6 +1,15 @@
 # GameLib Documentation
 GameLib has multiple components, each with a different API.
 
+## Loading GameLib
+GameLib can be hosted from your own server, inlined in the page, or loaded from a CDN. There are two different versions provided:
+- **Unminified:** Good for writing a game, still has all variable and parameter names intact.
+- **Minified:** Use this for release builds. The exposed API remains the same but it has a smaller file size, and internal variables have been renamed.
+To get the code yourself, download the latest release at https://github.com/cjCoding-git/GameLib/releases. To load from a CDN, add this snippet to the top of your page:
+```html
+<script src="https://cdn.jsdelivr.net/gh/cjCoding-git/GameLib@latest"></script>
+```
+
 ## Core Engine
 The core engine includes common code like input and audio.
 
