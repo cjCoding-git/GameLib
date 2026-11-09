@@ -13,6 +13,7 @@ class Group {
       if(object.scene !== this.scene) {
         throw new GameLibCore.Error("Object being added to Group must be in same scene as group!");
       } else {
+        object.group = this;
         this._objects.push(object);
       }
     } else {
