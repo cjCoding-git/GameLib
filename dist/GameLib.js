@@ -3229,6 +3229,11 @@ ${nodesText}`;
     removeObject(id) {
       this._objects = this._objects.filter((object) => object.id !== id);
     }
+    setup() {
+      for (var i2 = 0; i2 < this._objects.length; i2++) {
+        this._objects[i2].setup();
+      }
+    }
     update(camera) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
         this._objects[i2].update(camera);
