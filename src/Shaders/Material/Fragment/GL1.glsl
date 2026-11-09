@@ -46,8 +46,8 @@ void main() {
     color *= texture2D(uTexture, vUV);
   }
   vec3 lightVec = calculateLighting();
-  vec3 litColor = color.rgb * lightVec;
-  vec3 lightFactor = clamp(lightVec, 0.0, 1.0);
-  vec3 litRGB = mix(uClearColor, litColor, lightFactor);
+  float rawIntensity = max(lightVec.r, max(lightVec.g, lightVec.b));
+  float factor = smoothstep(0.0, 0.2, rawIntensity);
+  vec3 litRGB = mix(uClearColor, color.rgb * lightVec, factor);
   gl_FragColor = vec4(litRGB, color.a);
 }
