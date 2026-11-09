@@ -47,7 +47,7 @@ void main() {
   }
   vec3 lightVec = calculateLighting();
   vec3 litColor = color.rgb * lightVec;
-  float rawLight = (lightVec.r + lightVec.g + lightVec.b) / 3;
+  float rawLight = (lightVec.r + lightVec.g + lightVec.b) / 3.0;
   float blendFactor = clamp(sqrt(rawLight), 0.0, 1.0);
   vec3 litRGB = mix(uClearColor, litColor, blendFactor);
   gl_FragColor = vec4(litColor, color.a);
