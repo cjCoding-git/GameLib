@@ -11,6 +11,7 @@ uniform int uLightCount;
 uniform int uLightType[MAX_LIGHTS];
 uniform vec3 uLightColor[MAX_LIGHTS];
 uniform vec3 uLightVector[MAX_LIGHTS];
+uniform vec3 uClearColor;
 uniform float uLightIntensity[MAX_LIGHTS];
 uniform float uLightRange[MAX_LIGHTS];
 out vec4 outColor;
