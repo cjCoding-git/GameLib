@@ -79,3 +79,5 @@ jobs:
       - name: Release to NPM
         run: |
           npx npm@latest publish --provenance --access public --tag latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
