@@ -79,6 +79,7 @@ jobs:
           npm config get registry
           ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to GitHub NPM
+        continue-on-error: true
         run: |
           npx npm@latest publish --provenance --access public --tag latest
         env:
@@ -94,5 +95,6 @@ jobs:
           npm config get registry
           ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to NPM
+        continue-on-error: true
         run: |
           npx npm@latest publish --provenance --access public --tag latest
