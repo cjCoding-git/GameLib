@@ -3212,14 +3212,22 @@ ${nodesText}`;
           throw new GameLibCore2.Error("Object being added to Group must be in same scene as group!");
         } else {
           object.group = this;
+          object.id = GameLibCore2.Utils.UUID();
           if (object.transform) {
             object.transform.setGroup(this);
           }
           this._objects.push(object);
+          return object.id;
         }
       } else {
         throw new GameLibCore2.Error("Group.addObject(object) must be passed an Object or Group!");
       }
+    }
+    getObjects() {
+      return this._objects;
+    }
+    removeObject(id) {
+      this._objects = this._objects.filter((object) => object.id !== id);
     }
     update(camera) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
@@ -3347,11 +3355,19 @@ ${nodesText}`;
     }
     addObject(object) {
       if (object instanceof Object2 || object instanceof Group) {
+        object.id = GameLibCore2.Utils.UUID();
         object.setup();
         this._objects.push(object);
+        return object.id;
       } else {
         throw new GameLibCore2.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of Object!");
       }
+    }
+    getObjects() {
+      return this._objects;
+    }
+    removeObject(id) {
+      this._objects = this._objects.filter((object) => object.id !== id);
     }
     update() {
       if (!this._active) return;
