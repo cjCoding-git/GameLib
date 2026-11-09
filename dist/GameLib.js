@@ -3144,6 +3144,10 @@ ${nodesText}`;
     getClearColor() {
       return this._clearColor;
     }
+    getOpaqueClearColor() {
+      var clearColor = this._clearColor;
+      return [clearColor[0], clearColor[1], clearColor[2]];
+    }
     compileShader(type, source) {
       if (typeof type == "string") {
         if (type == "vertex") {
@@ -71154,7 +71158,7 @@ ${nodesText}`;
       }
       var clearColorLocation = uniform("uClearColor");
       if (clearColorLocation !== null) {
-        webgl.uniform4fv(clearColorLocation, new Float32Array(this._gameLib.getClearColor()));
+        webgl.uniform3fv(clearColorLocation, new Float32Array(this._gameLib.getOpaqueClearColor()));
       }
       webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
       webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
