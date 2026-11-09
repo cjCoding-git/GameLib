@@ -45,6 +45,9 @@ void main() {
   if (uUseTexture) {
     color *= texture2D(uTexture, vUV);
   }
-  vec3 litRGB = color.rgb * calculateLighting();
+  vec3 lightVec = calculateLighting();
+  vec3 litColor = color.rgb * lightVec;
+  vec3 lightFactor = clamp(lightVec, 0.0, 1.0);
+  vec3 litRGB = mix(uClearColor, litColor, lightFactor);
   gl_FragColor = vec4(litRGB, color.a);
 }
