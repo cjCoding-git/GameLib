@@ -52,6 +52,10 @@ class GameLib extends GameLibCore.GameLibBase {
   getClearColor() {
     return this._clearColor;
   }
+  getOpaqueClearColor() {
+    var clearColor = this._clearColor;
+    return [clearColor[0], clearColor[1], clearColor[2]];
+  }
   compileShader(type, source) {
     if(typeof type == "string") {
       if(type == "vertex") {
