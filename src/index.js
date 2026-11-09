@@ -4,7 +4,7 @@
   Libraries Used in GameLib:
     Ammo.js Copyright (c) 2011 ammo.js contributors
     Matter.js Copyright (c) Liam Brummitt and contributors
-*/
+*/ 
 import { GameLibCore } from "./Core/index.js"
 import { GameLib2D } from "./2D/index.js"
 import { GameLib3D } from "./3D/index.js"
