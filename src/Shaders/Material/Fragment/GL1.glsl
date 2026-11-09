@@ -46,7 +46,7 @@ void main() {
     color *= texture2D(uTexture, vUV);
   }
   vec3 ambientLight, diffuseLight;
-  calculateLighting(ambientLight, diffuseLight)
+  calculateLighting(ambientLight, diffuseLight);
   float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));
   float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);
   vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);
