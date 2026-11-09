@@ -3160,13 +3160,12 @@ ${nodesText}`;
       this.rotation.rotate(x, y, z);
     }
     getModelMatrix() {
-      var calcTransform = this._calculateTransform();
       var matrix = mat4.create();
-      mat4.translate(matrix, matrix, [calcTransform.position.x, calcTransform.position.y, calcTransform.position.z]);
-      mat4.rotateX(matrix, matrix, calcTransform.rotation.x);
-      mat4.rotateY(matrix, matrix, calcTransform.rotation.y);
-      mat4.rotateZ(matrix, matrix, calcTransform.rotation.z);
-      mat4.scale(matrix, matrix, [calcTransform.scale.x, calcTransform.scale.y, calcTransform.scale.x]);
+      mat4.translate(matrix, matrix, [this.position.x, this.position.y, this.position.z]);
+      mat4.rotateX(matrix, matrix, this.rotation.x);
+      mat4.rotateY(matrix, matrix, this.rotation.y);
+      mat4.rotateZ(matrix, matrix, this.rotation.z);
+      mat4.scale(matrix, matrix, [this.scale.x, this.scale.y, this.scale.x]);
       var groupTransform = this.getGroupTransform();
       if (groupTransform) {
         var groupMatrix = groupTransform.getModelMatrix();
