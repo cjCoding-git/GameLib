@@ -2194,6 +2194,7 @@
       this._gameLib = gameLib;
       this._gl = this._gameLib.webgl;
       this.scene = scene;
+      this.group = null;
     }
     setup() {
     }
@@ -3094,6 +3095,144 @@ ${nodesText}`;
     }
   };
 
+  // src/3D/Position.js
+  var Position = class {
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+    }
+    translate(dx, dy, dz) {
+      this.x += dx;
+      this.y += dy;
+      this.z += dz;
+    }
+  };
+
+  // src/3D/Rotation.js
+  var Rotation2 = class {
+    constructor(x = 0, y = 0, z = 0) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+    }
+    static d2r(deg) {
+      return deg * Math.PI / 180;
+    }
+    static r2d(rad) {
+      return rad * (180 / Math.PI);
+    }
+    rotate(rx, ry, rz) {
+      this.x += rx;
+      this.y += ry;
+      this.z += rz;
+    }
+  };
+
+  // src/3D/Scale.js
+  var Scale = class {
+    constructor(x = 1, y = 1, z = 1) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+    }
+  };
+
+  // src/3D/Transform.js
+  var Transform = class {
+    constructor(position = new Position(), rotation = new Rotation2(), scale = new Scale()) {
+      this.position = position;
+      this.rotation = rotation;
+      this.scale = scale;
+      this.group = null;
+    }
+    setGroup(group) {
+      this.group = group;
+    }
+    getGroupTransform() {
+      if (!this.group) return null;
+      return this.group.transform;
+    }
+    translate(x, y, z) {
+      this.position.translate(x, y, z);
+    }
+    rotate(x, y, z) {
+      this.rotation.rotate(x, y, z);
+    }
+    _calculateTransform() {
+      if (!this.group || !this.getGroupTransform()) return this;
+      var groupTransform = this.getGroupTransform();
+      return {
+        position: {
+          x: this.position.x + groupTransform.position.x,
+          y: this.position.y + groupTransform.position.y,
+          z: this.position.z + groupTransform.position.z
+        },
+        rotation: {
+          x: this.rotation.x + groupTransform.rotation.x,
+          y: this.rotation.y + groupTransform.rotation.y,
+          z: this.rotation.z + groupTransform.rotation.z
+        },
+        scale: {
+          x: this.scale.x + groupTransform.scale.x,
+          y: this.scale.y + groupTransform.scale.y,
+          z: this.scale.z + groupTransform.scale.z
+        }
+      };
+    }
+    getModelMatrix() {
+      var calcTransform = this._calculateTransform();
+      var matrix = mat4.create();
+      mat4.translate(matrix, matrix, [calcTransform.position.x, calcTransform.position.y, calcTransform.position.z]);
+      mat4.rotateX(matrix, matrix, calcTransform.rotation.x);
+      mat4.rotateY(matrix, matrix, calcTranform.rotation.y);
+      mat4.rotateZ(matrix, matrix, calcTransform.rotation.z);
+      mat4.scale(matrix, matrix, [calcTransform.scale.x, calcTransform.scale.y, calcTransform.scale.x]);
+      return matrix;
+    }
+    getNormalMatrix(modelViewMatrix) {
+      var normalMatrix = mat4.create();
+      mat4.invert(normalMatrix, modelViewMatrix);
+      mat4.transpose(normalMatrix, normalMatrix);
+      return normalMatrix;
+    }
+  };
+
+  // src/3D/Group.js
+  var Group = class _Group {
+    constructor(gameLib, scene) {
+      this._gameLib = gameLib;
+      this.scene = scene;
+      this._objects = [];
+      this.transform = new Transform();
+    }
+    addObject(object) {
+      if (object instanceof Object2 || object instanceof _Group) {
+        if (object.scene !== this.scene) {
+          throw new GameLibCore2.Error("Object being added to Group must be in same scene as group!");
+        } else {
+          object.group = this;
+          if (object.transform) {
+            object.transform.setGroup(this);
+          }
+          this._objects.push(object);
+        }
+      } else {
+        throw new GameLibCore2.Error("Group.addObject(object) must be passed an Object or Group!");
+      }
+    }
+    update(camera) {
+      for (var i2 = 0; i2 < this._objects.length; i2++) {
+        this._objects[i2].update(camera);
+      }
+    }
+    draw(camera) {
+      for (var i2 = 0; i2 < this._objects.length; i2++) {
+        this._objects[i2].draw(camera);
+      }
+    }
+  };
+
   // src/3D/GameLib.js
   var GameLib2 = class extends GameLibCore2.GameLibBase {
     constructor(renderCanvas, renderCtx, options) {
@@ -3207,7 +3346,7 @@ ${nodesText}`;
       this._gl.enableVertexAttribArray(location);
     }
     addObject(object) {
-      if (object instanceof Object2) {
+      if (object instanceof Object2 || object instanceof Group) {
         object.setup();
         this._objects.push(object);
       } else {
@@ -3295,79 +3434,6 @@ ${nodesText}`;
     getLights(scene) {
       if (!scene) scene = this._scene;
       return this._objects.filter((object) => object.isLight && object.scene === scene);
-    }
-  };
-
-  // src/3D/Position.js
-  var Position = class {
-    constructor(x = 0, y = 0, z = 0) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-    }
-    translate(dx, dy, dz) {
-      this.x += dx;
-      this.y += dy;
-      this.z += dz;
-    }
-  };
-
-  // src/3D/Rotation.js
-  var Rotation2 = class {
-    constructor(x = 0, y = 0, z = 0) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-    }
-    static d2r(deg) {
-      return deg * Math.PI / 180;
-    }
-    static r2d(rad) {
-      return rad * (180 / Math.PI);
-    }
-    rotate(rx, ry, rz) {
-      this.x += rx;
-      this.y += ry;
-      this.z += rz;
-    }
-  };
-
-  // src/3D/Scale.js
-  var Scale = class {
-    constructor(x = 1, y = 1, z = 1) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-    }
-  };
-
-  // src/3D/Transform.js
-  var Transform = class {
-    constructor(position = new Position(), rotation = new Rotation2(), scale = new Scale()) {
-      this.position = position;
-      this.rotation = rotation;
-      this.scale = scale;
-    }
-    translate(x, y, z) {
-      this.position.translate(x, y, z);
-    }
-    rotate(x, y, z) {
-      this.rotation.rotate(x, y, z);
-    }
-    getModelMatrix() {
-      var matrix = mat4.create();
-      mat4.translate(matrix, matrix, [this.position.x, this.position.y, this.position.z]);
-      mat4.rotateX(matrix, matrix, this.rotation.x);
-      mat4.rotateY(matrix, matrix, this.rotation.y);
-      mat4.rotateZ(matrix, matrix, this.rotation.z);
-      mat4.scale(matrix, matrix, [this.scale.x, this.scale.y, this.scale.x]);
-      return matrix;
-    }
-    getNormalMatrix(modelViewMatrix) {
-      var normalMatrix = mat4.create();
-      mat4.invert(normalMatrix, modelViewMatrix);
-      mat4.transpose(normalMatrix, normalMatrix);
-      return normalMatrix;
     }
   };
 
@@ -71587,6 +71653,7 @@ ${nodesText}`;
     static TextureFactory = TextureFactory;
     static UI = UI2;
     static Lighting = Lighting;
+    static Group = Group;
   };
 
   // src/index.js
