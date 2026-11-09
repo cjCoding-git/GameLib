@@ -25,7 +25,7 @@ class GameLib extends GameLibCore.GameLibBase {
       this._uiRenderer.addObject(this._uiLoading);
       this._listeners = {};
       this.registerMainloop();
-      this._gl.clearColor(this._clearColor);
+      this._gl.clearColor(...this._clearColor);
       GameLib3D.GameLib._instance = this;
     }
   }
