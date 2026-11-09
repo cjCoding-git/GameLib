@@ -135,7 +135,7 @@ class Mesh extends Object {
     }
     var clearColorLocation = uniform("uClearColor");
     if(clearColorLocation !== null) {
-      webgl.uniform4fv(clearColorLocation, new Float32Array(this._gameLib.getClearColor()));
+      webgl.uniform3fv(clearColorLocation, new Float32Array(this._gameLib.getOpaqueClearColor()));
     }
     webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
     webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
