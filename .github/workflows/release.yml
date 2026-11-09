@@ -97,4 +97,5 @@ jobs:
       - name: Release to NPM
         continue-on-error: true
         run: |
+          npm config set registry https://registry.npmjs.org/
           npx npm@latest publish --provenance --access public --tag latest
