@@ -3174,9 +3174,9 @@ ${nodesText}`;
           z: this.rotation.z + groupTransform.rotation.z
         },
         scale: {
-          x: this.scale.x + groupTransform.scale.x,
-          y: this.scale.y + groupTransform.scale.y,
-          z: this.scale.z + groupTransform.scale.z
+          x: this.scale.x * groupTransform.scale.x,
+          y: this.scale.y * groupTransform.scale.y,
+          z: this.scale.z * groupTransform.scale.z
         }
       };
     }
