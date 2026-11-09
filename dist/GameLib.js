@@ -1732,6 +1732,7 @@
       var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas);
       var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
       var calcXY = new Coord(mousePos[0], mousePos[1]);
+      var canvasRect = this._viewportCanvas.getBoundingClientRect();
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonHover = false;
         buttons.forEach((function(button) {
@@ -1750,6 +1751,7 @@
       var mousePos = this.inputManager.getCanvasMousePos(this._viewportCanvas);
       var buttons = this._renderables.filter((renderable) => typeof renderable.handleClick === "function" && typeof renderable.handleHover === "function");
       var calcXY = new Coord(mousePos[0], mousePos[1]);
+      var canvasRect = this._viewportCanvas.getBoundingClientRect();
       if (calcXY.x <= canvasRect.width && calcXY.y <= canvasRect.height) {
         var buttonClicked = false;
         buttons.forEach((function(button) {
