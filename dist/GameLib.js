@@ -3185,7 +3185,7 @@ ${nodesText}`;
       var matrix = mat4.create();
       mat4.translate(matrix, matrix, [calcTransform.position.x, calcTransform.position.y, calcTransform.position.z]);
       mat4.rotateX(matrix, matrix, calcTransform.rotation.x);
-      mat4.rotateY(matrix, matrix, calcTranform.rotation.y);
+      mat4.rotateY(matrix, matrix, calcTransform.rotation.y);
       mat4.rotateZ(matrix, matrix, calcTransform.rotation.z);
       mat4.scale(matrix, matrix, [calcTransform.scale.x, calcTransform.scale.y, calcTransform.scale.x]);
       return matrix;
