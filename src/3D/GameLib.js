@@ -3,6 +3,7 @@ import { GameLib3D } from "./index.js"
 import { Object } from "./Object.js"
 import { UIRenderer } from "./UI/UIRenderer.js"
 import { UILoading } from "./UI/UILoading.js"
+import { Group } from "./Group.js"
 class GameLib extends GameLibCore.GameLibBase {
   constructor(renderCanvas, renderCtx, options) {
     super();
@@ -115,7 +116,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this._gl.enableVertexAttribArray(location);
   }
   addObject(object) {
-    if(object instanceof Object) {
+    if(object instanceof Object || object instanceof Group) {
       object.setup();
       this._objects.push(object);
     } else {
