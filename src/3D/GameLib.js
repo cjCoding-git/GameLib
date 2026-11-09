@@ -117,11 +117,19 @@ class GameLib extends GameLibCore.GameLibBase {
   }
   addObject(object) {
     if(object instanceof Object || object instanceof Group) {
+      object.id = GameLibCore.Utils.UUID();
       object.setup();
       this._objects.push(object);
+      return object.id;
     } else {
       throw new GameLibCore.Error("GameLib3D.GameLib.addObject(object) must be passed an instance of Object!");
     }
+  }
+  getObjects() {
+    return this._objects;
+  }
+  removeObject(id) {
+    this._objects = this._objects.filter(object => object.id !== id);
   }
   update() {
     if(!this._active) return;
