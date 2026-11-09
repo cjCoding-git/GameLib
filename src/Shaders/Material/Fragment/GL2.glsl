@@ -49,7 +49,8 @@ void main() {
   }
   vec3 lightVec = calculateLighting();
   vec3 litColor = color.rgb * lightVec;
-  vec3 lightFactor = clamp(lightVec, 0.0, 1.0);
-  vec3 litRGB = mix(uClearColor, litColor, lightFactor);
+  float rawLight = max(lightVec.r, max(lightVec.g, lightVec.b));
+  float blendFactor = clamp(sqrt(rawLight), 0.0, 1.0);
+  vec3 litRGB = mix(uClearColor, litColor, blendFactor);
   outColor = vec4(litRGB, color.a);
 }
