@@ -19,8 +19,5 @@
     "url": "git+https://github.com/cjCoding-git/GameLib.git"
   },
   "license": "MIT",
-  "jsdelivr": "dist/GameLib.min.js",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  }
+  "jsdelivr": "dist/GameLib.min.js"
 }
