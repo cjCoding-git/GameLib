@@ -366,6 +366,7 @@
       var element = document.createElement("canvas");
       element.width = width;
       element.height = height;
+      return element;
     }
     static getRandomListItem(list) {
       var index = Math.floor(Math.random() * list.length);
