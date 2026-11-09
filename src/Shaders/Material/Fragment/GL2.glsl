@@ -14,16 +14,17 @@ uniform vec3 uLightVector[MAX_LIGHTS];
 uniform vec3 uClearColor;
 uniform float uLightIntensity[MAX_LIGHTS];
 uniform float uLightRange[MAX_LIGHTS];
-out vec4 outColor;
-vec3 calculateLighting() {
+out vec4 fragColor;
+void calculateLighting(out vec3 ambient, out vec3 diffuse) {
   vec3 normal = normalize(vNormal);
-  vec3 illumination = vec3(0.0);
+  ambient = vec3(0.0);
+  diffuse = vec3(0.0);
   for (int i = 0; i < MAX_LIGHTS; i++) {
     if (i >= uLightCount) {
       break;
     }
     if (uLightType[i] == 0) {
-      illumination += uLightColor[i] * uLightIntensity[i];
+        ambient += uLightColor[i] * uLightIntensity[i];
     } else {
       vec3 toLight;
       float attenuation = 1.0;
@@ -36,21 +37,20 @@ vec3 calculateLighting() {
         float ratio = distanceToLight / max(uLightRange[i], 0.0001);
         attenuation = 1.0 / (1.0 + ratio * ratio);
       }
-      float diffuse = max(dot(normal, toLight), 0.0);
-      illumination += uLightColor[i] * uLightIntensity[i] * diffuse * attenuation;
+      float diff = max(dot(normal, toLight), 0.0);
+      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;
     }
   }
-  return illumination;
 }
 void main() {
   vec4 color = vColor;
   if (uUseTexture) {
     color *= texture(uTexture, vUV);
   }
-  vec3 lightVec = calculateLighting();
-  vec3 litColor = color.rgb * lightVec;
-  float rawLight = (lightVec.r + lightVec.g + lightVec.b) / 3.0;
-  float blendFactor = clamp(sqrt(rawLight), 0.0, 1.0);
-  vec3 litRGB = mix(uClearColor, litColor, blendFactor);
-  outColor = vec4(litRGB, color.a);
+  calculateLighting(ambientLight, diffuseLight);
+  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));
+  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);
+  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);
+  vec3 litRGB = ambientBase + (color.rgb * diffuseLight);
+  fragColor = vec4(litRGB, color.a);
 }
