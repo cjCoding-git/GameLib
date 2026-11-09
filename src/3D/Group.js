@@ -31,6 +31,11 @@ class Group {
   removeObject(id) {
     this._objects = this._objects.filter(object => object.id !== id);
   }
+  setup() {
+    for(var i=0;i<this._objects.length;i++) {
+      this._objects[i].setup();
+    }
+  }
   update(camera) {
     for(var i=0;i<this._objects.length;i++) {
       this._objects[i].update(camera);
