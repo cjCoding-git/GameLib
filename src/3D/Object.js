@@ -3,6 +3,7 @@ class Object {
     this._gameLib = gameLib;
     this._gl = this._gameLib.webgl;
     this.scene = scene;
+    this.group = null;
   }
   setup() {}
   update(camera) {}
