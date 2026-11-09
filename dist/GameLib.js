@@ -71154,7 +71154,7 @@ ${nodesText}`;
       }
       var clearColorLocation = uniform("uClearColor");
       if (clearColorLocation !== null) {
-        webgl.uniform1fv(clearColorLocation, new Float32Array(this._gameLib.getClearColor()));
+        webgl.uniform4fv(clearColorLocation, new Float32Array(this._gameLib.getClearColor()));
       }
       webgl.bindBuffer(webgl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
       webgl.drawElements(webgl.TRIANGLES, this.indexCount, webgl.UNSIGNED_SHORT, 0);
