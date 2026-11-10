@@ -38,6 +38,9 @@ class Equirectangular extends Skybox {
     gl.bindTexture(gl.TEXTURE_2D, this._texture);
     gl.uniform1i(gl.getUniformLocation(this._program, "uEquirectangularMap"), 0);
   }
+  getEnvironmentTexture() {
+    return this._texture || null;
+  }
 }
 export {
   Equirectangular
