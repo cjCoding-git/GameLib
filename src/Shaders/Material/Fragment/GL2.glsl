@@ -19,7 +19,34 @@ uniform float uMetallic;
 uniform vec4 uEmissive;
 uniform vec4 uSpecular;
 uniform float uShininess;
+uniform samplerCube uEnvironmentMap;
+uniform int uSkyMode;
+uniform mat4 uInverseViewMatrix;
+uniform vec3 uZenithColor;
+uniform vec3 uHorizonColor;
+uniform vec3 uGroundColor;
+uniform vec3 uSunDirection;
+uniform vec3 uSunColor;
+uniform float uSunExponent;
 out vec4 outColor;
+vec3 sampleEnvironment(vec3 reflectDirWorld) {
+  if (uSkyMode == 1) {
+    return texture(uEnvironmentMap, reflectDirWorld).rgb;
+  } else if (uSkyMode == 2) {
+    vec3 dir = normalize(reflectDirWorld);
+    float y = dir.y;
+    vec3 skyColor;
+    if (y > 0.0) {
+      skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));
+    } else {
+      skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));
+    }
+    float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);
+    float sunGlow = pow(sunDot, uSunExponent);
+    return skyColor + uSunColor * sunGlow;
+  }
+  return vec3(0.0);
+}
 void calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {
   vec3 normal = normalize(vNormal);
   vec3 viewDir = normalize(-vViewPosition);
@@ -60,12 +87,21 @@ void main() {
   if (uUseTexture) {
     color *= texture(uTexture, vUV);
   }
+  vec3 envReflection = vec3(0.0);
+  if (uSkyMode > 0) {
+    vec3 viewDir = normalize(-vViewPosition);
+    vec3 reflectDirView = reflect(-viewDir, normalize(vNormal));
+    vec3 reflectDirWorld = (uInverseViewMatrix * vec4(reflectDirView, 0.0)).xyz;
+    envReflection = sampleEnvironment(reflectDirWorld);
+  }
   vec3 ambientLight, diffuseLight, specularLight;
   calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);
   float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));
   float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);
   vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);
+  vec3 metalSpecColor = mix(uSpecular.rgb, color.rgb, uMetallic);
+  vec3 reflectionComponent = envReflection * metalSpecColor * (1.0 - uRoughness * 0.8);
   vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);
-  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;
+  vec3 litRGB = ambientBase + diffuseComponent + specularLight + mix(vec3(0.0), reflectionComponent, uMetallic) + uEmissive.rgb;
   outColor = vec4(litRGB, color.a);
 }
