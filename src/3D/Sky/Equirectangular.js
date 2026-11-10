@@ -1,9 +1,10 @@
 import { GameLibCore } from "../../Core/index.js"
+import { Skybox } from "./Skybox.js"
 import GL1Vertex from "../../Shaders/Sky/Equirectangular/Vertex/GL1.glsl"
 import GL2Vertex from "../../Shaders/Sky/Equirectangular/Vertex/GL2.glsl"
 import GL1Fragment from "../../Shaders/Sky/Equirectangular/Fragment/GL1.glsl"
 import GL2Fragment from "../../Shaders/Sky/Equirectangular/Fragment/GL2.glsl"
-class Equirectangular {
+class Equirectangular extends Skybox {
   constructor(gameLib, textureUrl=null) {
     var webGL2 = gameLib.options && gameLib.options.webGL2 !== false;
     var vsSource = webGL2 ? GL2Vertex : GL1Vertex;
