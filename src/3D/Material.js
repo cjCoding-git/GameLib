@@ -39,30 +39,34 @@ class Material {
     this._shininess = Material.normalizeNumber(shininess, 32.0, 32.0);
     return this;
   }
-  bindUniforms(gl, program) {
+  bindUniforms(gl, program, camera = null) {
+    var uTextureLoc = gl.getUniformLocation(program, "uTexture");
+    if (uTextureLoc !== null) gl.uniform1i(uTextureLoc, 0);
+    var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
+    if (uEnvMapLoc !== null) gl.uniform1i(uEnvMapLoc, 1);
+    if (this.texture) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    }
     var uRoughness = gl.getUniformLocation(program, "uRoughness");
     var uMetallic = gl.getUniformLocation(program, "uMetallic");
     var uEmissive = gl.getUniformLocation(program, "uEmissive");
     var uSpecular = gl.getUniformLocation(program, "uSpecular");
     var uShininess = gl.getUniformLocation(program, "uShininess");
-    if(uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
-    if(uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
-    if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
-    if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
-    if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
+    if (uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
+    if (uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
+    if (uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
+    if (uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
+    if (uShininess !== null) gl.uniform1f(uShininess, this._shininess);
     var activeSkybox = this.gameLib ? this.gameLib.getSkybox() : null;
     var uSkyModeLoc = gl.getUniformLocation(program, "uSkyMode");
     var uInvViewMatrixLoc = gl.getUniformLocation(program, "uInverseViewMatrix");
     var skyMode = 0;
     if (activeSkybox) {
-      if (activeSkybox._texture) {
+      if (activeSkybox.texture) {
         skyMode = 1;
-        var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
-        if (uEnvMapLoc !== null) {
-          gl.activeTexture(gl.TEXTURE1);
-          gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox._texture);
-          gl.uniform1i(uEnvMapLoc, 1);
-        }
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox.texture);
       } else if (activeSkybox.zenithColor || activeSkybox.gradientParams) {
         skyMode = 2;
         var p = activeSkybox.gradientParams || activeSkybox;
