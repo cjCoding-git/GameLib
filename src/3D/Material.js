@@ -16,6 +16,39 @@ class Material {
     this.texture = null;
     this.textureUnit = 0;
     this.uniforms = {};
+    this._roughness = 0.5;
+    this._metallic = 0.0;
+    this._emissive = [0.0, 0.0, 0.0, 0.0];
+    this._specular = [1.0, 1.0, 1.0, 1.0];
+    this._snininess = 32.0;
+  }
+  setRoughness(roughness) {
+    this._roughness = Material.normalizeNumber(roughness, 0.0);
+    return this;
+  }
+  setMetallic(metallic) {
+    this._metallic = Material.normalizeNumber(metallic, 0.0);
+    return this;
+  }
+  setEmissive(color) {
+    this._emissive = Material.normalizeColor(color);
+  }
+  setSpecular(color, shininess=this._shininess) {
+    this._specular = Material.normalizeColor(color);
+    this._shininess = Material.normalizeNumber(shininess, 32.0);
+    return this;
+  }
+  bindUniforms(gl, program) {
+    var uRoughness = gl.getUniformLocation("uRoughness");
+    var uMetallic = gl.getUniformLocation("uMetallic");
+    var uEmissive = gl.getUniformLocation("uEmissive");
+    var uSpecular = gl.getUniformLocation("uSpecular");
+    var uShininess = gl.getUniformLocation("uShininess");
+    if(uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
+    if(uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
+    if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
+    if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
+    if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
   }
   static webGL1VertexShader = GL1Vertex;
   static webGL1FragmentShader = GL1Fragment;
@@ -26,6 +59,9 @@ class Material {
   }
   static get standardFragmentShader() {
     return Material.webGL1FragmentShader;
+  }
+  static normalizeNumber(num, backup) {
+    return Math.max(0.0, Math.min(1.0, Number(roughness) || backup));
   }
   static normalizeColor(color) {
     if (!Array.isArray(color)) {
