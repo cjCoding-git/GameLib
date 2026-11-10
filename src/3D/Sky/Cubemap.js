@@ -46,6 +46,9 @@ class Cubemap extends Skybox {
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._texture);
     gl.uniform1i(gl.getUniformLocation(this._program, "uSkyboxCubemap"), 0);
   }
+  getEnvironmentTexture() {
+    return this._texture || null;
+  }
 }
 export {
   Cubemap
