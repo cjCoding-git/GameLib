@@ -71290,11 +71290,11 @@ ${nodesText}`;
       return this;
     }
     bindUniforms(gl, program) {
-      var uRoughness = gl.getUniformLocation(gl, "uRoughness");
-      var uMetallic = gl.getUniformLocation(gl, "uMetallic");
-      var uEmissive = gl.getUniformLocation(gl, "uEmissive");
-      var uSpecular = gl.getUniformLocation(gl, "uSpecular");
-      var uShininess = gl.getUniformLocation(gl, "uShininess");
+      var uRoughness = gl.getUniformLocation(program, "uRoughness");
+      var uMetallic = gl.getUniformLocation(program, "uMetallic");
+      var uEmissive = gl.getUniformLocation(program, "uEmissive");
+      var uSpecular = gl.getUniformLocation(program, "uSpecular");
+      var uShininess = gl.getUniformLocation(program, "uShininess");
       if (uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
       if (uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
       if (uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
