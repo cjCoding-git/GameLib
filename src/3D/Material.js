@@ -61,7 +61,7 @@ class Material {
     return Material.webGL1FragmentShader;
   }
   static normalizeNumber(num, backup) {
-    return Math.max(0.0, Math.min(1.0, Number(roughness) || backup));
+    return Math.max(0.0, Math.min(1.0, Number(num) || backup));
   }
   static normalizeColor(color) {
     if (!Array.isArray(color)) {
