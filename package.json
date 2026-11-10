@@ -1,6 +1,6 @@
 {
   "name": "@cjcoding-git/gamelib",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A minimal game engine.",
   "main": "src/index.js",
   "type": "module",

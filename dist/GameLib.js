@@ -71148,6 +71148,7 @@ ${nodesText}`;
       this._gameLib.setProgramAttribute(materialProgram, "aVertexNormal", this.buffers.normal, 3);
       this._gameLib.setProgramAttribute(materialProgram, "aVertexColor", this.buffers.color, 4);
       this._gameLib.setProgramAttribute(materialProgram, "aTextureCoord", this.buffers.uv, 2);
+      this.material.bindUniforms(webgl, materialProgram);
       var useTextureLocation = uniform("uUseTexture");
       if (useTextureLocation !== null) {
         webgl.uniform1i(useTextureLocation, this.material.texture ? 1 : 0);
@@ -71244,13 +71245,13 @@ ${nodesText}`;
   var GL1_default5 = "attribute vec3 aVertexPosition;\nattribute vec3 aVertexNormal;\nattribute vec4 aVertexColor;\nattribute vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL1.glsl
-  var GL1_default6 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse) {\n  vec3 normal = normalize(vNormal);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 ambientLight, diffuseLight;\n  calculateLighting(ambientLight, diffuseLight);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 litRGB = ambientBase + (color.rgb * diffuseLight);\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
+  var GL1_default6 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = pow(specAngle, specPower) * (1.0 - uRoughness);\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
 
   // src/Shaders/Material/Vertex/GL2.glsl
   var GL2_default5 = "#version 300 es\nin vec3 aVertexPosition;\nin vec3 aVertexNormal;\nin vec4 aVertexColor;\nin vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nout vec4 vColor;\nout vec2 vUV;\nout vec3 vNormal;\nout vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL2.glsl
-  var GL2_default6 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nout vec4 fragColor;\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse) {\n  vec3 normal = normalize(vNormal);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n        ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  calculateLighting(ambientLight, diffuseLight);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 litRGB = ambientBase + (color.rgb * diffuseLight);\n  fragColor = vec4(litRGB, color.a);\n}\n";
+  var GL2_default6 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nout vec4 outColor;\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = pow(specAngle, specPower) * (1.0 - uRoughness);\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;\n  outColor = vec4(litRGB, color.a);\n}\n";
 
   // src/3D/Material.js
   var Material = class _Material {
@@ -71266,6 +71267,39 @@ ${nodesText}`;
       this.texture = null;
       this.textureUnit = 0;
       this.uniforms = {};
+      this._roughness = 0.5;
+      this._metallic = 0;
+      this._emissive = [0, 0, 0, 0];
+      this._specular = [1, 1, 1, 1];
+      this._snininess = 32;
+    }
+    setRoughness(roughness2) {
+      this._roughness = _Material.normalizeNumber(roughness2, 0);
+      return this;
+    }
+    setMetallic(metallic) {
+      this._metallic = _Material.normalizeNumber(metallic, 0);
+      return this;
+    }
+    setEmissive(color) {
+      this._emissive = _Material.normalizeColor(color);
+    }
+    setSpecular(color, shininess = this._shininess) {
+      this._specular = _Material.normalizeColor(color);
+      this._shininess = _Material.normalizeNumber(shininess, 32);
+      return this;
+    }
+    bindUniforms(gl, program) {
+      var uRoughness = gl.getUniformLocation("uRoughness");
+      var uMetallic = gl.getUniformLocation("uMetallic");
+      var uEmissive = gl.getUniformLocation("uEmissive");
+      var uSpecular = gl.getUniformLocation("uSpecular");
+      var uShininess = gl.getUniformLocation("uShininess");
+      if (uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
+      if (uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
+      if (uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
+      if (uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
+      if (uShininess !== null) gl.uniform1f(uShininess, this._shininess);
     }
     static webGL1VertexShader = GL1_default5;
     static webGL1FragmentShader = GL1_default6;
@@ -71276,6 +71310,9 @@ ${nodesText}`;
     }
     static get standardFragmentShader() {
       return _Material.webGL1FragmentShader;
+    }
+    static normalizeNumber(num, backup) {
+      return Math.max(0, Math.min(1, Number(roughness) || backup));
     }
     static normalizeColor(color) {
       if (!Array.isArray(color)) {
