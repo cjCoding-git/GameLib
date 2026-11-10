@@ -50,7 +50,7 @@ void calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, ve
       diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;
       vec3 halfVector = normalize(toLight + viewDir);
       float specAngle = max(dot(normal, halfVector), 0.0);
-      float spec = pow(specAngle, specPower) * (1.0 - uRoughness);
+      float spec = specAngle > 0.0 ? pow(specAngle, specPower) * (1.0 - uRoughness) : 0.0;
       specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;
     }
   }
