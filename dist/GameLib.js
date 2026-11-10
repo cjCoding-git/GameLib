@@ -3256,10 +3256,14 @@ ${nodesText}`;
         this._uiLoading.setConfig(this._loadingConfig);
         this._uiRenderer.addObject(this._uiLoading);
         this._listeners = {};
+        this._skybox = null;
         this.registerMainloop();
         this._gl.clearColor(...this._clearColor);
         GameLib3D.GameLib._instance = this;
       }
+    }
+    setSkybox(skybox) {
+      this._skybox = skybox;
     }
     setLoadingConfig(config) {
       this._loadingConfig = config;
@@ -3387,6 +3391,10 @@ ${nodesText}`;
         if (this._objects[i2].scene === this._scene) {
           this._objects[i2].draw(this._camera);
         }
+      }
+      if (this._skybox !== null) {
+        var aspectRatio = this._canvas.width / this._canvas.height;
+        this._skybox.render(this._camera.getProjectionMatrix(aspectRatio), this._camera.getViewMatrix());
       }
       this._uiRenderer.render(this._scene);
       this.callHook("post-render");
@@ -8173,23 +8181,23 @@ ${nodesText}`;
           b = bb.getBlob();
         }
         var url = Browser.URLObject.createObjectURL(b);
-        var img = new Image();
-        img.onload = function img_onload() {
-          assert(img.complete, "Image " + name + " could not be decoded");
+        var img2 = new Image();
+        img2.onload = function img_onload() {
+          assert(img2.complete, "Image " + name + " could not be decoded");
           var canvas2 = document.createElement("canvas");
-          canvas2.width = img.width;
-          canvas2.height = img.height;
+          canvas2.width = img2.width;
+          canvas2.height = img2.height;
           var ctx = canvas2.getContext("2d");
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img2, 0, 0);
           Module["preloadedImages"][name] = canvas2;
           Browser.URLObject.revokeObjectURL(url);
           if (onload) onload(byteArray);
         };
-        img.onerror = function img_onerror(event) {
+        img2.onerror = function img_onerror(event) {
           console.log("Image " + url + " could not be decoded");
           if (onerror) onerror();
         };
-        img.src = url;
+        img2.src = url;
       };
       Module["preloadPlugins"].push(imagePlugin);
       var audioPlugin = {};
@@ -71678,6 +71686,337 @@ ${nodesText}`;
     static AmbientLight = AmbientLight;
   };
 
+  // src/3D/Sky/Skybox.js
+  var Skybox = class {
+    constructor(gameLib, vertexSource = null, fragmentSource = null) {
+      if (!gameLib || !gameLib.webgl) {
+        throw new GameLibCore2.Error("Class Skybox requires a valid GameLib3D instance!");
+      }
+      this._gameLib = gameLib;
+      this._gl = this._gameLib.webgl;
+      this._vbo = null;
+      this._program = null;
+      this._initBuffers();
+      if (vertexSource && fragmentSource) {
+        this._initProgram(vertexSource, fragmentSource);
+      }
+    }
+    _initBuffers() {
+      var gl = this._gl;
+      var vertices = new Float32Array([
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        1,
+        1,
+        -1,
+        -1,
+        1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        -1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        -1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        1,
+        -1,
+        1,
+        1,
+        -1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        -1,
+        1,
+        1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        1,
+        -1,
+        1
+      ]);
+      this._vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    }
+    _initProgram(vsSource, fsSource) {
+      var gl = this._gl;
+      var vs = this._gameLib.compileShader(gl.VERTEX_SHADER, vsSource);
+      var fs = this._gameLib.compileShader(gl.FRAGMENT_SHADER, fsSource);
+      this._program = this._gameLib.createProgram(vs, fs);
+    }
+    _bindUniforms(projectionMatrix, viewNoTranslation) {
+      var gl = this._gl;
+      gl.uniformMatrix4fv(gl.getUniformLocation(this._program, "uProjectionMatrix"), false, projectionMatrix);
+      gl.uniformMatrix4fv(gl.getUniformLocation(this._program, "uViewMatrix"), false, viewNoTranslation);
+    }
+    render(projectionMatrix, viewMatrix) {
+      if (!this._program) return;
+      var gl = this._gl;
+      gl.depthFunc(gl.LEQUAL);
+      gl.useProgram(this._program);
+      var viewNoTranslation = new Float32Array(viewMatrix);
+      viewNoTranslation[12] = 0;
+      viewNoTranslation[13] = 0;
+      viewNoTranslation[14] = 0;
+      this._bindUniforms(projectionMatrix, viewNoTranslation);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._vbo);
+      var aPosLoc = gl.getAttribLocation(this._program, "aPosition");
+      gl.enableVertexAttribArray(aPosLoc);
+      gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 36);
+      gl.depthFunc(gl.LESS);
+    }
+  };
+
+  // src/Shaders/Sky/Cubemap/Vertex/GL1.glsl
+  var GL1_default7 = "attribute vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nvarying vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Cubemap/Vertex/GL2.glsl
+  var GL2_default7 = "#version 300 es\nin vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nout vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Cubemap/Fragment/GL1.glsl
+  var GL1_default8 = "precision mediump float;\nvarying vec3 vTexCoords;\nuniform samplerCube uSkybox;\nvoid main() {\n  gl_FragColor = textureCube(uSkybox, vTexCoords);\n}\n";
+
+  // src/Shaders/Sky/Cubemap/Fragment/GL2.glsl
+  var GL2_default8 = "#version 300 es\nprecision mediump float;\nin vec3 vTexCoords;\nuniform samplerCube uSkybox;\nout vec4 outColor;\nvoid main() {\n  outColor = texture(uSkybox, vTexCoords);\n}\n";
+
+  // src/3D/Sky/Cubemap.js
+  var Cubemap = class extends Skybox {
+    constructor(gameLib, faceUrls = null) {
+      var webGL2 = gameLib.options && gameLib.options.webGL2 !== false;
+      var vsSource = webGL2 ? GL2_default7 : GL1_default7;
+      var fsSource = webGL2 ? GL2_default8 : GL1_default8;
+      super(gameLib, vsSource, fsSource);
+      this._texture = null;
+      if (faceUrls) {
+        this.loadCubemap(faceUrls);
+      }
+    }
+    loadCubemap(faceUrls) {
+      var gl = this._gl;
+      if (this._texture) gl.deleteTexture(this._texture);
+      this._texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._texture);
+      var targets = [
+        gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+      ];
+      targets.forEach((target, i2) => {
+        gl.texImage2D(target, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([50, 50, 50, 255]));
+        GameLibCore2.AssetManager.shared.loadImage(faceUrls[i2]).then(() => {
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.texture);
+          gl.texImage2D(target, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+          gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        });
+      });
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return this;
+    }
+    _bindUniforms(projectionMatrix, viewNoTranslation) {
+      super._bindUniforms(projectionMatrix, viewNoTranslation);
+      var gl = this._gl;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._texture);
+      gl.uniform1i(gl.getUniformLocation(this._program, "uSkyboxCubemap"), 0);
+    }
+  };
+
+  // src/Shaders/Sky/Equirectangular/Vertex/GL1.glsl
+  var GL1_default9 = "attribute vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nvarying vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Equirectangular/Vertex/GL2.glsl
+  var GL2_default9 = "#version 300 es\nin vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nout vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Equirectangular/Fragment/GL1.glsl
+  var GL1_default10 = "precision mediump float;\nvarying vec3 vTexCoords;\nuniform sampler2D uEquirectangularMap;\nconst vec2 invAtan = vec2(0.15915494, 0.31830988);\nvec2 sampleSphericalMap(vec3 dir) {\n  vec2 uv = vec2(atan(dir.z, dir.x), asin(clamp(dir.y, -1.0, 1.0)));\n  uv *= invAtan;\n  uv += 0.5;\n  return uv;\n}\nvoid main() {\n  vec3 dir = normalize(vTexCoords);\n  vec2 uv = sampleSphericalMap(dir);\n  gl_FragColor = texture2D(uEquirectangularMap, uv);\n}\n";
+
+  // src/Shaders/Sky/Equirectangular/Fragment/GL2.glsl
+  var GL2_default10 = "#version 300 es\nprecision mediump float;\nin vec3 vTexCoords;\nuniform sampler2D uEquirectangularMap;\nconst vec2 invAtan = vec2(0.15915494, 0.31830988);\nout vec4 outColor;\nvec2 sampleSphericalMap(vec3 dir) {\n  vec2 uv = vec2(atan(dir.z, dir.x), asin(clamp(dir.y, -1.0, 1.0)));\n  uv *= invAtan;\n  uv += 0.5;\n  return uv;\n}\nvoid main() {\n  vec3 dir = normalize(vTexCoords);\n  vec2 uv = sampleSphericalMap(dir);\n  outColor = texture(uEquirectangularMap, uv);\n}\n";
+
+  // src/3D/Sky/Equirectangular.js
+  var Equirectangular = class extends Skybox {
+    constructor(gameLib, textureUrl = null) {
+      var webGL2 = gameLib.options && gameLib.options.webGL2 !== false;
+      var vsSource = webGL2 ? GL2_default9 : GL1_default9;
+      var fsSource = webGL2 ? GL2_default10 : GL1_default10;
+      super(gameLib, vsSource, fsSource);
+      this._texture = null;
+      if (textureUrl) {
+        this.loadTexture(textureUrl);
+      }
+    }
+    loadTexture(textureUrl) {
+      var gl = this._gl;
+      if (this._texture) gl.deleteTexture(this._texture);
+      this._texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this._texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([50, 50, 50, 255]));
+      GameLibCore2.AssetManager.loadImage(textureUrl).then(() => {
+        gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      });
+      return this;
+    }
+    _bindUniforms(projectionMatrix, viewNoTranslation) {
+      super._bindUniforms(projectionMatrix, viewNoTranslation);
+      var gl = this._gl;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this._texture);
+      gl.uniform1i(gl.getUniformLocation(this._program, "uEquirectangularMap"), 0);
+    }
+  };
+
+  // src/Shaders/Sky/Gradient/Vertex/GL1.glsl
+  var GL1_default11 = "attribute vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nvarying vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Gradient/Vertex/GL2.glsl
+  var GL2_default11 = "#version 300 es\nin vec3 aPosition;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uViewMatrix;\nout vec3 vTexCoords;\nvoid main() {\n  vTexCoords = aPosition;\n  vec4 pos = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);\n  gl_Position = pos.xyww;\n}\n";
+
+  // src/Shaders/Sky/Gradient/Fragment/GL1.glsl
+  var GL1_default12 = "precision mediump float;\nvarying vec3 vTexCoords;\nuniform vec3 uZenithColor;\nuniform vec3 uHorizonColor;\nuniform vec3 uGroundColor;\nuniform vec3 uSunDirection;\nuniform vec3 uSunColor;\nuniform float uSunExponent;\nvoid main() {\n  vec3 dir = normalize(vTexCoords);\n  float y = dir.y;\n  vec3 skyColor;\n  if (y > 0.0) {\n    skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));\n  } else {\n    skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));\n  }\n  float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);\n  float sunGlow = pow(sunDot, uSunExponent);\n  skyColor += uSunColor * sunGlow;\n  gl_FragColor = vec4(skyColor, 1.0);\n}\n";
+
+  // src/Shaders/Sky/Gradient/Fragment/GL2.glsl
+  var GL2_default12 = "#version 300 es\nprecision mediump float;\nin vec3 vTexCoords;\nuniform vec3 uZenithColor;\nuniform vec3 uHorizonColor;\nuniform vec3 uGroundColor;\nuniform vec3 uSunDirection;\nuniform vec3 uSunColor;\nuniform float uSunExponent;\nout vec4 outColor;\nvoid main() {\n  vec3 dir = normalize(vTexCoords);\n  float y = dir.y;\n  vec3 skyColor;\n  if (y > 0.0) {\n    skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));\n  } else {\n    skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));\n  }\n  float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);\n  float sunGlow = pow(sunDot, uSunExponent);\n  skyColor += uSunColor * sunGlow;\n  outColor = vec4(skyColor, 1.0);\n}\n";
+
+  // src/3D/Sky/Gradient.js
+  var Gradient = class extends Skybox {
+    constructor(gameLib, options = {}) {
+      var webGL2 = gameLib.options && gameLib.options.webGL2 !== false;
+      var vsSource = webGL2 ? GL2_default11 : GL1_default11;
+      var fsSource = webGL2 ? GL2_default12 : GL1_default12;
+      super(gameLib, vsSource, fsSource);
+      this.zenithColor = options.zenith || [0.1, 0.35, 0.8];
+      this.horizonColor = options.horizon || [0.7, 0.85, 0.95];
+      this.groundColor = options.ground || [0.2, 0.2, 0.2];
+      this.sunDirection = options.sunDirection || [0.5, 0.5, -0.5];
+      this.sunColor = options.sunColor || [1, 0.9, 0.7];
+      this.sunExponent = options.sunExponent !== void 0 ? options.sunExponent : 256;
+    }
+    setColors({ zenith, horizon, ground }) {
+      if (zenith) this.zenithColor = zenith;
+      if (horizon) this.horizonColor = horizon;
+      if (ground) this.groundColor = ground;
+      return this;
+    }
+    setSun(direction, color = [1, 0.9, 0.7], exponent = 256) {
+      this.sunDirection = direction;
+      this.sunColor = color;
+      this.sunExponent = exponent;
+      return this;
+    }
+    _bindUniforms(projectionMatrix, viewNoTranslation) {
+      super._bindUniforms(projectionMatrix, viewNoTranslation);
+      var gl = this._gl;
+      gl.uniform3fv(gl.getUniformLocation(this._program, "uZenithColor"), this.zenithColor);
+      gl.uniform3fv(gl.getUniformLocation(this._program, "uHorizonColor"), this.horizonColor);
+      gl.uniform3fv(gl.getUniformLocation(this._program, "uGroundColor"), this.groundColor);
+      gl.uniform3fv(gl.getUniformLocation(this._program, "uSunDirection"), this.sunDirection);
+      gl.uniform3fv(gl.getUniformLocation(this._program, "uSunColor"), this.sunColor);
+      gl.uniform1f(gl.getUniformLocation(this._program, "uSunExponent"), this.sunExponent);
+    }
+  };
+
+  // src/3D/Sky/index.js
+  var Sky = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Sky may not be constructed!");
+    }
+    static Skybox = Skybox;
+    static Cubemap = Cubemap;
+    static Equirectangular = Equirectangular;
+    static Gradient = Gradient;
+  };
+
   // src/3D/index.js
   var GameLib3D = class {
     constructor() {
@@ -71701,6 +72040,7 @@ ${nodesText}`;
     static UI = UI2;
     static Lighting = Lighting;
     static Group = Group;
+    static Sky = Sky;
   };
 
   // src/index.js
