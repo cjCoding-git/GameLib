@@ -32,7 +32,6 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          registry-url: 'https://npm.pkg.github.com'
       - name: Install dependencies
         run: |
           npm install
@@ -78,6 +77,11 @@ jobs:
           echo "Checking npm registry auth configuration:"
           npm config get registry
           ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
+      - name: Release to NPM
+        continue-on-error: true
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npx npm@latest publish --provenance --access public --tag latest
       - name: Release to GitHub NPM
         continue-on-error: true
         run: |
@@ -86,18 +90,3 @@ jobs:
           npx npm@latest publish --provenance --access public --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Reconfigure Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - name: Debug NPM Auth
-        run: |
-          echo "Checking npm registry auth configuration:"
-          npm config get registry
-          ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
-      - name: Release to NPM
-        continue-on-error: true
-        run: |
-          npm config set registry https://registry.npmjs.org/
-          npx npm@latest publish --provenance --access public --tag latest
