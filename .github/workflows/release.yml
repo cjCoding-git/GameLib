@@ -86,6 +86,6 @@ jobs:
         continue-on-error: true
         run: |
           npm config set registry https://npm.pkg.github.com/
-          npx npm@latest publish --provenance --access public --tag latest
+          npm publish --provenance --access public --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
