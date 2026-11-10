@@ -50,7 +50,7 @@ class Material {
     if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
     if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
     if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
-    var activeSkybox = this.gameLib ? this.gameLib.getSkybox(); : null;
+    var activeSkybox = this.gameLib ? this.gameLib.getSkybox() : null;
     var uSkyModeLoc = gl.getUniformLocation(program, "uSkyMode");
     var uInvViewMatrixLoc = gl.getUniformLocation(program, "uInverseViewMatrix");
     var skyMode = 0;
