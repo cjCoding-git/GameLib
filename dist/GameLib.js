@@ -2201,9 +2201,9 @@
     }
     setup() {
     }
-    update(camera2) {
+    update(camera) {
     }
-    draw(camera2) {
+    draw(camera) {
     }
   };
 
@@ -3222,14 +3222,14 @@ ${nodesText}`;
         this._objects[i2].setup();
       }
     }
-    update(camera2) {
+    update(camera) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].update(camera2);
+        this._objects[i2].update(camera);
       }
     }
-    draw(camera2) {
+    draw(camera) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].draw(camera2);
+        this._objects[i2].draw(camera);
       }
     }
   };
@@ -3330,8 +3330,8 @@ ${nodesText}`;
       this._program = program;
       this._gl.useProgram(program);
     }
-    setCamera(camera2) {
-      this._camera = camera2;
+    setCamera(camera) {
+      this._camera = camera;
     }
     getAttributeLocation(program, name, forceMode = null) {
       var location;
@@ -71142,14 +71142,14 @@ ${nodesText}`;
       webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
       this.indexCount = this.geometry.indices.length;
     }
-    draw(camera2) {
+    draw(camera) {
       var webgl = this._gl;
       var materialProgram = this.material && this.material.ensureProgram && this.material.ensureProgram(this._gameLib);
       if (!materialProgram) return;
       this._gameLib.useProgram(materialProgram);
       var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
-      var projectionMatrix = camera2.getProjectionMatrix(aspect);
-      var viewMatrix = camera2.getViewMatrix();
+      var projectionMatrix = camera.getProjectionMatrix(aspect);
+      var viewMatrix = camera.getViewMatrix();
       var modelMatrix = this.transform.getModelMatrix();
       var modelViewMatrix = mat4.create();
       mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
@@ -71301,7 +71301,15 @@ ${nodesText}`;
       this._shininess = _Material.normalizeNumber(shininess, 32, 32);
       return this;
     }
-    bindUniforms(gl, program) {
+    bindUniforms(gl, program, camera = null) {
+      var uTextureLoc = gl.getUniformLocation(program, "uTexture");
+      if (uTextureLoc !== null) gl.uniform1i(uTextureLoc, 0);
+      var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
+      if (uEnvMapLoc !== null) gl.uniform1i(uEnvMapLoc, 1);
+      if (this.texture) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      }
       var uRoughness = gl.getUniformLocation(program, "uRoughness");
       var uMetallic = gl.getUniformLocation(program, "uMetallic");
       var uEmissive = gl.getUniformLocation(program, "uEmissive");
@@ -71317,14 +71325,10 @@ ${nodesText}`;
       var uInvViewMatrixLoc = gl.getUniformLocation(program, "uInverseViewMatrix");
       var skyMode = 0;
       if (activeSkybox) {
-        if (activeSkybox._texture) {
+        if (activeSkybox.texture) {
           skyMode = 1;
-          var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
-          if (uEnvMapLoc !== null) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox._texture);
-            gl.uniform1i(uEnvMapLoc, 1);
-          }
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox.texture);
         } else if (activeSkybox.zenithColor || activeSkybox.gradientParams) {
           skyMode = 2;
           var p = activeSkybox.gradientParams || activeSkybox;
