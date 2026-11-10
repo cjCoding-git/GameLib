@@ -2201,9 +2201,9 @@
     }
     setup() {
     }
-    update(camera) {
+    update(camera2) {
     }
-    draw(camera) {
+    draw(camera2) {
     }
   };
 
@@ -3222,14 +3222,14 @@ ${nodesText}`;
         this._objects[i2].setup();
       }
     }
-    update(camera) {
+    update(camera2) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].update(camera);
+        this._objects[i2].update(camera2);
       }
     }
-    draw(camera) {
+    draw(camera2) {
       for (var i2 = 0; i2 < this._objects.length; i2++) {
-        this._objects[i2].draw(camera);
+        this._objects[i2].draw(camera2);
       }
     }
   };
@@ -3264,6 +3264,9 @@ ${nodesText}`;
     }
     setSkybox(skybox) {
       this._skybox = skybox;
+    }
+    getSkybox() {
+      return this._skybox;
     }
     setLoadingConfig(config) {
       this._loadingConfig = config;
@@ -3327,8 +3330,8 @@ ${nodesText}`;
       this._program = program;
       this._gl.useProgram(program);
     }
-    setCamera(camera) {
-      this._camera = camera;
+    setCamera(camera2) {
+      this._camera = camera2;
     }
     getAttributeLocation(program, name, forceMode = null) {
       var location;
@@ -71139,14 +71142,14 @@ ${nodesText}`;
       webgl.bufferData(webgl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.geometry.indices), webgl.STATIC_DRAW);
       this.indexCount = this.geometry.indices.length;
     }
-    draw(camera) {
+    draw(camera2) {
       var webgl = this._gl;
       var materialProgram = this.material && this.material.ensureProgram && this.material.ensureProgram(this._gameLib);
       if (!materialProgram) return;
       this._gameLib.useProgram(materialProgram);
       var aspect = webgl.canvas.clientWidth / webgl.canvas.clientHeight;
-      var projectionMatrix = camera.getProjectionMatrix(aspect);
-      var viewMatrix = camera.getViewMatrix();
+      var projectionMatrix = camera2.getProjectionMatrix(aspect);
+      var viewMatrix = camera2.getViewMatrix();
       var modelMatrix = this.transform.getModelMatrix();
       var modelViewMatrix = mat4.create();
       mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
@@ -71253,13 +71256,13 @@ ${nodesText}`;
   var GL1_default5 = "attribute vec3 aVertexPosition;\nattribute vec3 aVertexNormal;\nattribute vec4 aVertexColor;\nattribute vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL1.glsl
-  var GL1_default6 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = specAngle > 0.0 ? pow(specAngle, specPower) * (1.0 - uRoughness) : 0.0;\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
+  var GL1_default6 = "precision mediump float;\n#define MAX_LIGHTS 8\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nuniform samplerCube uEnvironmentMap;\nuniform int uSkyMode;\nuniform mat4 uInverseViewMatrix;\nuniform vec3 uZenithColor;\nuniform vec3 uHorizonColor;\nuniform vec3 uGroundColor;\nuniform vec3 uSunDirection;\nuniform vec3 uSunColor;\nuniform float uSunExponent;\nvec3 sampleEnvironment(vec3 reflectDirWorld) {\n  if (uSkyMode == 1) {\n    return textureCube(uEnvironmentMap, reflectDirWorld).rgb;\n  } else if (uSkyMode == 2) {\n    vec3 dir = normalize(reflectDirWorld);\n    float y = dir.y;\n    vec3 skyColor;\n    if (y > 0.0) {\n      skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));\n    } else {\n      skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));\n    }\n    float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);\n    float sunGlow = pow(sunDot, uSunExponent);\n    return skyColor + uSunColor * sunGlow;\n  }\n  return vec3(0.0);\n}\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = specAngle > 0.0 ? pow(specAngle, specPower) * (1.0 - uRoughness) : 0.0;\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture2D(uTexture, vUV);\n  }\n  vec3 envReflection = vec3(0.0);\n  if (uSkyMode > 0) {\n    vec3 viewDir = normalize(-vViewPosition);\n    vec3 reflectDirView = reflect(-viewDir, normalize(vNormal));\n    vec3 reflectDirWorld = (uInverseViewMatrix * vec4(reflectDirView, 0.0)).xyz;\n    envReflection = sampleEnvironment(reflectDirWorld);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 metalSpecColor = mix(uSpecular.rgb, color.rgb, uMetallic);\n  vec3 reflectionComponent = envReflection * metalSpecColor * (1.0 - uRoughness * 0.8);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + mix(vec3(0.0), reflectionComponent, uMetallic) + uEmissive.rgb;\n  gl_FragColor = vec4(litRGB, color.a);\n}\n";
 
   // src/Shaders/Material/Vertex/GL2.glsl
   var GL2_default5 = "#version 300 es\nin vec3 aVertexPosition;\nin vec3 aVertexNormal;\nin vec4 aVertexColor;\nin vec2 aTextureCoord;\nuniform mat4 uProjectionMatrix;\nuniform mat4 uModelViewMatrix;\nuniform mat4 uNormalMatrix;\nout vec4 vColor;\nout vec2 vUV;\nout vec3 vNormal;\nout vec3 vViewPosition;\nvoid main() {\n  vec4 viewPosition = uModelViewMatrix * vec4(aVertexPosition, 1.0);\n  vColor = aVertexColor;\n  vUV = aTextureCoord;\n  vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);\n  vViewPosition = viewPosition.xyz;\n  gl_Position = uProjectionMatrix * viewPosition;\n}\n";
 
   // src/Shaders/Material/Fragment/GL2.glsl
-  var GL2_default6 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nout vec4 outColor;\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = specAngle > 0.0 ? pow(specAngle, specPower) * (1.0 - uRoughness) : 0.0;\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;\n  outColor = vec4(litRGB, color.a);\n}\n";
+  var GL2_default6 = "#version 300 es\nprecision mediump float;\n#define MAX_LIGHTS 8\nin vec4 vColor;\nin vec2 vUV;\nin vec3 vNormal;\nin vec3 vViewPosition;\nuniform sampler2D uTexture;\nuniform bool uUseTexture;\nuniform int uLightCount;\nuniform int uLightType[MAX_LIGHTS];\nuniform vec3 uLightColor[MAX_LIGHTS];\nuniform vec3 uLightVector[MAX_LIGHTS];\nuniform vec3 uClearColor;\nuniform float uLightIntensity[MAX_LIGHTS];\nuniform float uLightRange[MAX_LIGHTS];\nuniform float uRoughness;\nuniform float uMetallic;\nuniform vec4 uEmissive;\nuniform vec4 uSpecular;\nuniform float uShininess;\nuniform samplerCube uEnvironmentMap;\nuniform int uSkyMode;\nuniform mat4 uInverseViewMatrix;\nuniform vec3 uZenithColor;\nuniform vec3 uHorizonColor;\nuniform vec3 uGroundColor;\nuniform vec3 uSunDirection;\nuniform vec3 uSunColor;\nuniform float uSunExponent;\nout vec4 outColor;\nvec3 sampleEnvironment(vec3 reflectDirWorld) {\n  if (uSkyMode == 1) {\n    return texture(uEnvironmentMap, reflectDirWorld).rgb;\n  } else if (uSkyMode == 2) {\n    vec3 dir = normalize(reflectDirWorld);\n    float y = dir.y;\n    vec3 skyColor;\n    if (y > 0.0) {\n      skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));\n    } else {\n      skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));\n    }\n    float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);\n    float sunGlow = pow(sunDot, uSunExponent);\n    return skyColor + uSunColor * sunGlow;\n  }\n  return vec3(0.0);\n}\nvoid calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {\n  vec3 normal = normalize(vNormal);\n  vec3 viewDir = normalize(-vViewPosition);\n  ambient = vec3(0.0);\n  diffuse = vec3(0.0);\n  specular = vec3(0.0);\n  float specPower = mix(uShininess, 2.0, uRoughness);\n  vec3 specColor = mix(uSpecular.rgb, baseColor, uMetallic);\n  for (int i = 0; i < MAX_LIGHTS; i++) {\n    if (i >= uLightCount) {\n      break;\n    }\n    if (uLightType[i] == 0) {\n      ambient += uLightColor[i] * uLightIntensity[i];\n    } else {\n      vec3 toLight;\n      float attenuation = 1.0;\n      if (uLightType[i] == 1) {\n        toLight = normalize(uLightVector[i]);\n      } else {\n        vec3 delta = uLightVector[i] - vViewPosition;\n        float distanceToLight = length(delta);\n        toLight = normalize(delta);\n        float ratio = distanceToLight / max(uLightRange[i], 0.0001);\n        attenuation = 1.0 / (1.0 + ratio * ratio);\n      }\n      float diff = max(dot(normal, toLight), 0.0);\n      diffuse += uLightColor[i] * uLightIntensity[i] * diff * attenuation;\n      vec3 halfVector = normalize(toLight + viewDir);\n      float specAngle = max(dot(normal, halfVector), 0.0);\n      float spec = specAngle > 0.0 ? pow(specAngle, specPower) * (1.0 - uRoughness) : 0.0;\n      specular += uLightColor[i] * specColor * spec * uLightIntensity[i] * attenuation;\n    }\n  }\n}\nvoid main() {\n  vec4 color = vColor;\n  if (uUseTexture) {\n    color *= texture(uTexture, vUV);\n  }\n  vec3 envReflection = vec3(0.0);\n  if (uSkyMode > 0) {\n    vec3 viewDir = normalize(-vViewPosition);\n    vec3 reflectDirView = reflect(-viewDir, normalize(vNormal));\n    vec3 reflectDirWorld = (uInverseViewMatrix * vec4(reflectDirView, 0.0)).xyz;\n    envReflection = sampleEnvironment(reflectDirWorld);\n  }\n  vec3 ambientLight, diffuseLight, specularLight;\n  calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);\n  float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));\n  float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);\n  vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);\n  vec3 metalSpecColor = mix(uSpecular.rgb, color.rgb, uMetallic);\n  vec3 reflectionComponent = envReflection * metalSpecColor * (1.0 - uRoughness * 0.8);\n  vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);\n  vec3 litRGB = ambientBase + diffuseComponent + specularLight + mix(vec3(0.0), reflectionComponent, uMetallic) + uEmissive.rgb;\n  outColor = vec4(litRGB, color.a);\n}\n";
 
   // src/3D/Material.js
   var Material = class _Material {
@@ -71309,6 +71312,34 @@ ${nodesText}`;
       if (uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
       if (uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
       if (uShininess !== null) gl.uniform1f(uShininess, this._shininess);
+      var activeSkybox = this.gameLib ? this.gameLib.getSkybox() : null;
+      var uSkyModeLoc = gl.getUniformLocation(program, "uSkyMode");
+      var uInvViewMatrixLoc = gl.getUniformLocation(program, "uInverseViewMatrix");
+      var skyMode = 0;
+      if (activeSkybox) {
+        if (activeSkybox._texture) {
+          skyMode = 1;
+          var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
+          if (uEnvMapLoc !== null) {
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox._texture);
+            gl.uniform1i(uEnvMapLoc, 1);
+          }
+        } else if (activeSkybox.zenithColor || activeSkybox.gradientParams) {
+          skyMode = 2;
+          var p = activeSkybox.gradientParams || activeSkybox;
+          gl.uniform3fv(gl.getUniformLocation(program, "uZenithColor"), p.zenithColor);
+          gl.uniform3fv(gl.getUniformLocation(program, "uHorizonColor"), p.horizonColor);
+          gl.uniform3fv(gl.getUniformLocation(program, "uGroundColor"), p.groundColor);
+          gl.uniform3fv(gl.getUniformLocation(program, "uSunDirection"), p.sunDirection);
+          gl.uniform3fv(gl.getUniformLocation(program, "uSunColor"), p.sunColor);
+          gl.uniform1f(gl.getUniformLocation(program, "uSunExponent"), p.sunExponent);
+        }
+      }
+      if (uSkyModeLoc !== null) gl.uniform1i(uSkyModeLoc, skyMode);
+      if (uInvViewMatrixLoc !== null && camera && camera.inverseViewMatrix) {
+        gl.uniformMatrix4fv(uInvViewMatrixLoc, false, camera.inverseViewMatrix);
+      }
     }
     static webGL1VertexShader = GL1_default5;
     static webGL1FragmentShader = GL1_default6;
@@ -71845,6 +71876,9 @@ ${nodesText}`;
       gl.drawArrays(gl.TRIANGLES, 0, 36);
       gl.depthFunc(gl.LESS);
     }
+    getEnvironmentTexture() {
+      return null;
+    }
   };
 
   // src/Shaders/Sky/Cubemap/Vertex/GL1.glsl
@@ -71905,6 +71939,9 @@ ${nodesText}`;
       gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._texture);
       gl.uniform1i(gl.getUniformLocation(this._program, "uSkyboxCubemap"), 0);
     }
+    getEnvironmentTexture() {
+      return this._texture || null;
+    }
   };
 
   // src/Shaders/Sky/Equirectangular/Vertex/GL1.glsl
@@ -71953,6 +71990,9 @@ ${nodesText}`;
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this._texture);
       gl.uniform1i(gl.getUniformLocation(this._program, "uEquirectangularMap"), 0);
+    }
+    getEnvironmentTexture() {
+      return this._texture || null;
     }
   };
 
@@ -72003,6 +72043,9 @@ ${nodesText}`;
       gl.uniform3fv(gl.getUniformLocation(this._program, "uSunDirection"), this.sunDirection);
       gl.uniform3fv(gl.getUniformLocation(this._program, "uSunColor"), this.sunColor);
       gl.uniform1f(gl.getUniformLocation(this._program, "uSunExponent"), this.sunExponent);
+    }
+    getEnvironmentTexture() {
+      return null;
     }
   };
 
