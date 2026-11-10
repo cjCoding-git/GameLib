@@ -50,6 +50,7 @@ class Mesh extends Object {
     this._gameLib.setProgramAttribute(materialProgram, "aVertexNormal", this.buffers.normal, 3);
     this._gameLib.setProgramAttribute(materialProgram, "aVertexColor", this.buffers.color, 4);
     this._gameLib.setProgramAttribute(materialProgram, "aTextureCoord", this.buffers.uv, 2);
+    this.material.bindUniforms(webgl, materialProgram);
     var useTextureLocation = uniform("uUseTexture");
     if (useTextureLocation !== null) {
       webgl.uniform1i(useTextureLocation, this.material.texture ? 1 : 0);
