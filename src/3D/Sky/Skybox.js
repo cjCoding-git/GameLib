@@ -55,6 +55,9 @@ class Skybox {
     gl.drawArrays(gl.TRIANGLES, 0, 36);
     gl.depthFunc(gl.LESS);
   }
+  getEnvironmentTexture() {
+    return null;
+  }
 }
 export {
   Skybox
