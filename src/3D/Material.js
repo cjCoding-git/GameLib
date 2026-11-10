@@ -35,7 +35,7 @@ class Material {
   }
   setSpecular(color, shininess=this._shininess) {
     this._specular = Material.normalizeColor(color);
-    this._shininess = Material.normalizeNumber(shininess, 32.0);
+    this._shininess = Material.normalizeNumber(shininess, 32.0, 32.0);
     return this;
   }
   bindUniforms(gl, program) {
@@ -60,8 +60,8 @@ class Material {
   static get standardFragmentShader() {
     return Material.webGL1FragmentShader;
   }
-  static normalizeNumber(num, backup) {
-    return Math.max(0.0, Math.min(1.0, Number(num) || backup));
+  static normalizeNumber(num, backup, max=1.0) {
+    return Math.max(0.0, Math.min(max, Number(num) || backup));
   }
   static normalizeColor(color) {
     if (!Array.isArray(color)) {
