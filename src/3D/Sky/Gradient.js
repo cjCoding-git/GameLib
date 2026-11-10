@@ -39,6 +39,9 @@ class Gradient extends Skybox {
     gl.uniform3fv(gl.getUniformLocation(this._program, "uSunColor"), this.sunColor);
     gl.uniform1f(gl.getUniformLocation(this._program, "uSunExponent"), this.sunExponent);
   }
+  getEnvironmentTexture() {
+    return null;
+  }
 }
 export {
   Gradient
