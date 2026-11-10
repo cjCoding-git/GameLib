@@ -21,20 +21,34 @@
             window.addEventListener('load', function() {
                 window.canvas = document.getElementById('renderCanvas');
                 window.ctx = GameLib3D.GameLib.getContext(window.canvas, false);
+                window.inputManager = new GameLibCore.InputManager();
+                window.fullscreenManager = new GameLibCore.FullscreenManager();
                 window.gl = new GameLib3D.GameLib(window.canvas, window.ctx, { webGL2: false });
-                window.gl.setActive(true);
-                window.gl.setRendering(true);
                 window.camera = new GameLib3D.Camera();
                 window.camera.transform.translate(0, 0, 3);
                 window.gl.setCamera(camera);
+                window.sky = new GameLib3D.Sky.Gradient(window.gl);
+                window.sky.sunDirection = [-1.0, 3.0, -10.0];
+                window.sky.sunColor = [1.0, 0.6, 0.075];
+                window.sky.groundColor = [0.0, 0.0, 0.25];
+                window.gl.setSkybox(window.sky);
+                window.shapeGroup = new GameLib3D.Group(window.gl, "init");
                 window.boxGeo = new GameLib3D.Geometry.Box(1, 1, 1);
                 window.boxMat = new GameLib3D.Material(window.gl);
                 window.boxMat.setColor([0, 1, 1, 1]);
+                window.boxMat.setMetallic(1.0);
                 window.boxMesh = new GameLib3D.Mesh(window.gl, "init", window.boxGeo, window.boxMat);
                 window.boxMesh.update = function() {
                     window.boxMesh.transform.rotate(0.01, 0.01, 0.01);
                 };
-                window.gl.addObject(window.boxMesh);
+                window.shapeGroup.addObject(window.boxMesh);
+                window.pyramidGeo = new GameLib3D.Geometry.Pyramid(0.5, 0.5, 0.5, 6);
+                window.pyramidMat = new GameLib3D.Material(window.gl);
+                window.pyramidMat.setColor([0, 1, 0, 1]);
+                window.pyramidMesh = new GameLib3D.Mesh(window.gl, "init", window.pyramidGeo, window.pyramidMat);
+                window.pyramidMesh.transform.translate(0, 0, 1.5);
+                window.shapeGroup.addObject(window.pyramidMesh);
+                window.gl.addObject(window.shapeGroup);
                 window.ambientLight = new GameLib3D.Lighting.AmbientLight(window.gl, "init", new GameLib3D.Position(0, 0, 0), { intensity: 0.25, color: [0, 0, 1] });
                 window.gl.addObject(window.ambientLight);
                 window.pointLight = new GameLib3D.Lighting.PointLight(window.gl, "init", new GameLib3D.Position(0, 0, 1.5), { color: [ 1, 1, 1 ] });
@@ -75,6 +89,8 @@
                 });
                 window.gl.fillWindow();
                 setTimeout(function() {
+                    window.fullscreenManager.setFullscreen(true, true);
+                    window.fullscreenManager.setPointerLocked(true);
                     window.gl.stopLoading();
                 }, 4000);
             });
