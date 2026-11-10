@@ -50,6 +50,21 @@ class Material {
     if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
     if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
     if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
+    var activeSkybox = this.gameLib ? this.gameLib.getSkybox() : null;
+    var envTexture = activeSkybox ? activeSkybox.getEnvironmentTexture() : null;
+    var uUseEnvMap = gl.getUniformLocation(program, "uUseEnvMap");
+    var uEnvMap = gl.getUniformLocation(program, "uEnvironmentMap");
+    var uInvViewMatrix = gl.getUniformLocation(program, "uInverseViewMatrix");
+    var hasEnvMap = envTexture !== null;
+    if (uUseEnvMap !== null) gl.uniform1i(uUseEnvMap, hasEnvMap ? 1 : 0);
+    if (hasEnvMap && uEnvMap !== null) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, envTexture);
+      gl.uniform1i(uEnvMap, 1);
+    }
+    if (uInvViewMatrix !== null && camera && camera.inverseViewMatrix) {
+      gl.uniformMatrix4fv(uInvViewMatrix, false, camera.inverseViewMatrix);
+    }
   }
   static webGL1VertexShader = GL1Vertex;
   static webGL1FragmentShader = GL1Fragment;
