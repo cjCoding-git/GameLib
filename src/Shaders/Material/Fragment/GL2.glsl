@@ -19,6 +19,9 @@ uniform float uMetallic;
 uniform vec4 uEmissive;
 uniform vec4 uSpecular;
 uniform float uShininess;
+uniform samplerCube uEnvironmentMap;
+uniform bool uUseEnvMap;
+uniform mat4 uInverseViewMatrix;
 out vec4 outColor;
 void calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, vec3 baseColor) {
   vec3 normal = normalize(vNormal);
@@ -62,10 +65,19 @@ void main() {
   }
   vec3 ambientLight, diffuseLight, specularLight;
   calculateLighting(ambientLight, diffuseLight, specularLight, color.rgb);
+  vec3 envReflection = vec3(0.0);
+  if (uUseEnvMap) {
+    vec3 viewDir = normalize(-vViewPosition);
+    vec3 reflectDirView = reflect(-viewDir, normalize(vNormal));
+    vec3 reflectDirWorld = (uInverseViewMatrix * vec4(reflectDirView, 0.0)).xyz;
+    envReflection = texture(uEnvironmentMap, reflectDirWorld).rgb;
+  }
   float ambIntensity = max(ambientLight.r, max(ambientLight.g, ambientLight.b));
   float ambFactor = clamp(sqrt(ambIntensity), 0.0, 1.0);
   vec3 ambientBase = mix(uClearColor, color.rgb * ambientLight, ambFactor);
+  vec3 metalSpecColor = mix(uSpecular.rgb, color.rgb, uMetallic);
+  vec3 reflectionComponent = envReflection * metalSpecColor * (1.0 - uRoughness * 0.8);
   vec3 diffuseComponent = color.rgb * diffuseLight * (1.0 - uMetallic);
-  vec3 litRGB = ambientBase + diffuseComponent + specularLight + uEmissive.rgb;
+  vec3 litRGB = ambientBase + diffuseComponent + specularLight + mix(vec3(0.0), reflectionComponent, uMetallic) + uEmissive.rgb;
   outColor = vec4(litRGB, color.a);
 }
