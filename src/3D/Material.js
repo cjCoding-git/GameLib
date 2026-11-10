@@ -32,6 +32,7 @@ class Material {
   }
   setEmissive(color) {
     this._emissive = Material.normalizeColor(color);
+    return this;
   }
   setSpecular(color, shininess=this._shininess) {
     this._specular = Material.normalizeColor(color);
