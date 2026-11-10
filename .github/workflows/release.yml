@@ -72,19 +72,20 @@ jobs:
             dist/GameLib.min.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Debug NPM Auth
-        run: |
-          echo "Checking npm registry auth configuration:"
-          npm config get registry
-          ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to NPM
         continue-on-error: true
         run: |
           npm config set registry https://registry.npmjs.org/
           npx npm@latest publish --provenance --access public --tag latest
+      - name: Debug NPM Auth
+        run: |
+          echo "Checking npm registry auth configuration:"
+          npm config get registry
+          ls -la ~/.npmrc 2>/dev/null || echo "No global .npmrc found"
       - name: Release to GitHub NPM
         continue-on-error: true
         run: |
+          echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" > ~/.npmrc
           npm config set registry https://npm.pkg.github.com/
           npm publish --provenance --access public --tag latest
         env:
