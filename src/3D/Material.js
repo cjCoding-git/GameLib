@@ -50,20 +50,33 @@ class Material {
     if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
     if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
     if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
-    var activeSkybox = this.gameLib ? this.gameLib.getSkybox() : null;
-    var envTexture = activeSkybox ? activeSkybox.getEnvironmentTexture() : null;
-    var uUseEnvMap = gl.getUniformLocation(program, "uUseEnvMap");
-    var uEnvMap = gl.getUniformLocation(program, "uEnvironmentMap");
-    var uInvViewMatrix = gl.getUniformLocation(program, "uInverseViewMatrix");
-    var hasEnvMap = envTexture !== null;
-    if (uUseEnvMap !== null) gl.uniform1i(uUseEnvMap, hasEnvMap ? 1 : 0);
-    if (hasEnvMap && uEnvMap !== null) {
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_CUBE_MAP, envTexture);
-      gl.uniform1i(uEnvMap, 1);
+    var activeSkybox = this.gameLib ? this.gameLib.getSkybox(); : null;
+    var uSkyModeLoc = gl.getUniformLocation(program, "uSkyMode");
+    var uInvViewMatrixLoc = gl.getUniformLocation(program, "uInverseViewMatrix");
+    var skyMode = 0;
+    if (activeSkybox) {
+      if (activeSkybox._texture) {
+        skyMode = 1;
+        var uEnvMapLoc = gl.getUniformLocation(program, "uEnvironmentMap");
+        if (uEnvMapLoc !== null) {
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_CUBE_MAP, activeSkybox._texture);
+          gl.uniform1i(uEnvMapLoc, 1);
+        }
+      } else if (activeSkybox.zenithColor || activeSkybox.gradientParams) {
+        skyMode = 2;
+        var p = activeSkybox.gradientParams || activeSkybox;
+        gl.uniform3fv(gl.getUniformLocation(program, "uZenithColor"), p.zenithColor);
+        gl.uniform3fv(gl.getUniformLocation(program, "uHorizonColor"), p.horizonColor);
+        gl.uniform3fv(gl.getUniformLocation(program, "uGroundColor"), p.groundColor);
+        gl.uniform3fv(gl.getUniformLocation(program, "uSunDirection"), p.sunDirection);
+        gl.uniform3fv(gl.getUniformLocation(program, "uSunColor"), p.sunColor);
+        gl.uniform1f(gl.getUniformLocation(program, "uSunExponent"), p.sunExponent);
+      }
     }
-    if (uInvViewMatrix !== null && camera && camera.inverseViewMatrix) {
-      gl.uniformMatrix4fv(uInvViewMatrix, false, camera.inverseViewMatrix);
+    if (uSkyModeLoc !== null) gl.uniform1i(uSkyModeLoc, skyMode);
+    if (uInvViewMatrixLoc !== null && camera && camera.inverseViewMatrix) {
+      gl.uniformMatrix4fv(uInvViewMatrixLoc, false, camera.inverseViewMatrix);
     }
   }
   static webGL1VertexShader = GL1Vertex;
