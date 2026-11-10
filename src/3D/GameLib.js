@@ -25,10 +25,14 @@ class GameLib extends GameLibCore.GameLibBase {
       this._uiLoading.setConfig(this._loadingConfig);
       this._uiRenderer.addObject(this._uiLoading);
       this._listeners = {};
+      this._skybox = null;
       this.registerMainloop();
       this._gl.clearColor(...this._clearColor);
       GameLib3D.GameLib._instance = this;
     }
+  }
+  setSkybox(skybox) {
+    this._skybox = skybox;
   }
   setLoadingConfig(config) {
     this._loadingConfig = config;
@@ -156,6 +160,10 @@ class GameLib extends GameLibCore.GameLibBase {
       if(this._objects[i].scene === this._scene) {
         this._objects[i].draw(this._camera);
       }
+    }
+    if(this._skybox !== null) {
+      var aspectRatio = this._canvas.width / this._canvas.height;
+      this._skybox.render(this._camera.getProjectionMatrix(aspectRatio), this._camera.getViewMatrix());
     }
     this._uiRenderer.render(this._scene);
     this.callHook('post-render');
