@@ -31,16 +31,19 @@ vec3 sampleEnvironment(vec3 reflectDirWorld) {
   if (uSkyMode == 1) {
     return textureCube(uEnvironmentMap, reflectDirWorld).rgb;
   } else if (uSkyMode == 2) {
-    vec3 dir = normalize(reflectDirWorld);
+    float len = length(reflectDirWorld);
+    vec3 dir = len > 0.0001 ? reflectDirWorld / len : vec3(0.0, 1.0, 0.0);
     float y = dir.y;
     vec3 skyColor;
     if (y > 0.0) {
-      skyColor = mix(uHorizonColor, uZenithColor, pow(y, 0.6));
+      skyColor = mix(uHorizonColor, uZenithColor, pow(max(y, 0.0), 0.6));
     } else {
-      skyColor = mix(uHorizonColor, uGroundColor, pow(-y, 0.6));
+      skyColor = mix(uHorizonColor, uGroundColor, pow(max(-y, 0.0), 0.6));
     }
-    float sunDot = max(dot(dir, normalize(uSunDirection)), 0.0);
-    float sunGlow = pow(sunDot, uSunExponent);
+    float sunLen = length(uSunDirection);
+    vec3 sunDir = sunLen > 0.0001 ? uSunDirection / sunLen : vec3(0.0, 1.0, 0.0);
+    float sunDot = max(dot(dir, sunDir), 0.0);
+    float sunGlow = sunDot > 0.0 ? pow(sunDot, max(uSunExponent, 1.0)) : 0.0;
     return skyColor + uSunColor * sunGlow;
   }
   return vec3(0.0);
@@ -82,13 +85,17 @@ void calculateLighting(out vec3 ambient, out vec3 diffuse, out vec3 specular, ve
 }
 void main() {
   vec4 color = vColor;
+  if (color.a == 0.0 && color.rgb == vec3(0.0)) {
+    color = vec4(1.0);
+  }
   if (uUseTexture) {
     color *= texture2D(uTexture, vUV);
   }
   vec3 envReflection = vec3(0.0);
   if (uSkyMode > 0) {
     vec3 viewDir = normalize(-vViewPosition);
-    vec3 reflectDirView = reflect(-viewDir, normalize(vNormal));
+    vec3 normal = normalize(vNormal);
+    vec3 reflectDirView = reflect(-viewDir, normal);
     vec3 reflectDirWorld = (uInverseViewMatrix * vec4(reflectDirView, 0.0)).xyz;
     envReflection = sampleEnvironment(reflectDirWorld);
   }
