@@ -39,11 +39,11 @@ class Material {
     return this;
   }
   bindUniforms(gl, program) {
-    var uRoughness = gl.getUniformLocation("uRoughness");
-    var uMetallic = gl.getUniformLocation("uMetallic");
-    var uEmissive = gl.getUniformLocation("uEmissive");
-    var uSpecular = gl.getUniformLocation("uSpecular");
-    var uShininess = gl.getUniformLocation("uShininess");
+    var uRoughness = gl.getUniformLocation(gl, "uRoughness");
+    var uMetallic = gl.getUniformLocation(gl, "uMetallic");
+    var uEmissive = gl.getUniformLocation(gl, "uEmissive");
+    var uSpecular = gl.getUniformLocation(gl, "uSpecular");
+    var uShininess = gl.getUniformLocation(gl, "uShininess");
     if(uRoughness !== null) gl.uniform1f(uRoughness, this._roughness);
     if(uMetallic !== null) gl.uniform1f(uMetallic, this._metallic);
     if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
