@@ -34,6 +34,9 @@ class GameLib extends GameLibCore.GameLibBase {
   setSkybox(skybox) {
     this._skybox = skybox;
   }
+  getSkybox() {
+    return this._skybox;
+  }
   setLoadingConfig(config) {
     this._loadingConfig = config;
     this._uiLoading.setConfig(config);
