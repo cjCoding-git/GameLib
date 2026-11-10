@@ -21,6 +21,10 @@ class Material {
     this._emissive = [0.0, 0.0, 0.0, 0.0];
     this._specular = [1.0, 1.0, 1.0, 1.0];
     this._shininess = 32.0;
+    this._envMap = null;
+  }
+  setEnvironmentMap(cubemapTexture) {
+    this._envMap = cubemapTexture;
   }
   setRoughness(roughness) {
     this._roughness = Material.normalizeNumber(roughness, 0.0);
@@ -50,6 +54,19 @@ class Material {
     if(uEmissive !== null) gl.uniform4fv(uEmissive, this._emissive);
     if(uSpecular !== null) gl.uniform4fv(uSpecular, this._specular);
     if(uShininess !== null) gl.uniform1f(uShininess, this._shininess);
+    var uUseEnvMap = gl.getUniformLocation(program, "uUseEnvMap");
+    var uEnvMap = gl.getUniformLocation(program, "uEnvironmentMap");
+    var uInvViewMatrix = gl.getUniformLocation(program, "uInverseViewMatrix");
+    var hasEnvMap = this.e_nvMap !== null;
+    if (uUseEnvMap !== null) gl.uniform1i(uUseEnvMap, hasEnvMap ? 1 : 0);
+    if (hasEnvMap && uEnvMap !== null) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._envMap);
+      gl.uniform1i(uEnvMap, 1);
+    }
+    if (uInvViewMatrix !== null && camera && camera.inverseViewMatrix) {
+      gl.uniformMatrix4fv(uInvViewMatrix, false, camera.inverseViewMatrix);
+    }
   }
   static webGL1VertexShader = GL1Vertex;
   static webGL1FragmentShader = GL1Fragment;
