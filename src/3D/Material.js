@@ -20,7 +20,7 @@ class Material {
     this._metallic = 0.0;
     this._emissive = [0.0, 0.0, 0.0, 0.0];
     this._specular = [1.0, 1.0, 1.0, 1.0];
-    this._snininess = 32.0;
+    this._shininess = 32.0;
   }
   setRoughness(roughness) {
     this._roughness = Material.normalizeNumber(roughness, 0.0);
