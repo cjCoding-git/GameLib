@@ -1,1 +1,4 @@
-
+class Equirectangular {}
+export {
+  Equirectangular
+}
