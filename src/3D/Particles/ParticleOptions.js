@@ -15,8 +15,6 @@ class ParticleOptions {
       end: 2,
     };
     this.sizeVariance = 0;
-
-    // Motion values are three-dimensional vectors in local/world units per second.
     this.velocity = {
       start: [0, 0, 0],
       end: [0, 0, 0]
@@ -25,15 +23,12 @@ class ParticleOptions {
     this.gravityScale = 0;
     this.drag = 0;
     this.mass = 1;
-
-    // Rotation values are Euler angles in radians.
     this.rotation = {
       start: [0, 0, 0],
       end: [0, 0, 0]
     };
     this.angularVelocity = [0, 0, 0];
     this.angularAcceleration = [0, 0, 0];
-
     this.texture = null;
     this.material = null;
     this.blendMode = "normal";
@@ -46,7 +41,6 @@ class ParticleOptions {
       frameRate: 0,
       loop: true
     };
-
     this.collision = false;
     this.restitution = 0;
     this.friction = 0;
