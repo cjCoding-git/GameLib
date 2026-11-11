@@ -44,6 +44,7 @@ class ParticleOptions {
     this.collision = false;
     this.restitution = 0;
     this.friction = 0;
+    this.updateOptions = null;
   }
 }
 export {
