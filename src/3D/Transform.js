@@ -9,6 +9,13 @@ class Transform {
     this.scale = scale;
     this.group = null;
   }
+  clone() {
+    var newPosition = new Position(this.position.x, this.position.y, this.position.z);
+    var newRotation = new Rotation(this.rotation.x, this.rotation.y, this.rotation.z);
+    var newScale = new Scale(this.scale.x, this.scale.y, this.scale.z);
+    var newTransform = new Transform(newPosition, newRotation, newScale);
+    return newTransform;
+  }
   setGroup(group) {
     this.group = group;
   }
