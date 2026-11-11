@@ -1,0 +1,4 @@
+class ParticleOptions {}
+export {
+  ParticleOptions
+}
