@@ -52,6 +52,7 @@ class Emitter extends Object {
   }
   emit(count = 1) {
     for (var n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
+      if(this.options.updateOptions && typeof this.options.updateOptions === "function") this.options.updateOptions();
       var particleOptions = this.options.particleOptions;
       var direction = vec(this.options.direction, 3).map((value, axis) => value + range(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
       var length = Math.hypot(...direction) || 1;
