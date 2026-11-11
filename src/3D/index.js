@@ -1,3 +1,4 @@
+
 import { GameLibCore } from "../Core/index.js"
 import { Utils } from "./Utils.js"
 import { Object } from "./Object.js"
@@ -19,6 +20,7 @@ import { Lighting } from "./Lighting/index.js"
 import { Group } from "./Group.js"
 import { Sky } from "./Sky/index.js"
 import { Physics } from "./Physics/index.js"
+import { Particles } from "./Particles/index.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
@@ -43,6 +45,7 @@ class GameLib3D {
   static Group = Group;
   static Sky = Sky;
   static Physics = Physics;
+  static Particles = Particles;
 }
 export {
   GameLib3D
