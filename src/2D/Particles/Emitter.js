@@ -27,6 +27,7 @@ class Emitter extends Renderable {
     var options = this.options;
     for (var i = 0; i < Math.max(0, Math.floor(count)); i++) {
       if (this._particles.length >= options.maxParticles) break;
+      if(this.options.updateOptions && typeof this.options.updateOptions === "function") this.options.updateOptions();
       var spawn = this._getSpawnPosition();
       var particleOptions = options.particleOptions;
       var speed = options.speed || { min: 0, max: 0 };
