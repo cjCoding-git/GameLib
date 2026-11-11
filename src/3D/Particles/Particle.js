@@ -1,13 +1,11 @@
 import { Transform } from "../Transform.js"
-
-const vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
-const range = (min, max) => min + Math.random() * (max - min);
-const lerp = (a, b, t) => a + (b - a) * t;
-
+var vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
+var range = (min, max) => min + Math.random() * (max - min);
+var lerp = (a, b, t) => a + (b - a) * t;
 class Particle {
   constructor(positionOrTransform = new Transform(), options = {}) {
     this.options = options;
-    const position = positionOrTransform instanceof Transform ? positionOrTransform.position : positionOrTransform;
+    var position = positionOrTransform instanceof Transform ? positionOrTransform.position : positionOrTransform;
     this.transform = positionOrTransform instanceof Transform ? positionOrTransform : new Transform();
     if (!(positionOrTransform instanceof Transform)) {
       this.transform.position.x = Number(position?.[0]) || 0;
@@ -28,15 +26,15 @@ class Particle {
   }
   update(deltaMs) {
     if (!this.alive || deltaMs <= 0) return;
-    const dt = deltaMs / 1000;
+    var dt = deltaMs / 1000;
     this.age += deltaMs;
-    const t = Math.min(1, this.age / this.lifetime);
-    const options = this.options;
-    const acceleration = vec(options.acceleration, 3);
+    var t = Math.min(1, this.age / this.lifetime);
+    var options = this.options;
+    var acceleration = vec(options.acceleration, 3);
     acceleration[1] -= 9.81 * (Number(options.gravityScale) || 0);
-    const drag = Math.max(0, Number(options.drag) || 0);
-    for (let i = 0; i < 3; i++) {
-      const target = lerp(Number(options.velocity?.start?.[i]) || 0, Number(options.velocity?.end?.[i]) || 0, t);
+    var drag = Math.max(0, Number(options.drag) || 0);
+    for (var i = 0; i < 3; i++) {
+      var target = lerp(Number(options.velocity?.start?.[i]) || 0, Number(options.velocity?.end?.[i]) || 0, t);
       this.velocity[i] += (acceleration[i] + (target - this.velocity[i]) * Math.min(1, dt)) * dt;
       this.velocity[i] *= Math.max(0, 1 - drag * dt);
       this.position[i] += this.velocity[i] * dt;
