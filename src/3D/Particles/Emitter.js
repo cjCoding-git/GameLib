@@ -94,7 +94,7 @@ class Emitter extends Object {
     var webGL2 = this._gameLib.options && this._gameLib.options.webGL2 !== false;
     var gl = this._gl;
     var compile = (type, source) => {
-      ar shader = gl.createShader(type);
+      var shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { gl.deleteShader(shader); return null; }
