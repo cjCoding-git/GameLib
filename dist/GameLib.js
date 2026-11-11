@@ -2169,6 +2169,302 @@
     static TextInput = TextInput;
   };
 
+  // src/2D/Physics/index.js
+  var Physics = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Physics may not be constructed!");
+    }
+  };
+
+  // src/2D/Particles/ParticleOptions.js
+  var ParticleOptions = class {
+    constructor() {
+      this.color = {
+        start: [1, 1, 1],
+        end: [0.5, 0.5, 0.5]
+      };
+      this.lifetime = 1e4;
+      this.lifetimeVariance = 0;
+      this.opacity = {
+        start: 1,
+        end: 0
+      };
+      this.size = {
+        start: 4,
+        end: 2
+      };
+      this.sizeVariance = 0;
+      this.velocity = {
+        start: [0, 0],
+        end: [0, 0]
+      };
+      this.acceleration = [0, 0];
+      this.gravityScale = 0;
+      this.drag = 0;
+      this.mass = 1;
+      this.rotation = {
+        start: 0,
+        end: 0
+      };
+      this.angularVelocity = 0;
+      this.angularAcceleration = 0;
+      this.texture = null;
+      this.material = null;
+      this.blendMode = "normal";
+      this.renderOrder = 0;
+      this.spriteSheet = {
+        columns: 1,
+        rows: 1,
+        frameCount: 1,
+        frameRate: 0,
+        loop: true
+      };
+      this.collision = false;
+      this.restitution = 0;
+      this.friction = 0;
+    }
+  };
+
+  // src/2D/Particles/EmitterOptions.js
+  var EmitterOptions = class {
+    constructor() {
+      this.particleOptions = new ParticleOptions();
+      this.emitDelay = 1;
+      this.maxParticles = 100;
+      this.playOnAwake = true;
+      this.loop = true;
+      this.duration = Infinity;
+      this.emissionRate = 1;
+      this.burstCount = 0;
+      this.bursts = [];
+      this.prewarm = false;
+      this.timeScale = 1;
+      this.shape = "point";
+      this.shapeOptions = {
+        radius: 1,
+        size: [1, 1],
+        arc: Math.PI * 2
+      };
+      this.positionOffset = [0, 0];
+      this.positionVariance = [0, 0];
+      this.direction = [0, -1];
+      this.directionVariance = [0, 0];
+      this.speed = {
+        min: 0,
+        max: 0
+      };
+      this.velocityInheritance = 0;
+      this.simulationSpace = "local";
+      this.randomSeed = null;
+      this.active = true;
+    }
+  };
+
+  // src/2D/Particles/Particle.js
+  var vector = (value, dimensions) => Array.from({ length: dimensions }, (_, index) => Number(value?.[index]) || 0);
+  var randomBetween = (min, max) => min + Math.random() * (max - min);
+  var lerp = (start, end, amount) => start + (end - start) * amount;
+  var lerpArray = (start, end, amount, dimensions) => Array.from({ length: dimensions }, (_, index) => lerp(Number(start?.[index]) || 0, Number(end?.[index]) || 0, amount));
+  var Particle = class {
+    constructor(position = [0, 0], options = {}) {
+      this.options = options;
+      this.position = vector(position, 2);
+      var velocity = options.velocity || {};
+      this.velocity = vector(velocity.start, 2);
+      this.age = 0;
+      this.lifetime = Math.max(0, Number(options.lifetime) || 0) + randomBetween(-Math.abs(Number(options.lifetimeVariance) || 0), Math.abs(Number(options.lifetimeVariance) || 0));
+      this.lifetime = Math.max(0, this.lifetime);
+      this.alive = this.lifetime > 0;
+      this.rotation = Number(options.rotation?.start) || 0;
+      this.angularVelocity = Number(options.angularVelocity) || 0;
+      this.size = Number(options.size?.start) || 0;
+      this.opacity = Number(options.opacity?.start ?? 1);
+      this.color = [...options.color?.start || [1, 1, 1]];
+    }
+    update(deltaMs) {
+      if (!this.alive || deltaMs <= 0) return;
+      var dt = deltaMs / 1e3;
+      this.age += deltaMs;
+      var t = Math.min(1, this.age / this.lifetime);
+      var options = this.options;
+      var acceleration = vector(options.acceleration, 2);
+      var endVelocity = vector(options.velocity?.end, 2);
+      var drag = Math.max(0, Number(options.drag) || 0);
+      for (var i2 = 0; i2 < 2; i2++) {
+        var targetVelocity = lerp(Number(options.velocity?.start?.[i2]) || 0, endVelocity[i2], t);
+        this.velocity[i2] += (acceleration[i2] + (targetVelocity - this.velocity[i2]) * Math.min(1, dt)) * dt;
+        this.velocity[i2] *= Math.max(0, 1 - drag * dt);
+        this.position[i2] += this.velocity[i2] * dt;
+      }
+      this.rotation += (this.angularVelocity + (Number(options.angularAcceleration) || 0) * dt) * dt;
+      this.size = Math.max(0, lerp(Number(options.size?.start) || 0, Number(options.size?.end) || 0, t) + randomBetween(-Math.abs(Number(options.sizeVariance) || 0), Math.abs(Number(options.sizeVariance) || 0)) * Math.min(1, dt));
+      this.opacity = lerp(Number(options.opacity?.start ?? 1), Number(options.opacity?.end ?? 0), t);
+      this.color = lerpArray(options.color?.start, options.color?.end, t, 3);
+      if (options.collision && this.position[1] > 0 && this.velocity[1] > 0) {
+        this.position[1] = 0;
+        this.velocity[1] *= -Math.max(0, Number(options.restitution) || 0);
+      }
+      if (this.age >= this.lifetime) this.alive = false;
+    }
+    draw(ctx) {
+      if (!this.alive || !ctx) return;
+      var size = this.size;
+      var color = this.options.color?.start;
+      var cssColor = typeof color === "string" ? color : `rgb(${this.color.map((value) => Math.round(Math.max(0, Math.min(1, value)) * 255)).join(",")})`;
+      ctx.save();
+      ctx.globalAlpha *= Math.max(0, Math.min(1, this.opacity));
+      ctx.translate(this.position[0], this.position[1]);
+      ctx.rotate(this.rotation * Math.PI / 180);
+      if (this.options.texture && typeof ctx.drawImage === "function") {
+        var image = this.options.texture.image || this.options.texture;
+        ctx.drawImage(image, -size / 2, -size / 2, size, size);
+      } else {
+        ctx.fillStyle = cssColor;
+        if (this.options.shape === "square") ctx.fillRect(-size / 2, -size / 2, size, size);
+        else {
+          ctx.beginPath();
+          ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+  };
+
+  // src/2D/Particles/Emitter.js
+  var Emitter = class extends Renderable {
+    constructor(options = new EmitterOptions(), scene = null) {
+      if (options && !options.particleOptions && typeof options === "object") {
+        scene = options;
+        options = new EmitterOptions();
+      }
+      super(scene);
+      this.options = options;
+      this._particles = [];
+      this._emitAccumulator = 0;
+      this._elapsed = 0;
+      this._lastFrameTime = null;
+      this._playing = Boolean(options.playOnAwake && options.active);
+      this.position = [0, 0];
+      if (options.burstCount > 0 && this._playing) this.emit(options.burstCount);
+    }
+    get particles() {
+      return this._particles;
+    }
+    get isPlaying() {
+      return this._playing;
+    }
+    play() {
+      this._playing = true;
+      this._elapsed = 0;
+      return this;
+    }
+    pause() {
+      this._playing = false;
+      return this;
+    }
+    stop(clear = false) {
+      this._playing = false;
+      this._emitAccumulator = 0;
+      if (clear) this.clearParticles();
+      return this;
+    }
+    clearParticles() {
+      this._particles.length = 0;
+    }
+    emit(count = 1) {
+      var options = this.options;
+      for (var i2 = 0; i2 < Math.max(0, Math.floor(count)); i2++) {
+        if (this._particles.length >= options.maxParticles) break;
+        var spawn = this._getSpawnPosition();
+        var particleOptions = options.particleOptions;
+        var speed = options.speed || { min: 0, max: 0 };
+        var magnitude = speed.min + Math.random() * (speed.max - speed.min);
+        var direction = (options.direction || [0, -1]).map((value, axis) => value + (Math.random() * 2 - 1) * (options.directionVariance?.[axis] || 0));
+        var length = Math.hypot(...direction) || 1;
+        var velocity = particleOptions.velocity || {};
+        var start = (velocity.start || [0, 0]).map((value, axis) => value + direction[axis] / length * magnitude);
+        var configured = { ...particleOptions, velocity: { ...velocity, start } };
+        this._particles.push(new Particle(spawn, configured));
+      }
+      return this._particles;
+    }
+    _getSpawnPosition() {
+      var options = this.options;
+      var offset = options.positionOffset || [0, 0];
+      var variance = options.positionVariance || [0, 0];
+      var x = this.position[0] + (offset[0] || 0) + (Math.random() * 2 - 1) * (variance[0] || 0);
+      var y = this.position[1] + (offset[1] || 0) + (Math.random() * 2 - 1) * (variance[1] || 0);
+      var shape = options.shapeOptions || {};
+      if (options.shape === "circle" || options.shape === "sphere") {
+        var angle = Math.random() * (shape.arc || Math.PI * 2);
+        var radius = Math.sqrt(Math.random()) * (shape.radius || 1);
+        x += Math.cos(angle) * radius;
+        y += Math.sin(angle) * radius;
+      } else if (options.shape === "rectangle" || options.shape === "box") {
+        x += (Math.random() - 0.5) * (shape.size?.[0] || 0);
+        y += (Math.random() - 0.5) * (shape.size?.[1] || 0);
+      } else if (options.shape === "line") {
+        var amount = Math.random() - 0.5;
+        x += amount * (shape.size?.[0] || 0);
+        y += amount * (shape.size?.[1] || 0);
+      }
+      return [x, y];
+    }
+    update(deltaMs = 1e3 / 60) {
+      var scaledDelta = Math.max(0, Number(deltaMs) || 0) * Math.max(0, Number(this.options.timeScale) || 0);
+      for (var particle of this._particles) particle.update(scaledDelta);
+      this._particles = this._particles.filter((particle2) => particle2.alive);
+      if (!this._playing || !this.options.active) return this._particles;
+      this._elapsed += scaledDelta;
+      var duration = Number(this.options.duration);
+      if (Number.isFinite(duration) && this._elapsed >= duration * 1e3) {
+        if (this.options.loop) this._elapsed %= Math.max(1, duration * 1e3);
+        else {
+          this._playing = false;
+          return this._particles;
+        }
+      }
+      const rate = Number(this.options.emissionRate);
+      if (rate > 0) {
+        this._emitAccumulator += scaledDelta * rate / 1e3;
+        var count = Math.floor(this._emitAccumulator);
+        if (count > 0) {
+          this._emitAccumulator -= count;
+          this.emit(count);
+        }
+      } else if (this.options.emitDelay > 0) {
+        this._emitAccumulator += scaledDelta;
+        while (this._emitAccumulator >= this.options.emitDelay) {
+          this._emitAccumulator -= this.options.emitDelay;
+          this.emit(1);
+        }
+      }
+      for (var burst of this.options.bursts || []) {
+        var burstTime = Number(burst.time) * 1e3;
+        if (Number.isFinite(burstTime) && this._elapsed - scaledDelta < burstTime && this._elapsed >= burstTime) this.emit(burst.count || 1);
+      }
+      return this._particles;
+    }
+    draw() {
+      var now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (this._lastFrameTime !== null) this.update(now - this._lastFrameTime);
+      this._lastFrameTime = now;
+      for (var particle of this._particles) particle.draw(this._ctx);
+    }
+  };
+
+  // src/2D/Particles/index.js
+  var Particles = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Particles may not be constructed!");
+    }
+    static Emitter = Emitter;
+    static Particle = Particle;
+    static ParticleOptions = ParticleOptions;
+    static EmitterOptions = EmitterOptions;
+  };
+
   // src/2D/index.js
   var GameLib2D2 = class {
     constructor() {
@@ -2182,6 +2478,8 @@
     static Sprite = Sprite;
     static GameLib = GameLib;
     static UI = UI;
+    static Physics = Physics;
+    static Particles = Particles;
   };
 
   // src/3D/Utils.js
@@ -3142,12 +3440,19 @@ ${nodesText}`;
   };
 
   // src/3D/Transform.js
-  var Transform = class {
+  var Transform = class _Transform {
     constructor(position = new Position(), rotation = new Rotation2(), scale = new Scale()) {
       this.position = position;
       this.rotation = rotation;
       this.scale = scale;
       this.group = null;
+    }
+    clone() {
+      var newPosition = new Position(this.position.x, this.position.y, this.position.z);
+      var newRotation = new Rotation2(this.rotation.x, this.rotation.y, this.rotation.z);
+      var newScale = new Scale(this.scale.x, this.scale.y, this.scale.z);
+      var newTransform = new _Transform(newPosition, newRotation, newScale);
+      return newTransform;
     }
     setGroup(group) {
       this.group = group;
@@ -71673,7 +71978,7 @@ ${nodesText}`;
 
   // src/3D/Lighting/PointLight.js
   var PointLight = class extends Object2 {
-    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range: range3 = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "point";
@@ -71681,13 +71986,13 @@ ${nodesText}`;
       this.color = color;
       this.intensity = intensity;
       this.direction = direction;
-      this.range = range;
+      this.range = range3;
     }
   };
 
   // src/3D/Lighting/DirectionalLight.js
   var DirectionalLight = class extends Object2 {
-    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range: range3 = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "directional";
@@ -71695,13 +72000,13 @@ ${nodesText}`;
       this.color = color;
       this.intensity = intensity;
       this.direction = direction;
-      this.range = range;
+      this.range = range3;
     }
   };
 
   // src/3D/Lighting/AmbientLight.js
   var AmbientLight = class extends Object2 {
-    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range = 10 }) {
+    constructor(gameLib, scene, position, { color = [1, 1, 1], intensity = 1, direction = new Rotation2(0, -1, 0), range: range3 = 10 }) {
       super(gameLib, scene);
       this.isLight = true;
       this.type = "ambient";
@@ -71709,7 +72014,7 @@ ${nodesText}`;
       this.color = color;
       this.intensity = intensity;
       this.direction = direction;
-      this.range = range;
+      this.range = range3;
     }
   };
 
@@ -72066,6 +72371,356 @@ ${nodesText}`;
     static Gradient = Gradient;
   };
 
+  // src/3D/Physics/index.js
+  var Physics2 = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Physics may not be constructed!");
+    }
+  };
+
+  // src/3D/Particles/Particle.js
+  var vec = (value, size) => Array.from({ length: size }, (_, i2) => Number(value?.[i2]) || 0);
+  var range = (min, max) => min + Math.random() * (max - min);
+  var lerp2 = (a, b, t) => a + (b - a) * t;
+  var Particle2 = class {
+    constructor(positionOrTransform = new Transform(), options = {}) {
+      this.options = options;
+      var position = positionOrTransform instanceof Transform ? positionOrTransform.position : positionOrTransform;
+      this.transform = positionOrTransform instanceof Transform ? positionOrTransform : new Transform();
+      if (!(positionOrTransform instanceof Transform)) {
+        this.transform.position.x = Number(position?.[0]) || 0;
+        this.transform.position.y = Number(position?.[1]) || 0;
+        this.transform.position.z = Number(position?.[2]) || 0;
+      }
+      this.position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
+      this.velocity = vec(options.velocity?.start, 3);
+      this.age = 0;
+      this.lifetime = Math.max(0, Number(options.lifetime) || 0) + range(-Math.abs(Number(options.lifetimeVariance) || 0), Math.abs(Number(options.lifetimeVariance) || 0));
+      this.lifetime = Math.max(0, this.lifetime);
+      this.alive = this.lifetime > 0;
+      this.rotation = vec(options.rotation?.start, 3);
+      this.angularVelocity = vec(options.angularVelocity, 3);
+      this.size = Number(options.size?.start) || 0;
+      this.opacity = Number(options.opacity?.start ?? 1);
+      this.color = [...options.color?.start || [1, 1, 1]];
+    }
+    update(deltaMs) {
+      if (!this.alive || deltaMs <= 0) return;
+      var dt = deltaMs / 1e3;
+      this.age += deltaMs;
+      var t = Math.min(1, this.age / this.lifetime);
+      var options = this.options;
+      var acceleration = vec(options.acceleration, 3);
+      acceleration[1] -= 9.81 * (Number(options.gravityScale) || 0);
+      var drag = Math.max(0, Number(options.drag) || 0);
+      for (var i2 = 0; i2 < 3; i2++) {
+        var target = lerp2(Number(options.velocity?.start?.[i2]) || 0, Number(options.velocity?.end?.[i2]) || 0, t);
+        this.velocity[i2] += (acceleration[i2] + (target - this.velocity[i2]) * Math.min(1, dt)) * dt;
+        this.velocity[i2] *= Math.max(0, 1 - drag * dt);
+        this.position[i2] += this.velocity[i2] * dt;
+        this.rotation[i2] += (this.angularVelocity[i2] + (Number(options.angularAcceleration?.[i2]) || 0) * dt) * dt;
+      }
+      this.transform.position.x = this.position[0];
+      this.transform.position.y = this.position[1];
+      this.transform.position.z = this.position[2];
+      this.size = Math.max(0, lerp2(Number(options.size?.start) || 0, Number(options.size?.end) || 0, t));
+      this.opacity = lerp2(Number(options.opacity?.start ?? 1), Number(options.opacity?.end ?? 0), t);
+      this.color = Array.from({ length: 3 }, (_, i3) => lerp2(Number(options.color?.start?.[i3]) || 0, Number(options.color?.end?.[i3]) || 0, t));
+      if (options.collision && this.position[1] < 0 && this.velocity[1] < 0) {
+        this.position[1] = 0;
+        this.velocity[1] *= -Math.max(0, Number(options.restitution) || 0);
+      }
+      if (this.age >= this.lifetime) this.alive = false;
+    }
+  };
+
+  // src/3D/Particles/ParticleOptions.js
+  var ParticleOptions2 = class {
+    constructor() {
+      this.color = {
+        start: [1, 1, 1],
+        end: [0.5, 0.5, 0.5]
+      };
+      this.lifetime = 1e4;
+      this.lifetimeVariance = 0;
+      this.opacity = {
+        start: 1,
+        end: 0
+      };
+      this.size = {
+        start: 4,
+        end: 2
+      };
+      this.sizeVariance = 0;
+      this.velocity = {
+        start: [0, 0, 0],
+        end: [0, 0, 0]
+      };
+      this.acceleration = [0, 0, 0];
+      this.gravityScale = 0;
+      this.drag = 0;
+      this.mass = 1;
+      this.rotation = {
+        start: [0, 0, 0],
+        end: [0, 0, 0]
+      };
+      this.angularVelocity = [0, 0, 0];
+      this.angularAcceleration = [0, 0, 0];
+      this.texture = null;
+      this.material = null;
+      this.blendMode = "normal";
+      this.renderOrder = 0;
+      this.billboard = true;
+      this.spriteSheet = {
+        columns: 1,
+        rows: 1,
+        frameCount: 1,
+        frameRate: 0,
+        loop: true
+      };
+      this.collision = false;
+      this.restitution = 0;
+      this.friction = 0;
+    }
+  };
+
+  // src/3D/Particles/EmitterOptions.js
+  var EmitterOptions2 = class {
+    constructor() {
+      this.particleOptions = new ParticleOptions2();
+      this.emitDelay = 1;
+      this.maxParticles = 100;
+      this.playOnAwake = true;
+      this.loop = true;
+      this.duration = Infinity;
+      this.emissionRate = 1;
+      this.burstCount = 0;
+      this.bursts = [];
+      this.prewarm = false;
+      this.timeScale = 1;
+      this.shape = "point";
+      this.shapeOptions = {
+        radius: 1,
+        size: [1, 1, 1],
+        arc: Math.PI * 2
+      };
+      this.positionOffset = [0, 0, 0];
+      this.positionVariance = [0, 0, 0];
+      this.direction = [0, 1, 0];
+      this.directionVariance = [0, 0, 0];
+      this.speed = {
+        min: 0,
+        max: 0
+      };
+      this.velocityInheritance = 0;
+      this.simulationSpace = "local";
+      this.randomSeed = null;
+      this.active = true;
+    }
+  };
+
+  // src/Shaders/Particle/Vertex/GL1.glsl
+  var GL1_default13 = "attribute vec3 aPosition;\nattribute vec4 aColor;\nuniform mat4 uViewProjection;\nuniform float uPointSize;\nvarying vec4 vColor;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = uPointSize;\n  vColor = aColor;\n}\n";
+
+  // src/Shaders/Particle/Vertex/GL2.glsl
+  var GL2_default13 = "#version 300 es\nin vec3 aPosition;\nin vec4 aColor;\nuniform mat4 uViewProjection;\nuniform float uPointSize;\nout vec4 vColor;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = uPointSize;\n  vColor = aColor;\n}\n";
+
+  // src/Shaders/Particle/Fragment/GL1.glsl
+  var GL1_default14 = "precision mediump float;\nvarying vec4 vColor;\nvoid main() {\n  vec2 p = gl_PointCoord - vec2(0.5);\n  if(dot(p, p) > 0.25) discard;\n  gl_FragColor = vColor;\n}\n";
+
+  // src/Shaders/Particle/Fragment/GL2.glsl
+  var GL2_default14 = "#version 300 es\nprecision mediump float;\nin vec4 vColor;\nout vec4 outColor;\nvoid main() {\n  vec2 p = gl_PointCoord - vec2(0.5);\n  if(dot(p, p) > 0.25) discard;\n  outColor = vColor;\n}\n";
+
+  // src/3D/Particles/Emitter.js
+  var vec2 = (value, size) => Array.from({ length: size }, (_, i2) => Number(value?.[i2]) || 0);
+  var range2 = (min, max) => min + Math.random() * (max - min);
+  var Emitter2 = class extends Object2 {
+    constructor(gameLib, scene, transform = new Transform(), options = new EmitterOptions2()) {
+      super(gameLib, scene);
+      this.transform = transform;
+      this.options = options;
+      this._particles = [];
+      this._emitAccumulator = 0;
+      this._elapsed = 0;
+      this._lastTime = null;
+      this._playing = Boolean(options.playOnAwake && options.active);
+      if (options.burstCount > 0 && this._playing) this.emit(options.burstCount);
+      this._program = null;
+      this._buffer = null;
+    }
+    get particles() {
+      return this._particles;
+    }
+    get isPlaying() {
+      return this._playing;
+    }
+    play() {
+      this._playing = true;
+      this._elapsed = 0;
+      return this;
+    }
+    pause() {
+      this._playing = false;
+      return this;
+    }
+    stop(clear = false) {
+      this._playing = false;
+      this._emitAccumulator = 0;
+      if (clear) this.clearParticles();
+      return this;
+    }
+    clearParticles() {
+      this._particles.length = 0;
+    }
+    _spawnPosition() {
+      var options = this.options;
+      var offset = vec2(options.positionOffset, 3);
+      var variance = vec2(options.positionVariance, 3);
+      var position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
+      for (let i2 = 0; i2 < 3; i2++) position[i2] += offset[i2] + range2(-Math.abs(variance[i2]), Math.abs(variance[i2]));
+      var shape = options.shapeOptions || {};
+      if (options.shape === "sphere" || options.shape === "circle") {
+        var u = Math.random() * 2 - 1;
+        var angle = Math.random() * (shape.arc || Math.PI * 2);
+        var radius = Math.cbrt(Math.random()) * (shape.radius || 1);
+        position[0] += radius * Math.sqrt(1 - u * u) * Math.cos(angle);
+        position[1] += radius * u;
+        position[2] += radius * Math.sqrt(1 - u * u) * Math.sin(angle);
+      } else if (options.shape === "box" || options.shape === "rectangle") {
+        for (let i2 = 0; i2 < 3; i2++) position[i2] += range2(-0.5, 0.5) * (shape.size?.[i2] || 0);
+      } else if (options.shape === "line") {
+        const t = Math.random() - 0.5;
+        for (let i2 = 0; i2 < 3; i2++) position[i2] += t * (shape.size?.[i2] || 0);
+      }
+      return position;
+    }
+    emit(count = 1) {
+      for (let n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
+        var particleOptions = this.options.particleOptions;
+        var direction = vec2(this.options.direction, 3).map((value, axis) => value + range2(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
+        var length = Math.hypot(...direction) || 1;
+        var speed = range2(Number(this.options.speed?.min) || 0, Number(this.options.speed?.max) || 0);
+        var velocity = particleOptions.velocity || {};
+        var startVelocity = vec2(velocity.start, 3).map((value, axis) => value + direction[axis] / length * speed);
+        var options = { ...particleOptions, velocity: { ...velocity, start: startVelocity } };
+        this._particles.push(new Particle2(this._spawnPosition(), options));
+      }
+      return this._particles;
+    }
+    update(deltaMs = 1e3 / 60) {
+      var dtMs = Math.max(0, Number(deltaMs) || 0) * Math.max(0, Number(this.options.timeScale) || 0);
+      this._particles.forEach((particle) => particle.update(dtMs));
+      this._particles = this._particles.filter((particle) => particle.alive);
+      if (!this._playing || !this.options.active) return this._particles;
+      this._elapsed += dtMs;
+      var durationMs = Number(this.options.duration) * 1e3;
+      if (Number.isFinite(durationMs) && this._elapsed >= durationMs) {
+        if (this.options.loop) this._elapsed %= Math.max(1, durationMs);
+        else {
+          this._playing = false;
+          return this._particles;
+        }
+      }
+      var rate = Number(this.options.emissionRate);
+      if (rate > 0) {
+        this._emitAccumulator += dtMs * rate / 1e3;
+        var count = Math.floor(this._emitAccumulator);
+        if (count) {
+          this._emitAccumulator -= count;
+          this.emit(count);
+        }
+      } else if (this.options.emitDelay > 0) {
+        this._emitAccumulator += dtMs;
+        while (this._emitAccumulator >= this.options.emitDelay) {
+          this._emitAccumulator -= this.options.emitDelay;
+          this.emit();
+        }
+      }
+      for (var burst of this.options.bursts || []) {
+        var at = Number(burst.time) * 1e3;
+        if (Number.isFinite(at) && this._elapsed - dtMs < at && this._elapsed >= at) this.emit(burst.count || 1);
+      }
+      return this._particles;
+    }
+    _initialize() {
+      if (this._program) return true;
+      var webGL2 = this._gameLib.options && this._gameLib.options.webGL2 !== false;
+      var gl = this._gl;
+      var compile = (type, source) => {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      };
+      var vertex = compile(gl.VERTEX_SHADER, webGL2 ? GL2_default13 : GL1_default13);
+      var fragment = compile(gl.FRAGMENT_SHADER, webGL2 ? GL2_default14 : GL1_default14);
+      if (!vertex || !fragment) return false;
+      var program = gl.createProgram();
+      gl.attachShader(program, vertex);
+      gl.attachShader(program, fragment);
+      gl.linkProgram(program);
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        gl.deleteProgram(program);
+        return false;
+      }
+      this._program = program;
+      this._buffer = gl.createBuffer();
+      this._positionLocation = gl.getAttribLocation(program, "aPosition");
+      this._colorLocation = gl.getAttribLocation(program, "aColor");
+      this._matrixLocation = gl.getUniformLocation(program, "uViewProjection");
+      this._sizeLocation = gl.getUniformLocation(program, "uPointSize");
+      return Boolean(this._buffer);
+    }
+    draw(camera) {
+      var now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (this._lastTime !== null) this.update(now - this._lastTime);
+      this._lastTime = now;
+      if (!this._particles.length || !camera || !this._initialize()) return;
+      var gl = this._gl;
+      var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+      var projection = camera.getProjectionMatrix(aspect);
+      var view = camera.getViewMatrix();
+      var matrix = new Float32Array(16);
+      for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
+        matrix[column * 4 + row] = view[row] * projection[column * 4] + view[4 + row] * projection[column * 4 + 1] + view[8 + row] * projection[column * 4 + 2] + view[12 + row] * projection[column * 4 + 3];
+      }
+      var data = [];
+      for (var particle of this._particles) {
+        data.push(...particle.position, ...particle.color, Math.max(0, Math.min(1, particle.opacity)));
+      }
+      gl.useProgram(this._program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+      var stride = 7 * Float32Array.BYTES_PER_ELEMENT;
+      gl.enableVertexAttribArray(this._positionLocation);
+      gl.vertexAttribPointer(this._positionLocation, 3, gl.FLOAT, false, stride, 0);
+      gl.enableVertexAttribArray(this._colorLocation);
+      gl.vertexAttribPointer(this._colorLocation, 4, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT);
+      gl.uniformMatrix4fv(this._matrixLocation, false, matrix);
+      gl.uniform1f(this._sizeLocation, Math.max(1, Number(this.options.particleOptions.size?.start) || 4));
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.drawArrays(gl.POINTS, 0, this._particles.length);
+    }
+  };
+
+  // src/3D/Particles/index.js
+  var Particles2 = class {
+    constructor() {
+      throw new GameLibCore2.Error("Class Particles may not be constructed!");
+    }
+    static Emitter = Emitter2;
+    static Particle = Particle2;
+    static EmitterOptions = EmitterOptions2;
+    static ParticleOptions = ParticleOptions2;
+  };
+
   // src/3D/index.js
   var GameLib3D = class {
     constructor() {
@@ -72090,6 +72745,8 @@ ${nodesText}`;
     static Lighting = Lighting;
     static Group = Group;
     static Sky = Sky;
+    static Physics = Physics2;
+    static Particles = Particles2;
   };
 
   // src/index.js
