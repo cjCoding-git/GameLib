@@ -30,6 +30,7 @@ class EmitterOptions {
     this.simulationSpace = "local";
     this.randomSeed = null;
     this.active = true;
+    this.updateOptions = null;
   }
 }
 export {
