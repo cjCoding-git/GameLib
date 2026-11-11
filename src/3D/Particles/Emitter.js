@@ -33,7 +33,7 @@ class Emitter extends Object {
     var offset = vec(options.positionOffset, 3);
     var variance = vec(options.positionVariance, 3);
     var position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
-    for (let i = 0; i < 3; i++) position[i] += offset[i] + range(-Math.abs(variance[i]), Math.abs(variance[i]));
+    for (var i = 0; i < 3; i++) position[i] += offset[i] + range(-Math.abs(variance[i]), Math.abs(variance[i]));
     var shape = options.shapeOptions || {};
     if (options.shape === "sphere" || options.shape === "circle") {
       var u = Math.random() * 2 - 1;
@@ -43,15 +43,15 @@ class Emitter extends Object {
       position[1] += radius * u;
       position[2] += radius * Math.sqrt(1 - u * u) * Math.sin(angle);
     } else if (options.shape === "box" || options.shape === "rectangle") {
-      for (let i = 0; i < 3; i++) position[i] += range(-0.5, 0.5) * (shape.size?.[i] || 0);
+      for (var i = 0; i < 3; i++) position[i] += range(-0.5, 0.5) * (shape.size?.[i] || 0);
     } else if (options.shape === "line") {
-      const t = Math.random() - 0.5;
-      for (let i = 0; i < 3; i++) position[i] += t * (shape.size?.[i] || 0);
+      var t = Math.random() - 0.5;
+      for (var i = 0; i < 3; i++) position[i] += t * (shape.size?.[i] || 0);
     }
     return position;
   }
   emit(count = 1) {
-    for (let n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
+    for (var n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
       var particleOptions = this.options.particleOptions;
       var direction = vec(this.options.direction, 3).map((value, axis) => value + range(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
       var length = Math.hypot(...direction) || 1;
@@ -92,7 +92,6 @@ class Emitter extends Object {
   _initialize() {
     if (this._program) return true;
     var gl = this._gl;
-    // Select shaders from the actual context: GameLib options may be absent or stale.
     var webGL2 = typeof gl.texStorage2D === "function";
     var compile = (type, source) => {
       var shader = gl.createShader(type);
@@ -136,7 +135,6 @@ class Emitter extends Object {
     var projection = camera.getProjectionMatrix(aspect);
     var view = camera.getViewMatrix();
     var matrix = new Float32Array(16);
-    // GLSL expects projection * view for column-major matrices.
     for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
       matrix[column * 4 + row] = projection[row] * view[column * 4] + projection[4 + row] * view[column * 4 + 1] + projection[8 + row] * view[column * 4 + 2] + projection[12 + row] * view[column * 4 + 3];
     }
