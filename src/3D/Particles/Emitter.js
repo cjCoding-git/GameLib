@@ -2,6 +2,10 @@ import { Object } from "../Object.js"
 import { Transform } from "../Transform.js"
 import { Particle } from "./Particle.js"
 import { EmitterOptions } from "./EmitterOptions.js"
+import GL1Vertex from "../../Shaders/Particle/Vertex/GL1.glsl"
+import GL2Vertex from "../../Shaders/Particle/Vertex/GL2.glsl"
+import GL1Fragment from "../../Shaders/Particle/Fragment/GL1.glsl"
+import GL2Fragment from "../../Shaders/Particle/Fragment/GL2.glsl"
 var vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
 var range = (min, max) => min + Math.random() * (max - min);
 class Emitter extends Object {
@@ -87,6 +91,7 @@ class Emitter extends Object {
   }
   _initialize() {
     if (this._program) return true;
+    var webGL2 = this._gameLib.options && this._gameLib.options.webGL2 !== false;
     var gl = this._gl;
     var compile = (type, source) => {
       ar shader = gl.createShader(type);
@@ -95,8 +100,8 @@ class Emitter extends Object {
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { gl.deleteShader(shader); return null; }
       return shader;
     };
-    var vertex = compile(gl.VERTEX_SHADER, "attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uViewProjection; uniform float uPointSize; varying vec4 vColor; void main(){ gl_Position=uViewProjection*vec4(aPosition,1.0); gl_PointSize=uPointSize; vColor=aColor; }");
-    var fragment = compile(gl.FRAGMENT_SHADER, "precision mediump float; varying vec4 vColor; void main(){ vec2 p=gl_PointCoord-vec2(0.5); if(dot(p,p)>0.25) discard; gl_FragColor=vColor; }");
+    var vertex = compile(gl.VERTEX_SHADER, webGL2 ? GL2Vertex : GL1Vertex);
+    var fragment = compile(gl.FRAGMENT_SHADER, webGL2 ? GL2Fragment : GL1Fragment);
     if (!vertex || !fragment) return false;
     var program = gl.createProgram();
     gl.attachShader(program, vertex); gl.attachShader(program, fragment); gl.linkProgram(program);
