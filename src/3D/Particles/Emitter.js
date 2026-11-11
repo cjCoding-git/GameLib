@@ -2,10 +2,8 @@ import { Object } from "../Object.js"
 import { Transform } from "../Transform.js"
 import { Particle } from "./Particle.js"
 import { EmitterOptions } from "./EmitterOptions.js"
-
-const vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
-const range = (min, max) => min + Math.random() * (max - min);
-
+var vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
+var range = (min, max) => min + Math.random() * (max - min);
 class Emitter extends Object {
   constructor(gameLib, scene, transform = new Transform(), options = new EmitterOptions()) {
     super(gameLib, scene);
@@ -27,16 +25,16 @@ class Emitter extends Object {
   stop(clear = false) { this._playing = false; this._emitAccumulator = 0; if (clear) this.clearParticles(); return this; }
   clearParticles() { this._particles.length = 0; }
   _spawnPosition() {
-    const options = this.options;
-    const offset = vec(options.positionOffset, 3);
-    const variance = vec(options.positionVariance, 3);
-    const position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
+    var options = this.options;
+    var offset = vec(options.positionOffset, 3);
+    var variance = vec(options.positionVariance, 3);
+    var position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
     for (let i = 0; i < 3; i++) position[i] += offset[i] + range(-Math.abs(variance[i]), Math.abs(variance[i]));
-    const shape = options.shapeOptions || {};
+    var shape = options.shapeOptions || {};
     if (options.shape === "sphere" || options.shape === "circle") {
-      const u = Math.random() * 2 - 1;
-      const angle = Math.random() * (shape.arc || Math.PI * 2);
-      const radius = Math.cbrt(Math.random()) * (shape.radius || 1);
+      var u = Math.random() * 2 - 1;
+      var angle = Math.random() * (shape.arc || Math.PI * 2);
+      var radius = Math.cbrt(Math.random()) * (shape.radius || 1);
       position[0] += radius * Math.sqrt(1 - u * u) * Math.cos(angle);
       position[1] += radius * u;
       position[2] += radius * Math.sqrt(1 - u * u) * Math.sin(angle);
@@ -50,57 +48,57 @@ class Emitter extends Object {
   }
   emit(count = 1) {
     for (let n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
-      const particleOptions = this.options.particleOptions;
-      const direction = vec(this.options.direction, 3).map((value, axis) => value + range(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
-      const length = Math.hypot(...direction) || 1;
-      const speed = range(Number(this.options.speed?.min) || 0, Number(this.options.speed?.max) || 0);
-      const velocity = particleOptions.velocity || {};
-      const startVelocity = vec(velocity.start, 3).map((value, axis) => value + direction[axis] / length * speed);
-      const options = { ...particleOptions, velocity: { ...velocity, start: startVelocity } };
+      var particleOptions = this.options.particleOptions;
+      var direction = vec(this.options.direction, 3).map((value, axis) => value + range(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
+      var length = Math.hypot(...direction) || 1;
+      var speed = range(Number(this.options.speed?.min) || 0, Number(this.options.speed?.max) || 0);
+      var velocity = particleOptions.velocity || {};
+      var startVelocity = vec(velocity.start, 3).map((value, axis) => value + direction[axis] / length * speed);
+      var options = { ...particleOptions, velocity: { ...velocity, start: startVelocity } };
       this._particles.push(new Particle(this._spawnPosition(), options));
     }
     return this._particles;
   }
   update(deltaMs = 1000 / 60) {
-    const dtMs = Math.max(0, Number(deltaMs) || 0) * Math.max(0, Number(this.options.timeScale) || 0);
+    var dtMs = Math.max(0, Number(deltaMs) || 0) * Math.max(0, Number(this.options.timeScale) || 0);
     this._particles.forEach(particle => particle.update(dtMs));
     this._particles = this._particles.filter(particle => particle.alive);
     if (!this._playing || !this.options.active) return this._particles;
     this._elapsed += dtMs;
-    const durationMs = Number(this.options.duration) * 1000;
+    var durationMs = Number(this.options.duration) * 1000;
     if (Number.isFinite(durationMs) && this._elapsed >= durationMs) {
       if (this.options.loop) this._elapsed %= Math.max(1, durationMs);
       else { this._playing = false; return this._particles; }
     }
-    const rate = Number(this.options.emissionRate);
+    var rate = Number(this.options.emissionRate);
     if (rate > 0) {
       this._emitAccumulator += dtMs * rate / 1000;
-      const count = Math.floor(this._emitAccumulator);
+      var count = Math.floor(this._emitAccumulator);
       if (count) { this._emitAccumulator -= count; this.emit(count); }
     } else if (this.options.emitDelay > 0) {
       this._emitAccumulator += dtMs;
       while (this._emitAccumulator >= this.options.emitDelay) { this._emitAccumulator -= this.options.emitDelay; this.emit(); }
     }
-    for (const burst of this.options.bursts || []) {
-      const at = Number(burst.time) * 1000;
+    for (var burst of this.options.bursts || []) {
+      var at = Number(burst.time) * 1000;
       if (Number.isFinite(at) && this._elapsed - dtMs < at && this._elapsed >= at) this.emit(burst.count || 1);
     }
     return this._particles;
   }
   _initialize() {
     if (this._program) return true;
-    const gl = this._gl;
-    const compile = (type, source) => {
-      const shader = gl.createShader(type);
+    var gl = this._gl;
+    var compile = (type, source) => {
+      ar shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { gl.deleteShader(shader); return null; }
       return shader;
     };
-    const vertex = compile(gl.VERTEX_SHADER, "attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uViewProjection; uniform float uPointSize; varying vec4 vColor; void main(){ gl_Position=uViewProjection*vec4(aPosition,1.0); gl_PointSize=uPointSize; vColor=aColor; }");
-    const fragment = compile(gl.FRAGMENT_SHADER, "precision mediump float; varying vec4 vColor; void main(){ vec2 p=gl_PointCoord-vec2(0.5); if(dot(p,p)>0.25) discard; gl_FragColor=vColor; }");
+    var vertex = compile(gl.VERTEX_SHADER, "attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uViewProjection; uniform float uPointSize; varying vec4 vColor; void main(){ gl_Position=uViewProjection*vec4(aPosition,1.0); gl_PointSize=uPointSize; vColor=aColor; }");
+    var fragment = compile(gl.FRAGMENT_SHADER, "precision mediump float; varying vec4 vColor; void main(){ vec2 p=gl_PointCoord-vec2(0.5); if(dot(p,p)>0.25) discard; gl_FragColor=vColor; }");
     if (!vertex || !fragment) return false;
-    const program = gl.createProgram();
+    var program = gl.createProgram();
     gl.attachShader(program, vertex); gl.attachShader(program, fragment); gl.linkProgram(program);
     gl.deleteShader(vertex); gl.deleteShader(fragment);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { gl.deleteProgram(program); return false; }
@@ -113,26 +111,26 @@ class Emitter extends Object {
     return Boolean(this._buffer);
   }
   draw(camera) {
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    var now = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (this._lastTime !== null) this.update(now - this._lastTime);
     this._lastTime = now;
     if (!this._particles.length || !camera || !this._initialize()) return;
-    const gl = this._gl;
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    const projection = camera.getProjectionMatrix(aspect);
-    const view = camera.getViewMatrix();
-    const matrix = new Float32Array(16);
-    for (let column = 0; column < 4; column++) for (let row = 0; row < 4; row++) {
+    var gl = this._gl;
+    var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    var projection = camera.getProjectionMatrix(aspect);
+    var view = camera.getViewMatrix();
+    var matrix = new Float32Array(16);
+    for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
       matrix[column * 4 + row] = view[row] * projection[column * 4] + view[4 + row] * projection[column * 4 + 1] + view[8 + row] * projection[column * 4 + 2] + view[12 + row] * projection[column * 4 + 3];
     }
-    const data = [];
-    for (const particle of this._particles) {
+    var data = [];
+    for (var particle of this._particles) {
       data.push(...particle.position, ...particle.color, Math.max(0, Math.min(1, particle.opacity)));
     }
     gl.useProgram(this._program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
-    const stride = 7 * Float32Array.BYTES_PER_ELEMENT;
+    var stride = 7 * Float32Array.BYTES_PER_ELEMENT;
     gl.enableVertexAttribArray(this._positionLocation);
     gl.vertexAttribPointer(this._positionLocation, 3, gl.FLOAT, false, stride, 0);
     gl.enableVertexAttribArray(this._colorLocation);
