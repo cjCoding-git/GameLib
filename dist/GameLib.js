@@ -72577,7 +72577,7 @@ ${nodesText}`;
       var offset = vec2(options.positionOffset, 3);
       var variance = vec2(options.positionVariance, 3);
       var position = [this.transform.position.x, this.transform.position.y, this.transform.position.z];
-      for (let i2 = 0; i2 < 3; i2++) position[i2] += offset[i2] + range2(-Math.abs(variance[i2]), Math.abs(variance[i2]));
+      for (var i2 = 0; i2 < 3; i2++) position[i2] += offset[i2] + range2(-Math.abs(variance[i2]), Math.abs(variance[i2]));
       var shape = options.shapeOptions || {};
       if (options.shape === "sphere" || options.shape === "circle") {
         var u = Math.random() * 2 - 1;
@@ -72587,15 +72587,15 @@ ${nodesText}`;
         position[1] += radius * u;
         position[2] += radius * Math.sqrt(1 - u * u) * Math.sin(angle);
       } else if (options.shape === "box" || options.shape === "rectangle") {
-        for (let i2 = 0; i2 < 3; i2++) position[i2] += range2(-0.5, 0.5) * (shape.size?.[i2] || 0);
+        for (var i2 = 0; i2 < 3; i2++) position[i2] += range2(-0.5, 0.5) * (shape.size?.[i2] || 0);
       } else if (options.shape === "line") {
-        const t = Math.random() - 0.5;
-        for (let i2 = 0; i2 < 3; i2++) position[i2] += t * (shape.size?.[i2] || 0);
+        var t = Math.random() - 0.5;
+        for (var i2 = 0; i2 < 3; i2++) position[i2] += t * (shape.size?.[i2] || 0);
       }
       return position;
     }
     emit(count = 1) {
-      for (let n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
+      for (var n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
         var particleOptions = this.options.particleOptions;
         var direction = vec2(this.options.direction, 3).map((value, axis) => value + range2(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
         var length = Math.hypot(...direction) || 1;
@@ -72644,13 +72644,14 @@ ${nodesText}`;
     }
     _initialize() {
       if (this._program) return true;
-      var webGL2 = this._gameLib.options && this._gameLib.options.webGL2 !== false;
       var gl = this._gl;
+      var webGL2 = typeof gl.texStorage2D === "function";
       var compile = (type, source) => {
         var shader = gl.createShader(type);
         gl.shaderSource(shader, source);
         gl.compileShader(shader);
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          console.warn("[GameLib] Particle shader compilation failed:", gl.getShaderInfoLog(shader));
           gl.deleteShader(shader);
           return null;
         }
@@ -72666,6 +72667,7 @@ ${nodesText}`;
       gl.deleteShader(vertex);
       gl.deleteShader(fragment);
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.warn("[GameLib] Particle shader program linking failed:", gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
         return false;
       }
@@ -72683,12 +72685,14 @@ ${nodesText}`;
       this._lastTime = now;
       if (!this._particles.length || !camera || !this._initialize()) return;
       var gl = this._gl;
-      var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+      var width = gl.canvas.clientWidth || gl.canvas.width;
+      var height = gl.canvas.clientHeight || gl.canvas.height;
+      var aspect = width / height;
       var projection = camera.getProjectionMatrix(aspect);
       var view = camera.getViewMatrix();
       var matrix = new Float32Array(16);
       for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
-        matrix[column * 4 + row] = view[row] * projection[column * 4] + view[4 + row] * projection[column * 4 + 1] + view[8 + row] * projection[column * 4 + 2] + view[12 + row] * projection[column * 4 + 3];
+        matrix[column * 4 + row] = projection[row] * view[column * 4] + projection[4 + row] * view[column * 4 + 1] + projection[8 + row] * view[column * 4 + 2] + projection[12 + row] * view[column * 4 + 3];
       }
       var data = [];
       for (var particle of this._particles) {
