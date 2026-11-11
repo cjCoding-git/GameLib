@@ -15,6 +15,11 @@ class ParticleOptions {
       end: 2,
     };
     this.sizeVariance = 0;
+    this.shape = "circle";
+    this.outline = {
+      width: 0,
+      color: [0, 0, 0, 1]
+    };
     this.velocity = {
       start: [0, 0, 0],
       end: [0, 0, 0]
