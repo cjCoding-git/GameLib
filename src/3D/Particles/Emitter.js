@@ -1,8 +1,8 @@
 import { Transform } from "../Transform.js"
-import { GameLibCore } from "../../Core/index.js"
+import { EmitterOptions } from "./EmitterOptions.js"
 class Emitter {
-  constructor(transform=new Transform(), options=new GameLibCore.ParticleOptions()) {
-    this.transform = transform;
+  constructor(transform=new Transform(), options=new EmitterOptions()) {
+    this.transfoerm = transform;
     this.options = options;
   }
 }
