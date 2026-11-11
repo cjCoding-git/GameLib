@@ -18,6 +18,7 @@ import { UI } from "./UI/index.js"
 import { Lighting } from "./Lighting/index.js"
 import { Group } from "./Group.js"
 import { Sky } from "./Sky/index.js"
+import { Physics } from "./Physics/index.js"
 class GameLib3D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib3D may not be constructed!");
@@ -41,6 +42,7 @@ class GameLib3D {
   static Lighting = Lighting;
   static Group = Group;
   static Sky = Sky;
+  static Physics = Physics;
 }
 export {
   GameLib3D
