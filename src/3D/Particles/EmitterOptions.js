@@ -4,8 +4,6 @@ class EmitterOptions {
     this.particleOptions = new ParticleOptions();
     this.emitDelay = 1;
     this.maxParticles = 100;
-
-    // Emission lifecycle and rate controls.
     this.playOnAwake = true;
     this.loop = true;
     this.duration = Infinity;
@@ -14,8 +12,6 @@ class EmitterOptions {
     this.bursts = [];
     this.prewarm = false;
     this.timeScale = 1;
-
-    // Spawn shape and initial particle motion.
     this.shape = "point";
     this.shapeOptions = {
       radius: 1,
@@ -31,8 +27,6 @@ class EmitterOptions {
       max: 0
     };
     this.velocityInheritance = 0;
-
-    // Choose whether particles follow the emitter after they are spawned.
     this.simulationSpace = "local";
     this.randomSeed = null;
     this.active = true;
