@@ -20,9 +20,17 @@ class Particle {
     this.alive = this.lifetime > 0;
     this.rotation = vec(options.rotation?.start, 3);
     this.angularVelocity = vec(options.angularVelocity, 3);
-    this.size = Number(options.size?.start) || 0;
+    var baseSize = Number(options.size?.start) || 0;
+    var variance = Number(options.sizeVariance) || 0;
+    this.size = baseSize + range(-Math.abs(variance), Math.abs(variance));
     this.opacity = Number(options.opacity?.start ?? 1);
     this.color = [...(options.color?.start || [1, 1, 1])];
+    this.shape = String(options.shape || "circle").toLowerCase();
+    this.outline = {
+      width: Number(options.outline?.width) || 0,
+      color: Array.isArray(options.outline?.color) ? [...options.outline.color] : [0, 0, 0, 1]
+    }; 
+    this.outline.color = Array.from({ length: 4 }, (_, i) => Number(this.outline.color?.[i] ?? (i === 3 ? 1 : 0)));
   }
   update(deltaMs) {
     if (!this.alive || deltaMs <= 0) return;
@@ -44,8 +52,15 @@ class Particle {
     this.transform.position.y = this.position[1];
     this.transform.position.z = this.position[2];
     this.size = Math.max(0, lerp(Number(options.size?.start) || 0, Number(options.size?.end) || 0, t));
+    if (Number(options.sizeVariance) > 0) this.size += range(-Math.abs(Number(options.sizeVariance) || 0), Math.abs(Number(options.sizeVariance) || 0)) * (1 - t);
     this.opacity = lerp(Number(options.opacity?.start ?? 1), Number(options.opacity?.end ?? 0), t);
     this.color = Array.from({ length: 3 }, (_, i) => lerp(Number(options.color?.start?.[i]) || 0, Number(options.color?.end?.[i]) || 0, t));
+    this.shape = String(options.shape || this.shape || "circle").toLowerCase();
+    this.outline = {
+      width: Number(options.outline?.width) || 0,
+      color: Array.isArray(options.outline?.color) ? [...options.outline.color] : [0, 0, 0, 1]
+    };
+    this.outline.color = Array.from({ length: 4 }, (_, i) => Number(this.outline.color?.[i] ?? (i === 3 ? 1 : 0)));
     if (options.collision && this.position[1] < 0 && this.velocity[1] < 0) {
       this.position[1] = 0;
       this.velocity[1] *= -Math.max(0, Number(options.restitution) || 0);

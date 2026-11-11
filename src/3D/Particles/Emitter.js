@@ -8,6 +8,7 @@ import GL1Fragment from "../../Shaders/Particle/Fragment/GL1.glsl"
 import GL2Fragment from "../../Shaders/Particle/Fragment/GL2.glsl"
 var vec = (value, size) => Array.from({ length: size }, (_, i) => Number(value?.[i]) || 0);
 var range = (min, max) => min + Math.random() * (max - min);
+var clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 class Emitter extends Object {
   constructor(gameLib, scene, transform = new Transform(), options = new EmitterOptions()) {
     super(gameLib, scene);
@@ -28,6 +29,26 @@ class Emitter extends Object {
   pause() { this._playing = false; return this; }
   stop(clear = false) { this._playing = false; this._emitAccumulator = 0; if (clear) this.clearParticles(); return this; }
   clearParticles() { this._particles.length = 0; }
+  _resolveParticleShape(shape) {
+    var value = String(shape || "circle").toLowerCase();
+    var aliases = {
+      point: 0,
+      circle: 0,
+      dot: 0,
+      square: 1,
+      rectangle: 1,
+      triangle: 2,
+      diamond: 3,
+      hex: 4,
+      star: 5,
+      start: 5,
+      heart: 6,
+      plus: 7,
+      cross: 7,
+      line: 8
+    };
+    return aliases[value] ?? 0;
+  }
   _spawnPosition() {
     var options = this.options;
     var offset = vec(options.positionOffset, 3);
@@ -52,7 +73,8 @@ class Emitter extends Object {
   }
   emit(count = 1) {
     for (var n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
-      if(this.options.updateOptions && typeof this.options.updateOptions === "function") this.options.updateOptions();
+      var updateOptions = this.options?.particleOptions?.updateOptions || this.options?.updateOptions;
+      if (typeof updateOptions === "function") updateOptions.call(this, this.options);
       var particleOptions = this.options.particleOptions;
       var direction = vec(this.options.direction, 3).map((value, axis) => value + range(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
       var length = Math.hypot(...direction) || 1;
@@ -120,8 +142,13 @@ class Emitter extends Object {
     this._buffer = gl.createBuffer();
     this._positionLocation = gl.getAttribLocation(program, "aPosition");
     this._colorLocation = gl.getAttribLocation(program, "aColor");
+    this._sizeLocation = gl.getAttribLocation(program, "aSize");
+    this._outlineColorLocation = gl.getAttribLocation(program, "aOutlineColor");
+    this._outlineWidthLocation = gl.getAttribLocation(program, "aOutlineWidth");
     this._matrixLocation = gl.getUniformLocation(program, "uViewProjection");
-    this._sizeLocation = gl.getUniformLocation(program, "uPointSize");
+    this._shapeLocation = gl.getUniformLocation(program, "uShape");
+    this._outlineColorUniformLocation = gl.getUniformLocation(program, "uOutlineColor");
+    this._outlineWidthUniformLocation = gl.getUniformLocation(program, "uOutlineWidth");
     return Boolean(this._buffer);
   }
   draw(camera) {
@@ -139,20 +166,42 @@ class Emitter extends Object {
     for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
       matrix[column * 4 + row] = projection[row] * view[column * 4] + projection[4 + row] * view[column * 4 + 1] + projection[8 + row] * view[column * 4 + 2] + projection[12 + row] * view[column * 4 + 3];
     }
+    var shape = this._resolveParticleShape(this.options.particleOptions?.shape || "circle");
+    var outline = this.options.particleOptions?.outline || { width: 0, color: [0, 0, 0, 1] };
+    var outlineWidth = clamp(Number(outline.width) || 0, 0, 1);
+    var outlineColor = Array.from({ length: 4 }, (_, i) => Number(outline.color?.[i] ?? (i === 3 ? 1 : 0)));
     var data = [];
     for (var particle of this._particles) {
-      data.push(...particle.position, ...particle.color, Math.max(0, Math.min(1, particle.opacity)));
+      var particleOutline = particle.outline || { width: 0, color: [0, 0, 0, 1] };
+      var particleOutlineColor = Array.from({ length: 4 }, (_, i) => Number(particleOutline.color?.[i] ?? (i === 3 ? 1 : 0)));
+      var particleSize = Math.max(0, Number(particle.size) || 0);
+      data.push(
+        ...particle.position,
+        ...(particle.color || [1, 1, 1]),
+        1,
+        particleSize,
+        ...particleOutlineColor,
+        clamp(Number(particleOutline.width) || 0, 0, 1),
+      );
     }
     gl.useProgram(this._program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
-    var stride = 7 * Float32Array.BYTES_PER_ELEMENT;
+    var stride = (3 + 4 + 1 + 1 + 4 + 1) * Float32Array.BYTES_PER_ELEMENT;
     gl.enableVertexAttribArray(this._positionLocation);
     gl.vertexAttribPointer(this._positionLocation, 3, gl.FLOAT, false, stride, 0);
     gl.enableVertexAttribArray(this._colorLocation);
     gl.vertexAttribPointer(this._colorLocation, 4, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT);
+    gl.enableVertexAttribArray(this._sizeLocation);
+    gl.vertexAttribPointer(this._sizeLocation, 1, gl.FLOAT, false, stride, (3 + 4) * Float32Array.BYTES_PER_ELEMENT);
+    gl.enableVertexAttribArray(this._outlineColorLocation);
+    gl.vertexAttribPointer(this._outlineColorLocation, 4, gl.FLOAT, false, stride, (3 + 4 + 1) * Float32Array.BYTES_PER_ELEMENT);
+    gl.enableVertexAttribArray(this._outlineWidthLocation);
+    gl.vertexAttribPointer(this._outlineWidthLocation, 1, gl.FLOAT, false, stride, (3 + 4 + 1 + 4) * Float32Array.BYTES_PER_ELEMENT);
     gl.uniformMatrix4fv(this._matrixLocation, false, matrix);
-    gl.uniform1f(this._sizeLocation, Math.max(1, Number(this.options.particleOptions.size?.start) || 4));
+    gl.uniform1f(this._shapeLocation, shape);
+    gl.uniform4fv(this._outlineColorUniformLocation, new Float32Array(outlineColor));
+    gl.uniform1f(this._outlineWidthUniformLocation, outlineWidth);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArrays(gl.POINTS, 0, this._particles.length);
