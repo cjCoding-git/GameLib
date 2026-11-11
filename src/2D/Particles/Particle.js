@@ -1,13 +1,12 @@
-const vector = (value, dimensions) => Array.from({ length: dimensions }, (_, index) => Number(value?.[index]) || 0);
-const randomBetween = (min, max) => min + Math.random() * (max - min);
-const lerp = (start, end, amount) => start + (end - start) * amount;
-const lerpArray = (start, end, amount, dimensions) => Array.from({ length: dimensions }, (_, index) => lerp(Number(start?.[index]) || 0, Number(end?.[index]) || 0, amount));
-
+var vector = (value, dimensions) => Array.from({ length: dimensions }, (_, index) => Number(value?.[index]) || 0);
+var randomBetween = (min, max) => min + Math.random() * (max - min);
+var lerp = (start, end, amount) => start + (end - start) * amount;
+var lerpArray = (start, end, amount, dimensions) => Array.from({ length: dimensions }, (_, index) => lerp(Number(start?.[index]) || 0, Number(end?.[index]) || 0, amount));
 class Particle {
   constructor(position = [0, 0], options = {}) {
     this.options = options;
     this.position = vector(position, 2);
-    const velocity = options.velocity || {};
+    var velocity = options.velocity || {};
     this.velocity = vector(velocity.start, 2);
     this.age = 0;
     this.lifetime = Math.max(0, Number(options.lifetime) || 0) + randomBetween(-Math.abs(Number(options.lifetimeVariance) || 0), Math.abs(Number(options.lifetimeVariance) || 0));
@@ -21,15 +20,15 @@ class Particle {
   }
   update(deltaMs) {
     if (!this.alive || deltaMs <= 0) return;
-    const dt = deltaMs / 1000;
+    var dt = deltaMs / 1000;
     this.age += deltaMs;
-    const t = Math.min(1, this.age / this.lifetime);
-    const options = this.options;
-    const acceleration = vector(options.acceleration, 2);
-    const endVelocity = vector(options.velocity?.end, 2);
-    const drag = Math.max(0, Number(options.drag) || 0);
-    for (let i = 0; i < 2; i++) {
-      const targetVelocity = lerp(Number(options.velocity?.start?.[i]) || 0, endVelocity[i], t);
+    var t = Math.min(1, this.age / this.lifetime);
+    var options = this.options;
+    var acceleration = vector(options.acceleration, 2);
+    var endVelocity = vector(options.velocity?.end, 2);
+    var drag = Math.max(0, Number(options.drag) || 0);
+    for (var i = 0; i < 2; i++) {
+      var targetVelocity = lerp(Number(options.velocity?.start?.[i]) || 0, endVelocity[i], t);
       this.velocity[i] += (acceleration[i] + (targetVelocity - this.velocity[i]) * Math.min(1, dt)) * dt;
       this.velocity[i] *= Math.max(0, 1 - drag * dt);
       this.position[i] += this.velocity[i] * dt;
@@ -46,15 +45,15 @@ class Particle {
   }
   draw(ctx) {
     if (!this.alive || !ctx) return;
-    const size = this.size;
-    const color = this.options.color?.start;
-    const cssColor = typeof color === "string" ? color : `rgb(${this.color.map(value => Math.round(Math.max(0, Math.min(1, value)) * 255)).join(",")})`;
+    var size = this.size;
+    var color = this.options.color?.start;
+    var cssColor = typeof color === "string" ? color : `rgb(${this.color.map(value => Math.round(Math.max(0, Math.min(1, value)) * 255)).join(",")})`;
     ctx.save();
     ctx.globalAlpha *= Math.max(0, Math.min(1, this.opacity));
     ctx.translate(this.position[0], this.position[1]);
     ctx.rotate(this.rotation * Math.PI / 180);
     if (this.options.texture && typeof ctx.drawImage === "function") {
-      const image = this.options.texture.image || this.options.texture;
+      var image = this.options.texture.image || this.options.texture;
       ctx.drawImage(image, -size / 2, -size / 2, size, size);
     } else {
       ctx.fillStyle = cssColor;
