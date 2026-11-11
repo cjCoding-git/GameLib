@@ -91,13 +91,18 @@ class Emitter extends Object {
   }
   _initialize() {
     if (this._program) return true;
-    var webGL2 = this._gameLib.options && this._gameLib.options.webGL2 !== false;
     var gl = this._gl;
+    // Select shaders from the actual context: GameLib options may be absent or stale.
+    var webGL2 = typeof gl.texStorage2D === "function";
     var compile = (type, source) => {
       var shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { gl.deleteShader(shader); return null; }
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.warn("[GameLib] Particle shader compilation failed:", gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
       return shader;
     };
     var vertex = compile(gl.VERTEX_SHADER, webGL2 ? GL2Vertex : GL1Vertex);
@@ -106,7 +111,11 @@ class Emitter extends Object {
     var program = gl.createProgram();
     gl.attachShader(program, vertex); gl.attachShader(program, fragment); gl.linkProgram(program);
     gl.deleteShader(vertex); gl.deleteShader(fragment);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { gl.deleteProgram(program); return false; }
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.warn("[GameLib] Particle shader program linking failed:", gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return false;
+    }
     this._program = program;
     this._buffer = gl.createBuffer();
     this._positionLocation = gl.getAttribLocation(program, "aPosition");
@@ -121,12 +130,15 @@ class Emitter extends Object {
     this._lastTime = now;
     if (!this._particles.length || !camera || !this._initialize()) return;
     var gl = this._gl;
-    var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    var width = gl.canvas.clientWidth || gl.canvas.width;
+    var height = gl.canvas.clientHeight || gl.canvas.height;
+    var aspect = width / height;
     var projection = camera.getProjectionMatrix(aspect);
     var view = camera.getViewMatrix();
     var matrix = new Float32Array(16);
+    // GLSL expects projection * view for column-major matrices.
     for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
-      matrix[column * 4 + row] = view[row] * projection[column * 4] + view[4 + row] * projection[column * 4 + 1] + view[8 + row] * projection[column * 4 + 2] + view[12 + row] * projection[column * 4 + 3];
+      matrix[column * 4 + row] = projection[row] * view[column * 4] + projection[4 + row] * view[column * 4 + 1] + projection[8 + row] * view[column * 4 + 2] + projection[12 + row] * view[column * 4 + 3];
     }
     var data = [];
     for (var particle of this._particles) {
