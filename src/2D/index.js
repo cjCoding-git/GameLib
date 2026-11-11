@@ -7,6 +7,7 @@ import { Sprite } from "./Sprite.js"
 import { GameLib } from "./GameLib.js"
 import { UI } from "./UI/index.js"
 import { Physics } from "./Physics/index.js"
+import { Particles } from "./Particles/index.js"
 class GameLib2D {
   constructor() {
     throw new GameLibCore.Error("Wrapper class GameLib2D may not be constructed!");
@@ -20,6 +21,7 @@ class GameLib2D {
   static GameLib = GameLib;
   static UI = UI;
   static Physics = Physics;
+  static Particles = Particles;
 }
 export {
   GameLib2D
