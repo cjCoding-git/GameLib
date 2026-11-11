@@ -15,8 +15,6 @@ class ParticleOptions {
       end: 2
     };
     this.sizeVariance = 0;
-
-    // Motion and rotation use 2D vectors; rotation values are in degrees.
     this.velocity = {
       start: [0, 0],
       end: [0, 0]
@@ -31,7 +29,6 @@ class ParticleOptions {
     };
     this.angularVelocity = 0;
     this.angularAcceleration = 0;
-
     this.texture = null;
     this.material = null;
     this.blendMode = "normal";
@@ -43,7 +40,6 @@ class ParticleOptions {
       frameRate: 0,
       loop: true
     };
-
     this.collision = false;
     this.restitution = 0;
     this.friction = 0;
