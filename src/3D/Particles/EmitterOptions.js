@@ -1,6 +1,7 @@
+import { ParticleOptions } from "./ParticleOptions.js"
 class EmitterOptions {
   constructor() {
-    this.particleOptions = new (await import("./ParticleOptions.js")).ParticleOptions();
+    this.particleOptions = new ParticleOptions();
     this.emitDelay = 1;
     this.maxParticles = 100;
     this.playOnAwake = true;
