@@ -5,6 +5,6 @@ uniform float uPointSize;
 varying vec4 vColor;
 void main() {
   gl_Position = uViewProjection * vec4(aPosition, 1.0);
-  gl_PointSize=uPointSize;
+  gl_PointSize = uPointSize;
   vColor = aColor;
 }
