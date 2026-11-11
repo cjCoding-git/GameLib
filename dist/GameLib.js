@@ -2257,6 +2257,7 @@
       this.simulationSpace = "local";
       this.randomSeed = null;
       this.active = true;
+      this.updateOptions = null;
     }
   };
 
@@ -2376,6 +2377,7 @@
       var options = this.options;
       for (var i2 = 0; i2 < Math.max(0, Math.floor(count)); i2++) {
         if (this._particles.length >= options.maxParticles) break;
+        if (this.options.updateOptions && typeof this.options.updateOptions === "function") this.options.updateOptions();
         var spawn = this._getSpawnPosition();
         var particleOptions = options.particleOptions;
         var speed = options.speed || { min: 0, max: 0 };
@@ -72400,9 +72402,17 @@ ${nodesText}`;
       this.alive = this.lifetime > 0;
       this.rotation = vec(options.rotation?.start, 3);
       this.angularVelocity = vec(options.angularVelocity, 3);
-      this.size = Number(options.size?.start) || 0;
+      var baseSize = Number(options.size?.start) || 0;
+      var variance = Number(options.sizeVariance) || 0;
+      this.size = baseSize + range(-Math.abs(variance), Math.abs(variance));
       this.opacity = Number(options.opacity?.start ?? 1);
       this.color = [...options.color?.start || [1, 1, 1]];
+      this.shape = String(options.shape || "circle").toLowerCase();
+      this.outline = {
+        width: Number(options.outline?.width) || 0,
+        color: Array.isArray(options.outline?.color) ? [...options.outline.color] : [0, 0, 0, 1]
+      };
+      this.outline.color = Array.from({ length: 4 }, (_, i2) => Number(this.outline.color?.[i2] ?? (i2 === 3 ? 1 : 0)));
     }
     update(deltaMs) {
       if (!this.alive || deltaMs <= 0) return;
@@ -72424,8 +72434,15 @@ ${nodesText}`;
       this.transform.position.y = this.position[1];
       this.transform.position.z = this.position[2];
       this.size = Math.max(0, lerp2(Number(options.size?.start) || 0, Number(options.size?.end) || 0, t));
+      if (Number(options.sizeVariance) > 0) this.size += range(-Math.abs(Number(options.sizeVariance) || 0), Math.abs(Number(options.sizeVariance) || 0)) * (1 - t);
       this.opacity = lerp2(Number(options.opacity?.start ?? 1), Number(options.opacity?.end ?? 0), t);
       this.color = Array.from({ length: 3 }, (_, i3) => lerp2(Number(options.color?.start?.[i3]) || 0, Number(options.color?.end?.[i3]) || 0, t));
+      this.shape = String(options.shape || this.shape || "circle").toLowerCase();
+      this.outline = {
+        width: Number(options.outline?.width) || 0,
+        color: Array.isArray(options.outline?.color) ? [...options.outline.color] : [0, 0, 0, 1]
+      };
+      this.outline.color = Array.from({ length: 4 }, (_, i3) => Number(this.outline.color?.[i3] ?? (i3 === 3 ? 1 : 0)));
       if (options.collision && this.position[1] < 0 && this.velocity[1] < 0) {
         this.position[1] = 0;
         this.velocity[1] *= -Math.max(0, Number(options.restitution) || 0);
@@ -72452,6 +72469,11 @@ ${nodesText}`;
         end: 2
       };
       this.sizeVariance = 0;
+      this.shape = "circle";
+      this.outline = {
+        width: 0,
+        color: [0, 0, 0, 1]
+      };
       this.velocity = {
         start: [0, 0, 0],
         end: [0, 0, 0]
@@ -72481,6 +72503,7 @@ ${nodesText}`;
       this.collision = false;
       this.restitution = 0;
       this.friction = 0;
+      this.updateOptions = null;
     }
   };
 
@@ -72516,24 +72539,26 @@ ${nodesText}`;
       this.simulationSpace = "local";
       this.randomSeed = null;
       this.active = true;
+      this.updateOptions = null;
     }
   };
 
   // src/Shaders/Particle/Vertex/GL1.glsl
-  var GL1_default13 = "attribute vec3 aPosition;\nattribute vec4 aColor;\nuniform mat4 uViewProjection;\nuniform float uPointSize;\nvarying vec4 vColor;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = uPointSize;\n  vColor = aColor;\n}\n";
+  var GL1_default13 = "attribute vec3 aPosition;\nattribute vec4 aColor;\nattribute float aSize;\nattribute vec4 aOutlineColor;\nattribute float aOutlineWidth;\nuniform mat4 uViewProjection;\nuniform float uShape;\nuniform vec4 uOutlineColor;\nuniform float uOutlineWidth;\nvarying vec4 vColor;\nvarying vec2 vPoint;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = max(1.0, aSize);\n  vColor = aColor;\n  vPoint = gl_PointCoord * 2.0 - vec2(1.0);\n}\n";
 
   // src/Shaders/Particle/Vertex/GL2.glsl
-  var GL2_default13 = "#version 300 es\nin vec3 aPosition;\nin vec4 aColor;\nuniform mat4 uViewProjection;\nuniform float uPointSize;\nout vec4 vColor;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = uPointSize;\n  vColor = aColor;\n}\n";
+  var GL2_default13 = "#version 300 es\nprecision mediump float;\nin vec3 aPosition;\nin vec4 aColor;\nin float aSize;\nin vec4 aOutlineColor;\nin float aOutlineWidth;\nuniform mat4 uViewProjection;\nuniform float uShape;\nuniform vec4 uOutlineColor;\nuniform float uOutlineWidth;\nout vec4 vColor;\nout vec2 vPoint;\nvoid main() {\n  gl_Position = uViewProjection * vec4(aPosition, 1.0);\n  gl_PointSize = max(1.0, aSize);\n  vColor = aColor;\n  vPoint = gl_PointCoord * 2.0 - vec2(1.0);\n}\n";
 
   // src/Shaders/Particle/Fragment/GL1.glsl
-  var GL1_default14 = "precision mediump float;\nvarying vec4 vColor;\nvoid main() {\n  vec2 p = gl_PointCoord - vec2(0.5);\n  if(dot(p, p) > 0.25) discard;\n  gl_FragColor = vColor;\n}\n";
+  var GL1_default14 = "precision mediump float;\nvarying vec4 vColor;\nvarying vec2 vPoint;\nuniform float uShape;\nuniform vec4 uOutlineColor;\nuniform float uOutlineWidth;\nfloat shapeMask(float id, vec2 p) {\n  if (id < 0.5) return 1.0 - step(1.0, length(p));\n  if (id < 1.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)));\n  if (id < 2.5) {\n    float h = 1.0 - abs(p.y);\n    float tri = 1.0 - step(1.0, max(abs(p.x) * 1.25, h));\n    return tri;\n  }\n  if (id < 3.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)) * 0.8 + 0.2);\n  if (id < 4.5) return 1.0 - step(1.0, max(abs(p.x) * 0.75, abs(p.y) * 1.5));\n  if (id < 5.5) {\n    vec2 q = abs(p);\n    float x = 5.0 * q.x;\n    float y = 5.0 * q.y;\n    float star = 1.0 - step(1.0, (x * x + y * y) * 0.12 + abs(x - y) * 0.25);\n    return star;\n  }\n  if (id < 6.5) {\n    vec2 q = abs(p);\n    float heart = 1.0 - step(1.0, max(q.x * 0.75 + q.y * 0.9, q.x * 0.9 + q.y * 0.75));\n    return heart;\n  }\n  if (id < 7.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)) * 0.9);\n  return 1.0 - step(1.0, length(p));\n}\nvoid main() {\n  vec2 p = vPoint;\n  float mask = shapeMask(uShape, p);\n  if (mask <= 0.0) discard;\n  vec4 color = vColor;\n  if (uOutlineWidth > 0.0) {\n    float edge = 1.0 - smoothstep(1.0 - uOutlineWidth, 1.0, max(abs(p.x), abs(p.y)));\n    color = mix(color, uOutlineColor, edge * 0.9);\n  }\n  gl_FragColor = color;\n}\n";
 
   // src/Shaders/Particle/Fragment/GL2.glsl
-  var GL2_default14 = "#version 300 es\nprecision mediump float;\nin vec4 vColor;\nout vec4 outColor;\nvoid main() {\n  vec2 p = gl_PointCoord - vec2(0.5);\n  if(dot(p, p) > 0.25) discard;\n  outColor = vColor;\n}\n";
+  var GL2_default14 = "#version 300 es\nprecision mediump float;\nin vec4 vColor;\nin vec2 vPoint;\nout vec4 outColor;\nuniform float uShape;\nuniform vec4 uOutlineColor;\nuniform float uOutlineWidth;\nfloat shapeMask(float id, vec2 p) {\n  if (id < 0.5) return 1.0 - step(1.0, length(p));\n  if (id < 1.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)));\n  if (id < 2.5) {\n    float h = 1.0 - abs(p.y);\n    float tri = 1.0 - step(1.0, max(abs(p.x) * 1.25, h));\n    return tri;\n  }\n  if (id < 3.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)) * 0.8 + 0.2);\n  if (id < 4.5) return 1.0 - step(1.0, max(abs(p.x) * 0.75, abs(p.y) * 1.5));\n  if (id < 5.5) {\n    vec2 q = abs(p);\n    float x = 5.0 * q.x;\n    float y = 5.0 * q.y;\n    float star = 1.0 - step(1.0, (x * x + y * y) * 0.12 + abs(x - y) * 0.25);\n    return star;\n  }\n  if (id < 6.5) {\n    vec2 q = abs(p);\n    float heart = 1.0 - step(1.0, max(q.x * 0.75 + q.y * 0.9, q.x * 0.9 + q.y * 0.75));\n    return heart;\n  }\n  if (id < 7.5) return 1.0 - step(1.0, max(abs(p.x), abs(p.y)) * 0.9);\n  return 1.0 - step(1.0, length(p));\n}\nvoid main() {\n  vec2 p = vPoint;\n  float mask = shapeMask(uShape, p);\n  if (mask <= 0.0) discard;\n  vec4 color = vColor;\n  if (uOutlineWidth > 0.0) {\n    float edge = 1.0 - smoothstep(1.0 - uOutlineWidth, 1.0, max(abs(p.x), abs(p.y)));\n    color = mix(color, uOutlineColor, edge * 0.9);\n  }\n  outColor = color;\n}\n";
 
   // src/3D/Particles/Emitter.js
   var vec2 = (value, size) => Array.from({ length: size }, (_, i2) => Number(value?.[i2]) || 0);
   var range2 = (min, max) => min + Math.random() * (max - min);
+  var clamp = (value, min, max) => Math.min(Math.max(value, min), max);
   var Emitter2 = class extends Object2 {
     constructor(gameLib, scene, transform = new Transform(), options = new EmitterOptions2()) {
       super(gameLib, scene);
@@ -72572,6 +72597,26 @@ ${nodesText}`;
     clearParticles() {
       this._particles.length = 0;
     }
+    _resolveParticleShape(shape) {
+      var value = String(shape || "circle").toLowerCase();
+      var aliases = {
+        point: 0,
+        circle: 0,
+        dot: 0,
+        square: 1,
+        rectangle: 1,
+        triangle: 2,
+        diamond: 3,
+        hex: 4,
+        star: 5,
+        start: 5,
+        heart: 6,
+        plus: 7,
+        cross: 7,
+        line: 8
+      };
+      return aliases[value] ?? 0;
+    }
     _spawnPosition() {
       var options = this.options;
       var offset = vec2(options.positionOffset, 3);
@@ -72596,6 +72641,8 @@ ${nodesText}`;
     }
     emit(count = 1) {
       for (var n = 0; n < Math.max(0, Math.floor(count)) && this._particles.length < this.options.maxParticles; n++) {
+        var updateOptions = this.options?.particleOptions?.updateOptions || this.options?.updateOptions;
+        if (typeof updateOptions === "function") updateOptions.call(this, this.options);
         var particleOptions = this.options.particleOptions;
         var direction = vec2(this.options.direction, 3).map((value, axis) => value + range2(-Math.abs(this.options.directionVariance?.[axis] || 0), Math.abs(this.options.directionVariance?.[axis] || 0)));
         var length = Math.hypot(...direction) || 1;
@@ -72675,8 +72722,13 @@ ${nodesText}`;
       this._buffer = gl.createBuffer();
       this._positionLocation = gl.getAttribLocation(program, "aPosition");
       this._colorLocation = gl.getAttribLocation(program, "aColor");
+      this._sizeLocation = gl.getAttribLocation(program, "aSize");
+      this._outlineColorLocation = gl.getAttribLocation(program, "aOutlineColor");
+      this._outlineWidthLocation = gl.getAttribLocation(program, "aOutlineWidth");
       this._matrixLocation = gl.getUniformLocation(program, "uViewProjection");
-      this._sizeLocation = gl.getUniformLocation(program, "uPointSize");
+      this._shapeLocation = gl.getUniformLocation(program, "uShape");
+      this._outlineColorUniformLocation = gl.getUniformLocation(program, "uOutlineColor");
+      this._outlineWidthUniformLocation = gl.getUniformLocation(program, "uOutlineWidth");
       return Boolean(this._buffer);
     }
     draw(camera) {
@@ -72694,20 +72746,42 @@ ${nodesText}`;
       for (var column = 0; column < 4; column++) for (var row = 0; row < 4; row++) {
         matrix[column * 4 + row] = projection[row] * view[column * 4] + projection[4 + row] * view[column * 4 + 1] + projection[8 + row] * view[column * 4 + 2] + projection[12 + row] * view[column * 4 + 3];
       }
+      var shape = this._resolveParticleShape(this.options.particleOptions?.shape || "circle");
+      var outline = this.options.particleOptions?.outline || { width: 0, color: [0, 0, 0, 1] };
+      var outlineWidth = clamp(Number(outline.width) || 0, 0, 1);
+      var outlineColor = Array.from({ length: 4 }, (_, i2) => Number(outline.color?.[i2] ?? (i2 === 3 ? 1 : 0)));
       var data = [];
       for (var particle of this._particles) {
-        data.push(...particle.position, ...particle.color, Math.max(0, Math.min(1, particle.opacity)));
+        var particleOutline = particle.outline || { width: 0, color: [0, 0, 0, 1] };
+        var particleOutlineColor = Array.from({ length: 4 }, (_, i2) => Number(particleOutline.color?.[i2] ?? (i2 === 3 ? 1 : 0)));
+        var particleSize = Math.max(0, Number(particle.size) || 0);
+        data.push(
+          ...particle.position,
+          ...particle.color || [1, 1, 1],
+          1,
+          particleSize,
+          ...particleOutlineColor,
+          clamp(Number(particleOutline.width) || 0, 0, 1)
+        );
       }
       gl.useProgram(this._program);
       gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
-      var stride = 7 * Float32Array.BYTES_PER_ELEMENT;
+      var stride = (3 + 4 + 1 + 1 + 4 + 1) * Float32Array.BYTES_PER_ELEMENT;
       gl.enableVertexAttribArray(this._positionLocation);
       gl.vertexAttribPointer(this._positionLocation, 3, gl.FLOAT, false, stride, 0);
       gl.enableVertexAttribArray(this._colorLocation);
       gl.vertexAttribPointer(this._colorLocation, 4, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT);
+      gl.enableVertexAttribArray(this._sizeLocation);
+      gl.vertexAttribPointer(this._sizeLocation, 1, gl.FLOAT, false, stride, (3 + 4) * Float32Array.BYTES_PER_ELEMENT);
+      gl.enableVertexAttribArray(this._outlineColorLocation);
+      gl.vertexAttribPointer(this._outlineColorLocation, 4, gl.FLOAT, false, stride, (3 + 4 + 1) * Float32Array.BYTES_PER_ELEMENT);
+      gl.enableVertexAttribArray(this._outlineWidthLocation);
+      gl.vertexAttribPointer(this._outlineWidthLocation, 1, gl.FLOAT, false, stride, (3 + 4 + 1 + 4) * Float32Array.BYTES_PER_ELEMENT);
       gl.uniformMatrix4fv(this._matrixLocation, false, matrix);
-      gl.uniform1f(this._sizeLocation, Math.max(1, Number(this.options.particleOptions.size?.start) || 4));
+      gl.uniform1f(this._shapeLocation, shape);
+      gl.uniform4fv(this._outlineColorUniformLocation, new Float32Array(outlineColor));
+      gl.uniform1f(this._outlineWidthUniformLocation, outlineWidth);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.drawArrays(gl.POINTS, 0, this._particles.length);
