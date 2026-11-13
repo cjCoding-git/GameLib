@@ -195,6 +195,7 @@ class GameLib extends GameLibCore.GameLibBase {
   mainloop() {
     this.update();
     this.draw();
+    this.updateFPS();
     this.registerMainloop();
   }
   registerMainloop() {
