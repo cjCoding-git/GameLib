@@ -3,6 +3,13 @@ class Utils {
   constructor() {
     throw new GameLibCore.Error("Class Utils may not be constructed!");
   }
+  static getPreciseTimestamp() {
+    try {
+      return performance.now() || Date.now();
+    } catch(err) {
+      return Date.now();
+    }
+  }
   static createCanvas(width, height) {
     var element = document.createElement('canvas');
     element.width = width;
