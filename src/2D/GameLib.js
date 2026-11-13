@@ -43,7 +43,7 @@ class GameLib extends GameLibCore.GameLibBase {
     var currentTime = GameLibCore.Utils.getPreciseTimestamp();
     var deltaTime = currentTime - this._lastTimestamp;
     this.fps = 1000 / deltaTime;
-    this._lastTimeStamp = currentTime;
+    this._lastTimestamp = currentTime;
   }
   normalizeSpeed(speed, expectedFramerate=60) {
     var framerateMultiplier = this.fps / expectedFramerate;
