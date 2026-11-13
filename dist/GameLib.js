@@ -1760,7 +1760,7 @@
       this._lastTimestamp = currentTime;
     }
     normalizeSpeed(speed, expectedFramerate = 60) {
-      var framerateMultiplier = this.fps / expectedFramerate;
+      var framerateMultiplier = expectedFramerate / this.fps;
       return speed * framerateMultiplier;
     }
     contextMenu(evt) {
@@ -3624,7 +3624,7 @@ ${nodesText}`;
       this._lastTimestamp = currentTime;
     }
     normalizeSpeed(speed, expectedFramerate = 60) {
-      var framerateMultiplier = this.fps / expectedFramerate;
+      var framerateMultiplier = expectedFramerate / this.fps;
       return speed * framerateMultiplier;
     }
     setSkybox(skybox) {
