@@ -1757,7 +1757,7 @@
       var currentTime = GameLibCore2.Utils.getPreciseTimestamp();
       var deltaTime = currentTime - this._lastTimestamp;
       this.fps = 1e3 / deltaTime;
-      this._lastTimeStamp = currentTime;
+      this._lastTimestamp = currentTime;
     }
     normalizeSpeed(speed, expectedFramerate = 60) {
       var framerateMultiplier = this.fps / expectedFramerate;
@@ -3621,7 +3621,7 @@ ${nodesText}`;
       var currentTime = GameLibCore2.Utils.getPreciseTimestamp();
       var deltaTime = currentTime - this._lastTimestamp;
       this.fps = 1e3 / deltaTime;
-      this._lastTimeStamp = currentTime;
+      this._lastTimestamp = currentTime;
     }
     normalizeSpeed(speed, expectedFramerate = 60) {
       var framerateMultiplier = this.fps / expectedFramerate;
