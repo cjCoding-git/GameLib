@@ -40,7 +40,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this._lastTimestamp = currentTime;
   }
   normalizeSpeed(speed, expectedFramerate=60) {
-    var framerateMultiplier = this.fps / expectedFramerate;
+    var framerateMultiplier = expectedFramerate / this.fps;
     return speed * framerateMultiplier;
   }
   setSkybox(skybox) {
