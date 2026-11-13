@@ -11,6 +11,32 @@ class Sprite extends Box {
     this.ctx = this.gameLib.ctx;
     this.triggers = [];
   }
+  moveToward(other, speed) {
+    var dx = other.x - this.x;
+    var dy = other.y - this.y;
+    var distance = Math.hypot(dx, dy);
+    if(distance <= speed || distance === 0) {
+      this.x = other.x;
+      this.y = other.y;
+    } else {
+      var ratio = speed / distance;
+      this.x = this.x + dx * ratio;
+      this.y = this.y + dy * ratio;
+    }
+  }
+  moveAway(other, speed) {
+    var dx = this.x - other.x;
+    var dy = this.y - other.y
+    var distance = Math.hypot(dx, dy);
+    if(distance === 0) {
+      this.x = this.x + speed;
+    } else {
+      var nx = dx / distance;
+      var ny = dy / distance;
+      this.x = this.x + nx * speed;
+      this.y = this.y + ny * speed;
+    }
+  }
   update() {}
   draw() {
     if(this.image != null) {
