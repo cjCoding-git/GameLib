@@ -362,6 +362,13 @@
     constructor() {
       throw new GameLibCore2.Error("Class Utils may not be constructed!");
     }
+    static getPreciseTimestamp() {
+      try {
+        return performance.now() || Date.now();
+      } catch (err) {
+        return Date.now();
+      }
+    }
     static createCanvas(width, height) {
       var element = document.createElement("canvas");
       element.width = width;
@@ -1536,6 +1543,32 @@
       this.ctx = this.gameLib.ctx;
       this.triggers = [];
     }
+    moveToward(other, speed) {
+      var dx = other.x - this.x;
+      var dy = other.y - this.y;
+      var distance = Math.hypot(dx, dy);
+      if (distance <= speed || distance === 0) {
+        this.x = other.x;
+        this.y = other.y;
+      } else {
+        var ratio = speed / distance;
+        this.x = this.x + dx * ratio;
+        this.y = this.y + dy * ratio;
+      }
+    }
+    moveAway(other, speed) {
+      var dx = this.x - other.x;
+      var dy = this.y - other.y;
+      var distance = Math.hypot(dx, dy);
+      if (distance === 0) {
+        this.x = this.x + speed;
+      } else {
+        var nx = dx / distance;
+        var ny = dy / distance;
+        this.x = this.x + nx * speed;
+        this.y = this.y + ny * speed;
+      }
+    }
     update() {
     }
     draw() {
@@ -1714,9 +1747,21 @@
         this.inputManager.addMouseListener("click", this.checkButtons.bind(this), false);
         window.addEventListener("contextmenu", this.contextMenu.bind(this), false);
         this._listeners = {};
+        this._lastTimestamp = GameLibCore2.Utils.getPreciseTimestamp();
+        this.fps = 0;
         this.registerMainloop();
         _GameLib._instance = this;
       }
+    }
+    updateFPS() {
+      var currentTime = GameLibCore2.Utils.getPreciseTimestamp();
+      var deltaTime = currentTime - this._lastTimestamp;
+      this.fps = 1e3 / deltaTime;
+      this._lastTimeStamp = currentTime;
+    }
+    normalizeSpeed(speed, expectedFramerate = 60) {
+      var framerateMultiplier = this.fps / expectedFramerate;
+      return speed * framerateMultiplier;
     }
     contextMenu(evt) {
       evt.preventDefault();
@@ -1866,6 +1911,7 @@
       this._viewport.size = size;
     }
     mainloop() {
+      this.updateFPS();
       this.update();
       this.draw();
       this.registerMainloop();
@@ -3564,10 +3610,22 @@ ${nodesText}`;
         this._uiRenderer.addObject(this._uiLoading);
         this._listeners = {};
         this._skybox = null;
+        this._lastTimestamp = GameLibCore2.Utils.getPreciseTimestamp();
+        this.fps = 0;
         this.registerMainloop();
         this._gl.clearColor(...this._clearColor);
         GameLib3D.GameLib._instance = this;
       }
+    }
+    updateFPS() {
+      var currentTime = GameLibCore2.Utils.getPreciseTimestamp();
+      var deltaTime = currentTime - this._lastTimestamp;
+      this.fps = 1e3 / deltaTime;
+      this._lastTimeStamp = currentTime;
+    }
+    normalizeSpeed(speed, expectedFramerate = 60) {
+      var framerateMultiplier = this.fps / expectedFramerate;
+      return speed * framerateMultiplier;
     }
     setSkybox(skybox) {
       this._skybox = skybox;
