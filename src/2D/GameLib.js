@@ -33,9 +33,21 @@ class GameLib extends GameLibCore.GameLibBase {
       this.inputManager.addMouseListener('click', this.checkButtons.bind(this), false);
       window.addEventListener('contextmenu', this.contextMenu.bind(this), false);
       this._listeners = {};
+      this._lastTimestamp = GameLibCore.Utils.getPreciseTimestamp();
+      this.fps = 0;
       this.registerMainloop();
       GameLib._instance = this;
     }
+  }
+  updateFPS() {
+    var currentTime = GameLibCore.Utils.getPreciseTimestamp();
+    var deltaTime = currentTime - this._lastTimestamp;
+    this.fps = 1000 / deltaTime;
+    this._lastTimeStamp = currentTime;
+  }
+  normalizeSpeed(speed, expectedFramerate=60) {
+    var framerateMultiplier = this.fps / expectedFramerate;
+    return speed * framerateMultiplier;
   }
   contextMenu(evt) {
     evt.preventDefault();
@@ -185,6 +197,7 @@ class GameLib extends GameLibCore.GameLibBase {
     this._viewport.size = size;
   }
   mainloop() {
+    this.updateFPS();
     this.update();
     this.draw();
     this.registerMainloop();
