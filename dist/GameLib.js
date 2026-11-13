@@ -3777,6 +3777,7 @@ ${nodesText}`;
       this._uiRenderer.removeObject(id);
     }
     mainloop() {
+      this.updateFPS();
       this.update();
       this.draw();
       this.registerMainloop();
